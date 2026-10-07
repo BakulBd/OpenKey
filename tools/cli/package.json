@@ -1,19 +1,20 @@
 {
-  "name": "@openak820/cli",
+  "name": "@openkey/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "MIT",
   "bin": {
-    "openak820": "./dist/openak820.mjs"
+    "openkey": "./dist/openkey.mjs",
+    "openak820": "./dist/openkey.mjs"
   },
   "dependencies": {
-    "@openak820/core": "workspace:*",
-    "@openak820/hid": "workspace:*",
-    "@openak820/hid-node": "workspace:*",
-    "@openak820/profiles": "workspace:*",
-    "@openak820/protocols": "workspace:*",
-    "@openak820/tft": "workspace:*",
+    "@openkey/core": "workspace:*",
+    "@openkey/hid": "workspace:*",
+    "@openkey/hid-node": "workspace:*",
+    "@openkey/devices": "workspace:*",
+    "@openkey/protocols": "workspace:*",
+    "@openkey/tft": "workspace:*",
     "jpeg-js": "^0.4.4",
     "node-hid": "^3.1.2",
     "pngjs": "^7.0.0"

@@ -1,4 +1,4 @@
-import { FeatureStatus, configurable, feature } from '@openak820/core';
+import { FeatureStatus, configurable, feature } from '@openkey/core';
 import {
   BaseKeyboardDriver,
   Confidence,
@@ -7,7 +7,7 @@ import {
   UnsupportedFeatureError,
   emptyCapabilities,
   hex16,
-} from '@openak820/core';
+} from '@openkey/core';
 import type {
   Capabilities,
   DeviceInfo,
@@ -29,10 +29,10 @@ import type {
   TftStatus,
   TransportMode,
   UploadOptions,
-} from '@openak820/core';
-import { LoggingTransport, findInterface, maxReportSize } from '@openak820/hid';
-import type { HidDeviceGroup, HidTransport } from '@openak820/hid';
-import { getLayout, getProfile } from '@openak820/profiles';
+} from '@openkey/core';
+import { LoggingTransport, findInterface, maxReportSize } from '@openkey/hid';
+import type { HidDeviceGroup, HidTransport } from '@openkey/hid';
+import { getLayout, getProfile } from '@openkey/devices';
 import type { DriverOptions } from '../../registry.js';
 import { decodePerKeyEntries, encodePerKeyEntries } from '../common/per-key.js';
 import { SONIX_FEATURE_EFFECTS } from '../sonix-feature/codecs/lighting.js';
@@ -151,7 +151,7 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
       note: 'wheelKeys is empty for the AK820 Pro in the online driver.',
     });
     if (this.tftLink) {
-      c.tft = configurable('none', true, Confidence.INFERRED, { note: 'Chunk format from the online driver; not hardware-verified by OpenAK820 (experimental).' });
+      c.tft = configurable('none', true, Confidence.INFERRED, { note: 'Chunk format from the online driver; not hardware-verified by OpenKey (experimental).' });
       c.tftGif = { ...c.tft };
       c.tftClock = configurable('none', true, Confidence.INFERRED);
       c.tftBuiltIn = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, { confidence: Confidence.INFERRED, note: 'SET_TFT_BUILT_IN_INDEX exists; built-in count unknown.' });

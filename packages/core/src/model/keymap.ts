@@ -23,7 +23,7 @@ export type KeyAction =
   | { kind: 'layer'; layer: number; mode: 'momentary' | 'toggle' }
   /** Vendor function (lighting control, profile switch …) identified by a protocol-specific code. */
   | { kind: 'special'; code: number; label?: string }
-  /** Encoding OpenAK820 does not understand; preserved byte-for-byte. */
+  /** Encoding OpenKey does not understand; preserved byte-for-byte. */
   | { kind: 'raw'; bytes: number[] };
 
 export type LayerId = 'base' | 'fn';
@@ -32,7 +32,7 @@ export type LayerId = 'base' | 'fn';
 export interface KeymapState {
   layer: LayerId;
   slots: Record<number, KeyAction>;
-  /** `device` when read back from firmware; `mirror` when reconstructed from OpenAK820's last write. */
+  /** `device` when read back from firmware; `mirror` when reconstructed from OpenKey's last write. */
   provenance: 'device' | 'mirror' | 'assumed-default';
   updatedAt?: string;
 }

@@ -13,7 +13,7 @@ import {
   planRestore,
   rgbToHex,
   validateBackup,
-} from '@openak820/core';
+} from '@openkey/core';
 import type {
   Direction,
   KeyboardDriver,
@@ -23,10 +23,10 @@ import type {
   MacroEvent,
   PerKeyRgb,
   RgbConfig,
-} from '@openak820/core';
-import { createDefaultRegistry, formatDetectionReport } from '@openak820/protocols';
-import type { ProbeLevel } from '@openak820/protocols';
-import { fromRgb565le, prepareAnimation } from '@openak820/tft';
+} from '@openkey/core';
+import { createDefaultRegistry, formatDetectionReport } from '@openkey/protocols';
+import type { ProbeLevel } from '@openkey/protocols';
+import { fromRgb565le, prepareAnimation } from '@openkey/tft';
 import { findKey, formatAction, parseActionSpec, parseKeyName } from './action-spec.js';
 import {
   backupDir,
@@ -41,9 +41,9 @@ import type { GlobalFlags } from './context.js';
 import { loadFrames, savePng } from './images.js';
 import { inspectText } from './inspect.js';
 
-const HELP = `openak820 – open-source configurator for the AJAZZ AK820 keyboard family
+const HELP = `openkey – open-source configurator for the AJAZZ AK820 keyboard family
 
-Usage: openak820 <command> [options]
+Usage: openkey <command> [options]
 
 Discovery
   list                         List AK820-family HID devices (no I/O, no permissions needed)
@@ -69,7 +69,7 @@ Configuration (writes ask for confirmation unless --yes)
 
 Global options
   --device <index|key>  --protocol <id>  --json  --verbose  --yes  --experimental  --debug
-  OPENAK820_DEBUG=1 prints every HID report.
+  OPENKEY_DEBUG=1 prints every HID report.
 `;
 
 function parse(argv: string[]) {
@@ -130,7 +130,7 @@ const out = (flags: GlobalFlags, data: unknown, text: () => string): void => {
 };
 
 async function autoBackup(driver: KeyboardDriver): Promise<string> {
-  const b = await collectBackup(driver, 'openak820-cli (automatic pre-write backup)');
+  const b = await collectBackup(driver, 'openkey-cli (automatic pre-write backup)');
   const file = path.join(backupDir(), `${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
   await writeJsonFile(file, b);
   return file;
@@ -268,7 +268,7 @@ async function cmdKeymap(
       const km = await d.getKeymap(layer);
       out(flags, km, () =>
         [
-          `Layer: ${layer}   source: ${km.provenance}${km.provenance !== 'device' ? ' (the firmware cannot report its keymap; showing what OpenAK820 last wrote)' : ''}`,
+          `Layer: ${layer}   source: ${km.provenance}${km.provenance !== 'device' ? ' (the firmware cannot report its keymap; showing what OpenKey last wrote)' : ''}`,
           ...layout.keys.map(
             (k) =>
               `  ${k.label.padEnd(10)} #${String(k.slot).padEnd(4)} ${km.slots[k.slot] ? formatAction(km.slots[k.slot]!) : 'default'}`,
@@ -323,7 +323,7 @@ async function cmdRgb(flags: GlobalFlags, p: Parsed, sub: string | undefined): P
         flags,
         cur,
         () =>
-          `effect=${cur.effect} (${cat.effects.find((e) => e.id === cur.effect)?.name ?? 'custom'}) color=${rgbToHex(cur.color)} colorful=${cur.colorful} brightness=${cur.brightness} speed=${cur.speed} direction=${cur.direction}  [source: OpenAK820 mirror]`,
+          `effect=${cur.effect} (${cat.effects.find((e) => e.id === cur.effect)?.name ?? 'custom'}) color=${rgbToHex(cur.color)} colorful=${cur.colorful} brightness=${cur.brightness} speed=${cur.speed} direction=${cur.direction}  [source: OpenKey mirror]`,
       );
       return;
     }
@@ -335,7 +335,7 @@ async function cmdRgb(flags: GlobalFlags, p: Parsed, sub: string | undefined): P
           ? cat.effects.find((e) => e.name.toLowerCase() === v.effect!.toLowerCase())?.id
           : Number(v.effect);
     if (effect === undefined)
-      throw new Error(`Unknown effect ${v.effect}; see "openak820 rgb effects"`);
+      throw new Error(`Unknown effect ${v.effect}; see "openkey rgb effects"`);
     const next: RgbConfig = {
       effect,
       color: v.color ? hexToRgb(v.color) : cur.color,
@@ -426,7 +426,7 @@ async function cmdMacro(
           ? macros
               .map((m) => `  #${m.index}${m.name ? ` ${m.name}` : ''}: ${macroToText(m)}`)
               .join('\n')
-          : 'No macros (as last written by OpenAK820).',
+          : 'No macros (as last written by OpenKey).',
       );
       return;
     }
@@ -458,7 +458,7 @@ async function cmdSettings(flags: GlobalFlags, p: Parsed, sub: string | undefine
           `sleep: ${schema.sleepTime?.find((o) => o.value === cur.sleepTime)?.label ?? cur.sleepTime}`,
           `key response: ${schema.keyResponseTime?.find((o) => o.value === cur.keyResponseTime)?.label ?? cur.keyResponseTime}`,
           `win key disabled: ${cur.disableWinKey}  alt+tab disabled: ${cur.disableAltTab}  alt+f4 disabled: ${cur.disableAltF4}`,
-          '[source: OpenAK820 mirror – the firmware does not report settings]',
+          '[source: OpenKey mirror – the firmware does not report settings]',
         ].join('\n'),
       );
       return;
@@ -494,7 +494,7 @@ async function cmdTft(
         flags,
         { info, status: st },
         () =>
-          `${info.width}×${info.height} ${info.pixelFormat}, up to ${info.maxFrames} frames, delay ${info.minDelayMs}–${info.maxDelayMs} ms in ${info.delayUnitMs} ms steps, ${info.slots} slot(s)${st.lastUpload ? `\nLast upload by OpenAK820: ${st.lastUpload.frames} frame(s) at ${st.lastUpload.at}` : ''}`,
+          `${info.width}×${info.height} ${info.pixelFormat}, up to ${info.maxFrames} frames, delay ${info.minDelayMs}–${info.maxDelayMs} ms in ${info.delayUnitMs} ms steps, ${info.slots} slot(s)${st.lastUpload ? `\nLast upload by OpenKey: ${st.lastUpload.frames} frame(s) at ${st.lastUpload.at}` : ''}`,
       );
       return;
     }
@@ -531,7 +531,7 @@ async function cmdTft(
 
 async function cmdBackup(flags: GlobalFlags, args: string[]): Promise<void> {
   await withDriver(flags, async (d) => {
-    const b = await collectBackup(d, 'openak820-cli');
+    const b = await collectBackup(d, 'openkey-cli');
     const file =
       args[0] ?? path.join(backupDir(), `${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
     await writeJsonFile(file, b);
@@ -632,6 +632,6 @@ async function main(): Promise<void> {
 main().catch((e) => {
   const x = explainError(e);
   console.error(`Error: ${x.title}\n  ${x.detail}${x.hint ? `\n  Hint: ${x.hint}` : ''}`);
-  if (process.env.OPENAK820_DEBUG === '1' && e instanceof Error) console.error(e.stack);
+  if (process.env.OPENKEY_DEBUG === '1' && e instanceof Error) console.error(e.stack);
   process.exit(1);
 });

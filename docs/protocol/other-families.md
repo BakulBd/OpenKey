@@ -11,7 +11,7 @@ Evidence: official AK820 MAX driver `config.xml` (modes `2.4G TYPE-A`: `05AC:024
 - Ping `20 01` → pong `20 01` (link up); status reports on page FFFF (`05 A6 … state`).
 - Official `menu_wireless`: macro, lighting, user lighting and music available; **screen not available**.
 
-OpenAK820 status: detection + ping probe; lighting writes behind experimental mode.
+OpenKey status: detection + ping probe; lighting writes behind experimental mode.
 
 ## `crs-aa55cc33`: CRS-controller AK820 Max Plus
 
@@ -20,11 +20,11 @@ VID `1A2C`, PIDs `8FFF`/`A036`, vendor page FF02, 64-byte output reports startin
 Ops: `07` mode (`mode bright speed dir colorIdx colorIdx2`, or `17 …` to enter custom mode),
 `0B` begin edit, `09` apply, `0A` persist (sent twice), `0E` heartbeat, `F6`–`FB` 6 × 18 LEDs RGB.
 
-OpenAK820 status: detection without I/O; writes behind experimental mode.
+OpenKey status: detection without I/O; writes behind experimental mode.
 
 ## `qmk-via`: community QMK
 
-FF60:0061 raw HID, 32-byte reports. Probe: VIA `id_get_protocol_version` (0x01). OpenAK820 identifies
+FF60:0061 raw HID, 32-byte reports. Probe: VIA `id_get_protocol_version` (0x01). OpenKey identifies
 such boards and directs users to VIA/Vial; it does not reimplement VIA.
 
 ## Not supported

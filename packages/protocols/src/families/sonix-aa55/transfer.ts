@@ -4,9 +4,9 @@ import {
   TimeoutError,
   sleep as realSleep,
   toHex,
-} from '@openak820/core';
-import type { HidTransport } from '@openak820/hid';
-import { maxReportSize } from '@openak820/hid';
+} from '@openkey/core';
+import type { HidTransport } from '@openkey/hid';
+import { maxReportSize } from '@openkey/hid';
 import {
   BLOCKED_COMMANDS,
   CMD_NAMES,
@@ -126,7 +126,7 @@ export class Aa55Link {
   async transfer(o: TransferOptions): Promise<ParsedResponse[]> {
     if (BLOCKED_COMMANDS.has(o.cmd))
       throw new SafetyBlockedError(
-        `Command 0x${o.cmd.toString(16)} is blocked by the OpenAK820 safety policy`,
+        `Command 0x${o.cmd.toString(16)} is blocked by the OpenKey safety policy`,
       );
     const contentSize = o.contentSize ?? 24;
     const header = o.headerCount ?? HEADER_BYTES;

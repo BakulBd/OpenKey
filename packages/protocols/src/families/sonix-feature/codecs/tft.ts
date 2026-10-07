@@ -1,5 +1,5 @@
-import { TftUploadError } from '@openak820/core';
-import type { TftFrame } from '@openak820/core';
+import { TftUploadError } from '@openkey/core';
+import type { TftFrame } from '@openkey/core';
 import { DATA_CHUNK_SIZE, TFT_DELAY_UNIT_MS, TFT_HEADER_BYTES } from '../constants.js';
 
 /**

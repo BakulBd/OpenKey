@@ -1,5 +1,5 @@
 {
-  "name": "@openak820/hid-node",
+  "name": "@openkey/hid-node",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@openak820/core": "workspace:*",
-    "@openak820/hid": "workspace:*",
+    "@openkey/core": "workspace:*",
+    "@openkey/hid": "workspace:*",
     "node-hid": "^3.1.2"
   }
 }

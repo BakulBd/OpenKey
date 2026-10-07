@@ -1,5 +1,5 @@
-import { ProtocolError, u16le, writeU16le } from '@openak820/core';
-import type { Macro, MacroEvent, MacroLimits } from '@openak820/core';
+import { ProtocolError, u16le, writeU16le } from '@openkey/core';
+import type { Macro, MacroEvent, MacroLimits } from '@openkey/core';
 import {
   MACRO_BUFFER_BYTES,
   MACRO_EMPTY_ENTRY,

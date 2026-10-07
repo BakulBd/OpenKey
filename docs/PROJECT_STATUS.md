@@ -7,7 +7,7 @@ Test hardware: one AJAZZ AK820 MAX PLUS TFT (`0C45:8009` "AK820 MAX", bcdDevice 
 
 | Item | Evidence |
 |---|---|
-| Dynamic detection from HID descriptors (no VID/PID or hidraw shortcuts) | `openak820 detect --verbose`, five families evaluated |
+| Dynamic detection from HID descriptors (no VID/PID or hidraw shortcuts) | `openkey detect --verbose`, five families evaluated |
 | Protocol confirmation via the official START handshake (`04 18` → `04 18 00 01`) | `fixtures/device-info/ak820-max-plus-start-handshake-hw.json` |
 | Per-key colour table read (`F5`) | `fixtures/rgb/ak820-max-plus-read-per-key-hw.json` |
 | Device identity (VID, PID, product, manufacturer, bcdDevice, interfaces, endpoints, report sizes) | `pnpm inspect` |
@@ -60,6 +60,6 @@ the official driver's expectations; they are not evidence about the firmware.
 
 1. With the owner's consent: run the write experiments one at a time (lighting → per-key → clock →
    settings → keymap → macros → TFT), read back where possible, record fixtures, promote to CONFIRMED.
-2. Plug in the 2.4 GHz receiver and run `pnpm inspect`, `openak820 detect`.
-3. Measure the actual report cadence with `openak820 polling` while typing.
+2. Plug in the 2.4 GHz receiver and run `pnpm inspect`, `openkey detect`.
+3. Measure the actual report cadence with `openkey polling` while typing.
 4. Capture the official driver in a Windows VM for the open questions above.

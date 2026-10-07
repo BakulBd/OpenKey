@@ -11,22 +11,22 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0)
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:^
         version: link:packages/core
-      '@openak820/hid':
+      '@openkey/devices':
+        specifier: workspace:^
+        version: link:packages/devices
+      '@openkey/hid':
         specifier: workspace:^
         version: link:packages/hid
-      '@openak820/hid-node':
+      '@openkey/hid-node':
         specifier: workspace:^
         version: link:packages/hid-node
-      '@openak820/profiles':
-        specifier: workspace:^
-        version: link:packages/profiles
-      '@openak820/protocols':
+      '@openkey/protocols':
         specifier: workspace:^
         version: link:packages/protocols
-      '@openak820/tft':
+      '@openkey/tft':
         specifier: workspace:^
         version: link:packages/tft
       '@types/node':
@@ -59,19 +59,19 @@ importers:
 
   apps/web:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@openak820/hid':
+      '@openkey/devices':
+        specifier: workspace:*
+        version: link:../../packages/devices
+      '@openkey/hid':
         specifier: workspace:*
         version: link:../../packages/hid
-      '@openak820/profiles':
-        specifier: workspace:*
-        version: link:../../packages/profiles
-      '@openak820/protocols':
+      '@openkey/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
-      '@openak820/tft':
+      '@openkey/tft':
         specifier: workspace:*
         version: link:../../packages/tft
       react:
@@ -99,48 +99,48 @@ importers:
 
   packages/core: {}
 
+  packages/devices:
+    dependencies:
+      '@openkey/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/hid:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../core
 
   packages/hid-node:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../core
-      '@openak820/hid':
+      '@openkey/hid':
         specifier: workspace:*
         version: link:../hid
       node-hid:
         specifier: ^3.1.2
         version: 3.4.0
 
-  packages/profiles:
-    dependencies:
-      '@openak820/core':
-        specifier: workspace:*
-        version: link:../core
-
   packages/protocols:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../core
-      '@openak820/hid':
+      '@openkey/devices':
+        specifier: workspace:*
+        version: link:../devices
+      '@openkey/hid':
         specifier: workspace:*
         version: link:../hid
-      '@openak820/profiles':
-        specifier: workspace:*
-        version: link:../profiles
-      '@openak820/tft':
+      '@openkey/tft':
         specifier: workspace:*
         version: link:../tft
 
   packages/tft:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../core
       gifuct-js:
@@ -149,37 +149,37 @@ importers:
 
   tools/capture:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@openak820/hid':
+      '@openkey/hid':
         specifier: workspace:*
         version: link:../../packages/hid
-      '@openak820/hid-node':
+      '@openkey/hid-node':
         specifier: workspace:*
         version: link:../../packages/hid-node
-      '@openak820/protocols':
+      '@openkey/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
 
   tools/cli:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@openak820/hid':
+      '@openkey/devices':
+        specifier: workspace:*
+        version: link:../../packages/devices
+      '@openkey/hid':
         specifier: workspace:*
         version: link:../../packages/hid
-      '@openak820/hid-node':
+      '@openkey/hid-node':
         specifier: workspace:*
         version: link:../../packages/hid-node
-      '@openak820/profiles':
-        specifier: workspace:*
-        version: link:../../packages/profiles
-      '@openak820/protocols':
+      '@openkey/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
-      '@openak820/tft':
+      '@openkey/tft':
         specifier: workspace:*
         version: link:../../packages/tft
       jpeg-js:
@@ -198,46 +198,46 @@ importers:
 
   tools/device-inspector:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@openak820/hid':
+      '@openkey/hid':
         specifier: workspace:*
         version: link:../../packages/hid
-      '@openak820/hid-node':
+      '@openkey/hid-node':
         specifier: workspace:*
         version: link:../../packages/hid-node
-      '@openak820/protocols':
+      '@openkey/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
 
   tools/packet-diff:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@openak820/hid':
+      '@openkey/hid':
         specifier: workspace:*
         version: link:../../packages/hid
-      '@openak820/hid-node':
+      '@openkey/hid-node':
         specifier: workspace:*
         version: link:../../packages/hid-node
-      '@openak820/protocols':
+      '@openkey/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
 
   tools/probe-device:
     dependencies:
-      '@openak820/core':
+      '@openkey/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@openak820/hid':
+      '@openkey/hid':
         specifier: workspace:*
         version: link:../../packages/hid
-      '@openak820/hid-node':
+      '@openkey/hid-node':
         specifier: workspace:*
         version: link:../../packages/hid-node
-      '@openak820/protocols':
+      '@openkey/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
 

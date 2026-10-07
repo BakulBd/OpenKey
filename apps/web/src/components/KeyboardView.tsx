@@ -1,4 +1,4 @@
-import type { KeyboardLayout, PhysicalKey } from '@openak820/core';
+import type { KeyboardLayout, PhysicalKey } from '@openkey/core';
 
 export interface KeyboardViewProps {
   layout: KeyboardLayout;

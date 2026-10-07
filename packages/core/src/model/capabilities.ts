@@ -26,7 +26,7 @@ export const FEATURES = [
 export type FeatureId = (typeof FEATURES)[number];
 
 /**
- * What OpenAK820 knows about a feature. "Not implemented yet" is never reported as "not supported":
+ * What OpenKey knows about a feature. "Not implemented yet" is never reported as "not supported":
  * - CONFIGURABLE: read and/or write implemented.
  * - SUPPORTED_READ_ONLY: the value can be read, not changed.
  * - SUPPORTED_FIXED: exists with a fixed value (e.g. polling rate 1000 Hz, not adjustable).
@@ -49,7 +49,7 @@ export type FeatureStatus = (typeof FeatureStatus)[keyof typeof FeatureStatus];
 /**
  * Where reads come from:
  * - `device`: the firmware returns the value.
- * - `mirror`: the firmware is write-only for this feature; OpenAK820 shows what it last wrote.
+ * - `mirror`: the firmware is write-only for this feature; OpenKey shows what it last wrote.
  * - `none`: not readable at all.
  */
 export type ReadSource = 'device' | 'mirror' | 'none';

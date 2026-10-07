@@ -1,6 +1,6 @@
-import { Confidence, hex16, toHex } from '@openak820/core';
-import { findInterface, maxReportSize } from '@openak820/hid';
-import type { HidDeviceGroup } from '@openak820/hid';
+import { Confidence, hex16, toHex } from '@openkey/core';
+import { findInterface, maxReportSize } from '@openkey/hid';
+import type { HidDeviceGroup } from '@openkey/hid';
 import type {
   CandidateMatch,
   ProbeContext,

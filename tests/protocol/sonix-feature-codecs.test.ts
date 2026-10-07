@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Macro } from '@openak820/core';
-import { sonixFeature } from '@openak820/protocols';
+import type { Macro } from '@openkey/core';
+import { sonixFeature } from '@openkey/protocols';
 import { fixture, hex } from '../helpers.js';
 
 describe('sonix-feature framing', () => {

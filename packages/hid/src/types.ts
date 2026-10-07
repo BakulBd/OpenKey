@@ -1,4 +1,4 @@
-import type { DeviceIdentity, TransportMode } from '@openak820/core';
+import type { DeviceIdentity, TransportMode } from '@openkey/core';
 
 /** One report declared by a HID collection. `size` is in bytes, excluding the report-ID prefix. */
 export interface HidReportInfo {

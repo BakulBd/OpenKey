@@ -1,11 +1,14 @@
-import { promises as fs } from 'node:fs';
+import { existsSync, promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { StateStore } from '@openak820/core';
+import type { StateStore } from '@openkey/core';
 
 export function defaultStateDir(): string {
   const base = process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), '.config');
-  return path.join(base, 'openak820');
+  const dir = path.join(base, 'openkey');
+  // Keep using the pre-rename directory so mirrors and backups written by OpenAK820 stay visible.
+  const legacy = path.join(base, 'openak820');
+  return !existsSync(dir) && existsSync(legacy) ? legacy : dir;
 }
 
 /** JSON-file backed StateStore for the CLI (mirror state, last-written settings). */

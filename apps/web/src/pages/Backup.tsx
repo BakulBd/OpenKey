@@ -5,8 +5,8 @@ import {
   diffBackups,
   planRestore,
   validateBackup,
-} from '@openak820/core';
-import type { Backup, BackupChange, RestorePlan } from '@openak820/core';
+} from '@openkey/core';
+import type { Backup, BackupChange, RestorePlan } from '@openkey/core';
 import { useKeyboard } from '../state/keyboard.js';
 import { Card } from '../components/ui.js';
 
@@ -19,14 +19,14 @@ export function BackupPage() {
   if (!conn) return null;
 
   const exportBackup = async () => {
-    const b = await run('Create backup', (d) => collectBackup(d, 'OpenAK820 web'), { quiet: true });
+    const b = await run('Create backup', (d) => collectBackup(d, 'OpenKey web'), { quiet: true });
     if (!b) return;
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(b, null, 2)], { type: 'application/json' }),
     );
     const a = document.createElement('a');
     a.href = url;
-    a.download = `openak820-${b.device.profileId}-${b.createdAt.slice(0, 10)}.json`;
+    a.download = `openkey-${b.device.profileId}-${b.createdAt.slice(0, 10)}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
@@ -50,7 +50,7 @@ export function BackupPage() {
     <div className="page">
       <Card title="Export">
         <p>
-          Saves everything the keyboard reports plus what OpenAK820 remembers writing (marked per
+          Saves everything the keyboard reports plus what OpenKey remembers writing (marked per
           section) to a JSON file.
         </p>
         <button className="primary" onClick={() => void exportBackup()}>
@@ -103,12 +103,12 @@ export function BackupPage() {
               onClick={async () => {
                 const pre = await run(
                   'Pre-restore backup',
-                  (d) => collectBackup(d, 'OpenAK820 web (pre-restore)'),
+                  (d) => collectBackup(d, 'OpenKey web (pre-restore)'),
                   { quiet: true },
                 );
                 if (pre) {
                   try {
-                    localStorage.setItem('openak820.lastPreRestoreBackup', JSON.stringify(pre));
+                    localStorage.setItem('openkey.lastPreRestoreBackup', JSON.stringify(pre));
                   } catch {
                     /* ignore */
                   }

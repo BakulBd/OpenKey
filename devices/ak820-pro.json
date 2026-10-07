@@ -1,5 +1,5 @@
 {
-  "$schema": "./profile.schema.json",
+  "$schema": "./device.schema.json",
   "id": "ak820-pro",
   "model": "AJAZZ AK820 Pro",
   "notes": "Units whose firmware exposes the Windows-driver topology (FF13 feature control pipe + FF68 4096-byte data pipe).",

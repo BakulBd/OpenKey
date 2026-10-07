@@ -1,4 +1,4 @@
-import { MalformedResponseError, toHex } from '@openak820/core';
+import { MalformedResponseError, toHex } from '@openkey/core';
 import {
   ACK_OFFSET,
   ACK_OK,

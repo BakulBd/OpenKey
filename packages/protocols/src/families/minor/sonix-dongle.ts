@@ -1,4 +1,4 @@
-import { FeatureStatus } from '@openak820/core';
+import { FeatureStatus } from '@openkey/core';
 import {
   BaseKeyboardDriver,
   Confidence,
@@ -7,7 +7,7 @@ import {
   emptyCapabilities,
   clamp,
   toHex,
-} from '@openak820/core';
+} from '@openkey/core';
 import type {
   Capabilities,
   DeviceInfo,
@@ -15,10 +15,10 @@ import type {
   KeyboardLayout,
   RgbConfig,
   TransportMode,
-} from '@openak820/core';
-import { LoggingTransport, maxReportSize } from '@openak820/hid';
-import type { HidCollection, HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openak820/hid';
-import { getLayout } from '@openak820/profiles';
+} from '@openkey/core';
+import { LoggingTransport, maxReportSize } from '@openkey/hid';
+import type { HidCollection, HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
+import { getLayout } from '@openkey/devices';
 import type {
   CandidateMatch,
   DriverOptions,
@@ -32,7 +32,7 @@ import { DIRECTION_CODES, effectCatalog } from '../sonix-feature/codecs/lighting
  * 2.4 GHz receiver protocol. Evidence: official driver FUN_0044f5f0 (32-byte output report, byte
  * 31 = additive checksum, response matched on bytes 1–3) and FUN_0042b2a0 (lighting packet
  * 05 10 00 mode R G B … colorful brightness speed direction … AA 55); afonsusousa/mrworldwide
- * capture (ping 20 01 → pong 20 01). Not verified on hardware by OpenAK820.
+ * capture (ping 20 01 → pong 20 01). Not verified on hardware by OpenKey.
  */
 export const DONGLE_REPORT_BYTES = 32;
 export const PING = [0x20, 0x01];

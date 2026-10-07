@@ -1,8 +1,8 @@
 # Safety policy
 
-OpenAK820 configures keyboards; it never modifies firmware.
+OpenKey configures keyboards; it never modifies firmware.
 
-## What OpenAK820 sends
+## What OpenKey sends
 
 - Only commands whose packet layout was traced in official AJAZZ software or documented by a community
   source **and** listed in the protocol specifications under `docs/protocol/`.
@@ -14,7 +14,7 @@ OpenAK820 configures keyboards; it never modifies firmware.
 - Unrecognised product strings on a recognised protocol may not write keymaps until experimental mode is
   enabled, because key positions are unknown.
 
-## What OpenAK820 never sends
+## What OpenKey never sends
 
 Firmware flashing, bootloader/ISP entry, OTA commands, flash erase/download, calibration, factory reset,
 arbitrary memory writes, or any guessed/undocumented command. For the online-driver family these command
@@ -24,11 +24,11 @@ anything reaches the device. The Windows-protocol driver only contains encoders 
 ## Before writing
 
 - The CLI asks for confirmation (or `--yes`) and writes an automatic backup before keymap, macro and restore
-  operations (`~/.config/openak820/backups/`).
+  operations (`~/.config/openkey/backups/`).
 - The web app asks for confirmation once per session and offers backup export/import with a change preview.
 - Settings the firmware cannot report are kept as "mirrors" so they can be backed up and restored.
 
 ## Recovery
 
-Firmware defaults: the keymap can be reset with an all-default table (`openak820 keymap reset`). Many AK820
-boards also reset with Fn+Esc held for a few seconds (vendor behaviour, not driven by OpenAK820).
+Firmware defaults: the keymap can be reset with an all-default table (`openkey keymap reset`). Many AK820
+boards also reset with Fn+Esc held for a few seconds (vendor behaviour, not driven by OpenKey).

@@ -1,12 +1,12 @@
 import { createInterface } from 'node:readline/promises';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { DeviceNotFoundError, PacketLog, formatPacket, isDebugEnabled } from '@openak820/core';
-import type { KeyboardDriver, StateStore } from '@openak820/core';
-import { FileStateStore, defaultStateDir, enumerateLinux } from '@openak820/hid-node';
-import type { LinuxDeviceGroup } from '@openak820/hid-node';
-import { connectKeyboard, createDefaultRegistry } from '@openak820/protocols';
-import type { DetectionReport, ProbeLevel } from '@openak820/protocols';
+import { DeviceNotFoundError, PacketLog, formatPacket, isDebugEnabled } from '@openkey/core';
+import type { KeyboardDriver, StateStore } from '@openkey/core';
+import { FileStateStore, defaultStateDir, enumerateLinux } from '@openkey/hid-node';
+import type { LinuxDeviceGroup } from '@openkey/hid-node';
+import { connectKeyboard, createDefaultRegistry } from '@openkey/protocols';
+import type { DetectionReport, ProbeLevel } from '@openkey/protocols';
 
 /** Vendor IDs used by AK820-family keyboards and receivers. 0x05AC only for the Apple-VID 2.4G dongle. */
 export const FAMILY_VENDOR_IDS = [0x0c45, 0x1a2c, 0x05ac];

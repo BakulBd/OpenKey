@@ -1,5 +1,5 @@
-import { Confidence, FeatureStatus, configurable, emptyCapabilities, feature } from '@openak820/core';
-import type { Capabilities, TransportMode } from '@openak820/core';
+import { Confidence, FeatureStatus, configurable, emptyCapabilities, feature } from '@openkey/core';
+import type { Capabilities, TransportMode } from '@openkey/core';
 import type { SonixFeatureVariant } from './variants.js';
 
 const S = Confidence.STRONGLY_SUPPORTED;
@@ -45,7 +45,7 @@ export function sonixFeatureCapabilities(variant: SonixFeatureVariant, transport
     return caps;
   }
 
-  caps.keymap = configurable('mirror', true, S, { note: 'The firmware cannot report its keymap; OpenAK820 shows what it last wrote.' });
+  caps.keymap = configurable('mirror', true, S, { note: 'The firmware cannot report its keymap; OpenKey shows what it last wrote.' });
   caps.fnLayer = configurable('mirror', true, S);
   caps.macros = configurable('mirror', true, S);
   caps.rgb = configurable('mirror', true, S);
@@ -73,7 +73,7 @@ export function sonixFeatureCapabilities(variant: SonixFeatureVariant, transport
   caps.pollingRate = feature(FeatureStatus.SUPPORTED_FIXED, {
     confidence: C,
     value: transport === 'usb' ? '1000 Hz ceiling (bInterval 1 ms), fixed' : 'set by the receiver',
-    note: 'Declared USB interrupt interval 1 ms on all interfaces. No polling-rate command exists in the official software. Actual report cadence: measure with `openak820 polling`.',
+    note: 'Declared USB interrupt interval 1 ms on all interfaces. No polling-rate command exists in the official software. Actual report cadence: measure with `openkey polling`.',
     source: 'lsusb -v / sysfs bInterval; official driver',
   });
   return caps;

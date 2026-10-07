@@ -1,4 +1,4 @@
-import type { PerKeyRgb } from '@openak820/core';
+import type { PerKeyRgb } from '@openkey/core';
 
 /**
  * Per-key colour tables are arrays of 4-byte entries [index, R, G, B] in both families

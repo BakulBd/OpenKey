@@ -1,13 +1,13 @@
 {
-  "name": "@openak820/tool-packet-diff",
+  "name": "@openkey/tool-packet-diff",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "MIT",
   "dependencies": {
-    "@openak820/core": "workspace:*",
-    "@openak820/hid": "workspace:*",
-    "@openak820/hid-node": "workspace:*",
-    "@openak820/protocols": "workspace:*"
+    "@openkey/core": "workspace:*",
+    "@openkey/hid": "workspace:*",
+    "@openkey/hid-node": "workspace:*",
+    "@openkey/protocols": "workspace:*"
   }
 }

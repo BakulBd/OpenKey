@@ -1,5 +1,5 @@
 {
-  "$schema": "./profile.schema.json",
+  "$schema": "./device.schema.json",
   "id": "ak820-max-crs",
   "model": "AJAZZ AK820 Max Plus (CRS controller)",
   "notes": "A different hardware revision sold as AK820 Max Plus with a China Resources Semico controller (VID 1A2C). Entirely different protocol.",
@@ -15,11 +15,11 @@
   "transportModes": {
     "usb": {
       "configuration": "partial",
-      "evidence": "Community: armoredvortex/ajazz-ak820-max-plus, arafatamim/OpenRGBAK820Plugin. Not verified by OpenAK820."
+      "evidence": "Community: armoredvortex/ajazz-ak820-max-plus, arafatamim/OpenRGBAK820Plugin. Not verified by OpenKey."
     },
     "2.4ghz": {
       "configuration": "partial",
-      "evidence": "Community (dongle tested by arafatamim). Not verified by OpenAK820."
+      "evidence": "Community (dongle tested by arafatamim). Not verified by OpenKey."
     },
     "bluetooth": { "configuration": "unsupported", "evidence": "Community: not supported." }
   },

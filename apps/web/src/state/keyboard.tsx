@@ -8,12 +8,12 @@ import {
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
-import { PacketLog, explainError, isOpenAk820Error } from '@openak820/core';
-import type { Capabilities, DeviceInfo, KeyboardDriver } from '@openak820/core';
-import { WebHidBackend, webHidSupport } from '@openak820/hid';
-import type { HidDeviceGroup, WebHidSupport } from '@openak820/hid';
-import { connectKeyboard, createDefaultRegistry, sonixFeature } from '@openak820/protocols';
-import type { DetectionReport } from '@openak820/protocols';
+import { PacketLog, explainError, isOpenKeyError } from '@openkey/core';
+import type { Capabilities, DeviceInfo, KeyboardDriver } from '@openkey/core';
+import { WebHidBackend, webHidSupport } from '@openkey/hid';
+import type { HidDeviceGroup, WebHidSupport } from '@openkey/hid';
+import { connectKeyboard, createDefaultRegistry, sonixFeature } from '@openkey/protocols';
+import type { DetectionReport } from '@openkey/protocols';
 import { LocalStorageStateStore, readPref, writePref } from './storage.js';
 
 /** Broad filters: identification happens after the chooser, from descriptors and probes. */
@@ -198,7 +198,7 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
       if (!c) return undefined;
       if (opts.write && !writesConfirmed.current) {
         const ok = window.confirm(
-          `${label}\n\nOpenAK820 is about to write to the keyboard. It only sends packets reproduced from the official AJAZZ software and never touches firmware or the bootloader. Settings the firmware cannot report are remembered in this browser.\n\nContinue? (asked once per session)`,
+          `${label}\n\nOpenKey is about to write to the keyboard. It only sends packets reproduced from the official AJAZZ software and never touches firmware or the bootloader. Settings the firmware cannot report are remembered in this browser.\n\nContinue? (asked once per session)`,
         );
         if (!ok) return undefined;
         writesConfirmed.current = true;
@@ -214,7 +214,7 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
           title: `${label}: ${x.title}`,
           detail: `${x.detail}${x.hint ? ` — ${x.hint}` : ''}`,
         });
-        if (isOpenAk820Error(e) && e.code === 'TRANSPORT') await disconnect();
+        if (isOpenKeyError(e) && e.code === 'TRANSPORT') await disconnect();
         return undefined;
       }
     },

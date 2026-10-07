@@ -1,5 +1,5 @@
-import { PROFILES } from '@openak820/profiles';
-import { createDefaultRegistry } from '@openak820/protocols';
+import { PROFILES } from '@openkey/devices';
+import { createDefaultRegistry } from '@openkey/protocols';
 import { useKeyboard } from '../state/keyboard.js';
 import { Card } from '../components/ui.js';
 

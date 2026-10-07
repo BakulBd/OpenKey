@@ -6,7 +6,7 @@ export function ConnectScreen() {
   return (
     <div className="connect">
       <div className="hero">
-        <div className="logo">OpenAK820</div>
+        <div className="logo">OpenKey</div>
         <p className="tagline">
           An open-source, cross-platform WebHID configurator for the AJAZZ AK820 keyboard family.
         </p>
@@ -21,7 +21,7 @@ export function ConnectScreen() {
             </li>
             <li>Click Connect and choose the keyboard in the browser's device dialog.</li>
             <li>
-              OpenAK820 reads the HID descriptors, identifies the protocol and shows what your
+              OpenKey reads the HID descriptors, identifies the protocol and shows what your
               keyboard supports.
             </li>
           </ol>
@@ -43,7 +43,7 @@ export function ConnectScreen() {
           </div>
           <p className="note">
             Linux: Chrome needs permission to open the keyboard's HID interfaces. Install{' '}
-            <code>udev/99-openak820.rules</code> from the repository and replug the keyboard if the
+            <code>udev/99-openkey.rules</code> from the repository and replug the keyboard if the
             dialog lists it but connecting fails.
           </p>
         </Card>
@@ -51,12 +51,12 @@ export function ConnectScreen() {
         <Card title="WebHID is not available" className="warn">
           <p>{support.reason}</p>
           <p>
-            OpenAK820 talks to the keyboard through WebHID, which is available in Chromium-based
+            OpenKey talks to the keyboard through WebHID, which is available in Chromium-based
             browsers (Chrome, Edge, Opera, Brave, Vivaldi) on a secure page (HTTPS or{' '}
             <code>http://localhost</code>). Firefox and Safari do not implement WebHID.
           </p>
           <p>
-            The command-line tool <code>openak820</code> offers the same functions without a
+            The command-line tool <code>openkey</code> offers the same functions without a
             browser.
           </p>
           <button className="ghost" onClick={() => void connectDemo()}>

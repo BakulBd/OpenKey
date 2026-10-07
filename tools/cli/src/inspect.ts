@@ -1,6 +1,6 @@
-import { formatBcd, hex16 } from '@openak820/core';
-import { describeCollections, parseReportDescriptor } from '@openak820/hid';
-import { scanHidraw } from '@openak820/hid-node';
+import { formatBcd, hex16 } from '@openkey/core';
+import { describeCollections, parseReportDescriptor } from '@openkey/hid';
+import { scanHidraw } from '@openkey/hid-node';
 import { FAMILY_VENDOR_IDS } from './context.js';
 
 /** Text dump of every AK820-family hidraw node (shared by `diagnostics` and the device inspector). */

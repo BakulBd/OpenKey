@@ -1,5 +1,5 @@
 {
-  "$schema": "./profile.schema.json",
+  "$schema": "./device.schema.json",
   "id": "ak820-dongle",
   "model": "AJAZZ AK820 2.4 GHz receiver",
   "notes": "Receiver used by AK820 Pro / MAX in 2.4 GHz mode. Exposes a 32-byte vendor protocol, not the wired protocol.",
@@ -16,7 +16,7 @@
     "usb": { "configuration": "unsupported", "evidence": "n/a" },
     "2.4ghz": {
       "configuration": "partial",
-      "evidence": "Official driver function 0x44f5f0 (32-byte output report + additive checksum); afonsusousa/mrworldwide capture. Not verified by OpenAK820 hardware."
+      "evidence": "Official driver function 0x44f5f0 (32-byte output report + additive checksum); afonsusousa/mrworldwide capture. Not verified by OpenKey hardware."
     },
     "bluetooth": { "configuration": "unsupported", "evidence": "n/a" }
   },

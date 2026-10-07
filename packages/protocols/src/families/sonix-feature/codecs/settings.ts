@@ -1,4 +1,4 @@
-import type { SettingsSchema, SystemSettings } from '@openak820/core';
+import type { SettingsSchema, SystemSettings } from '@openkey/core';
 import { PACKET_SIZE } from '../constants.js';
 import { withTrailer } from '../frame.js';
 

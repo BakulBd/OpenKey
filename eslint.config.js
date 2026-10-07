@@ -31,7 +31,7 @@ export default tseslint.config(
       ],
       'no-restricted-imports': [
         'error',
-        { patterns: ['node:*', 'fs', 'node-hid', '@openak820/hid-node'] },
+        { patterns: ['node:*', 'fs', 'node-hid', '@openkey/hid-node'] },
       ],
     },
   },

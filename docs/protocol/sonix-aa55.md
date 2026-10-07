@@ -3,14 +3,14 @@
 Reimplemented from the official web driver at https://ajazz.driveall.cn (bundle
 `layout-classic-CcyMQaqB.js`, built 2026-09-11). Function names refer to that minified bundle.
 Used by AK820 Pro units supported by the online driver and by AK820 MAX HE boards.
-**Not hardware-verified by OpenAK820** (the test unit belongs to `sonix-feature`); everything here is
+**Not hardware-verified by OpenKey** (the test unit belongs to `sonix-feature`); everything here is
 STRONGLY_SUPPORTED from official code unless marked INFERRED.
 
 ## Selection
 
 The official driver loads a per-model config named `vid-pid-productName` and accepts collections with
 usage page FF68, FF80, FF60, FF00, FF01 or FF1B (`B()`). Packet size is
-`collections[0].outputReports[0].reportCount` (default 32). OpenAK820 additionally requires an output
+`collections[0].outputReports[0].reportCount` (default 32). OpenKey additionally requires an output
 report ≤ 64 bytes and excludes FF60:0061, so QMK raw HID and 4096-byte data pipes (AK820 MAX) are
 never treated as AA/55 command pipes.
 
@@ -25,7 +25,7 @@ in:  55 cmd len addrLo addrHi …      payload from byte 8
 byte 6 = 1 on the last chunk unless `isNeedLastPacketFlag` is false. Each chunk waits for the response
 with the same command (500 ms, 3 retries).
 
-## Commands used by OpenAK820
+## Commands used by OpenKey
 
 | cmd         | Name                                               | Size                |
 | ----------- | -------------------------------------------------- | ------------------- |
@@ -40,7 +40,7 @@ with the same command (500 ms, 3 retries).
 | 0x34        | SET_TEMPORARY_COMMAND_DATA (TFT clock)             | 10                  |
 | 0x50        | SET_TFT_USER_ANIMATION (FF67 pipe, ack 0x41)       | chunked             |
 
-**Blocked by OpenAK820:** 0x0F factory reset, 0x4F flash download, 0x64–0x6A calibration and
+**Blocked by OpenKey:** 0x0F factory reset, 0x4F flash download, 0x64–0x6A calibration and
 simulation tests, 0x80–0x86 OTA (including `OTA_DEVICE_ENTER_BOOT`). The transfer layer throws
 `SafetyBlockedError` before anything is sent.
 
@@ -75,5 +75,5 @@ keyboard `B0`/`30`, mouse `90`/`10`.
 
 Payload: 256-byte header (`0xFF` filled, `[0]` = frames, `[1+i]` = UI delay × 5 for i < N−1,
 `[N]` = 0) + RGB565 LE frames. Chunk header `AA 50 idxLo idxHi totLo totHi 50 06`, payload
-`reportCount − 8` (4096) bytes, response command 0x41. OpenAK820 converts milliseconds to 2 ms units
+`reportCount − 8` (4096) bytes, response command 0x41. OpenKey converts milliseconds to 2 ms units
 (INFERRED) and keeps the upload behind experimental mode until verified.

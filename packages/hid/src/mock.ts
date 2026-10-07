@@ -1,5 +1,5 @@
-import { TransportError } from '@openak820/core';
-import type { DeviceIdentity, TransportMode } from '@openak820/core';
+import { TransportError } from '@openkey/core';
+import type { DeviceIdentity, TransportMode } from '@openkey/core';
 import { InputQueue } from './input-queue.js';
 import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from './types.js';
 import { interfaceLabel } from './types.js';

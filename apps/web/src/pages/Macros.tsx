@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { domCodeToUsage, macroToText, usageName, validateMacro } from '@openak820/core';
-import type { Macro, MacroEvent } from '@openak820/core';
+import { domCodeToUsage, macroToText, usageName, validateMacro } from '@openkey/core';
+import type { Macro, MacroEvent } from '@openkey/core';
 import { useKeyboard } from '../state/keyboard.js';
 import { Card, Empty, MirrorNote } from '../components/ui.js';
 

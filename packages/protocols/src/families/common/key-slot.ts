@@ -1,5 +1,5 @@
-import { modifierBitForUsage } from '@openak820/core';
-import type { KeyAction, MacroPlayMode, MouseAction } from '@openak820/core';
+import { modifierBitForUsage } from '@openkey/core';
+import type { KeyAction, MacroPlayMode, MouseAction } from '@openkey/core';
 
 /**
  * 4-byte key slot [page, p1, p2, p3] shared by both AJAZZ protocol families.

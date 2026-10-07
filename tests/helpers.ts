@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fromHex } from '@openak820/core';
+import { fromHex } from '@openkey/core';
 
 export const ROOT = path.resolve(import.meta.dirname, '..');
 

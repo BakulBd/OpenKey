@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
-import { formatPacket, isAvailable, isDebugEnabled } from '@openak820/core';
-import type { Capabilities, FeatureId } from '@openak820/core';
+import { formatPacket, isAvailable, isDebugEnabled } from '@openkey/core';
+import type { Capabilities, FeatureId } from '@openkey/core';
 import { useKeyboard } from './state/keyboard.js';
 import { ConnectScreen } from './pages/Connect.js';
 import { Dashboard } from './pages/Dashboard.js';
@@ -67,7 +67,7 @@ export function App() {
       {conn ? (
         <>
           <aside className="side">
-            <div className="brand">OpenAK820</div>
+            <div className="brand">OpenKey</div>
             <div className="dev">
               <div className="dev-name">{conn.info.model}</div>
               <div className="dim">

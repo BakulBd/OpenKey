@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sonixFeature } from '@openak820/protocols';
+import { sonixFeature } from '@openkey/protocols';
 import {
   checkerboard,
   fitImage,
@@ -10,8 +10,8 @@ import {
   prepareFrame,
   redBlueAnimation,
   toRgb565le,
-} from '@openak820/tft';
-import type { TftInfo } from '@openak820/core';
+} from '@openkey/tft';
+import type { TftInfo } from '@openkey/core';
 
 const INFO: TftInfo = {
   width: 128,

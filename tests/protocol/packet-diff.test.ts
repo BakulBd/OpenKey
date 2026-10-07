@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { diffCaptures } from '../../tools/packet-diff/src/diff.js';
-import { sonixFeature } from '@openak820/protocols';
-import type { RgbConfig } from '@openak820/core';
+import { sonixFeature } from '@openkey/protocols';
+import type { RgbConfig } from '@openkey/core';
 
 const pkt = (b: Uint8Array) => ({
   direction: 'host->device' as const,

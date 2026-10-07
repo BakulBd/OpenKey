@@ -1,4 +1,4 @@
-import type { StateStore } from '@openak820/core';
+import type { StateStore } from '@openkey/core';
 
 /**
  * Browser StateStore for mirror state (values written to write-only firmware). Every access is

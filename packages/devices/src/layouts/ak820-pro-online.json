@@ -908,5 +908,5 @@
   }
  ],
  "extras": [],
- "source": "Slot values, labels and default HID usages from the official AJAZZ online driver config 3141-32777-AK820 (keyList, keyboardLang deText); geometry normalised by OpenAK820."
+ "source": "Slot values, labels and default HID usages from the official AJAZZ online driver config 3141-32777-AK820 (keyList, keyboardLang deText); geometry normalised by OpenKey."
 }

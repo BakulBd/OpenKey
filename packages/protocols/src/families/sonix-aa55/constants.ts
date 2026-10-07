@@ -46,7 +46,7 @@ export const Cmd = {
 } as const;
 
 /**
- * Commands OpenAK820 never sends: factory reset, flash download, calibration, OTA/bootloader.
+ * Commands OpenKey never sends: factory reset, flash download, calibration, OTA/bootloader.
  * The transfer layer refuses them unconditionally.
  */
 export const BLOCKED_COMMANDS = new Set<number>([

@@ -903,5 +903,5 @@
   }
  ],
  "extras": [],
- "source": "Key matrix slots, LED indices and default HID usages from the official AJAZZ Windows driver key table (AK820 PRO Screen V1.0.0.5); geometry normalised to key units by OpenAK820."
+ "source": "Key matrix slots, LED indices and default HID usages from the official AJAZZ Windows driver key table (AK820 PRO Screen V1.0.0.5); geometry normalised to key units by OpenKey."
 }

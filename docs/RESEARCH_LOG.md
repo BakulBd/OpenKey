@@ -31,7 +31,7 @@ Test unit: AJAZZ AK820 MAX PLUS TFT, USB `0C45:8009` "AK820 MAX" (SONiX), bcdDev
 
 - **Action:** AJAZZ download page → "AK820 MAX&MAX PLUS … 0.85in ColorScreen … V1.0.0.5"
 - **Raw evidence:** `config.xml` `<mode vid="0C45" pid="8009" product_name="AK820 MAX">`, `pid="800A"`, dongles `05AC:024F`, `0C45:FDFD`
-- **Confidence:** STRONGLY_SUPPORTED · **Code:** `profiles/ak820-max-plus.json`, `families/sonix-feature/variants.ts`
+- **Confidence:** STRONGLY_SUPPORTED · **Code:** `devices/ak820-max-plus.json`, `families/sonix-feature/variants.ts`
 
 ### 2026-10-07 — Transfer layer and command set
 
@@ -86,7 +86,7 @@ Test unit: AJAZZ AK820 MAX PLUS TFT, USB `0C45:8009` "AK820 MAX" (SONiX), bcdDev
 
 | Question                                        | Proposed experiment                              | Status                 |
 | ----------------------------------------------- | ------------------------------------------------ | ---------------------- |
-| Do lighting writes behave as traced?            | experiments 02–05 via OpenAK820 on the test unit | waiting for consent    |
+| Do lighting writes behave as traced?            | experiments 02–05 via OpenKey on the test unit | waiting for consent    |
 | Direction code mapping                          | Scrolling effect, each direction                 | waiting                |
 | Macro mode byte for "repeat"/"toggle"           | assign macro with each mode, observe             | waiting                |
 | Keymap write/reset                              | experiments 06–08                                | waiting                |

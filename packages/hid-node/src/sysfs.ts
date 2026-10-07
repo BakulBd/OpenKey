@@ -1,8 +1,8 @@
 import { promises as fs, constants as fsConstants } from 'node:fs';
 import path from 'node:path';
-import type { TransportMode } from '@openak820/core';
-import { parseReportDescriptor } from '@openak820/hid';
-import type { HidInterfaceInfo } from '@openak820/hid';
+import type { TransportMode } from '@openkey/core';
+import { parseReportDescriptor } from '@openkey/hid';
+import type { HidInterfaceInfo } from '@openkey/hid';
 
 /** Linux HID bus types from include/uapi/linux/input.h */
 const BUS_USB = 0x03;

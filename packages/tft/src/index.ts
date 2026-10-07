@@ -1,4 +1,4 @@
-import type { TftFrame, TftInfo } from '@openak820/core';
+import type { TftFrame, TftInfo } from '@openkey/core';
 import { fitImage } from './image.js';
 import type { FitMode, RgbaImage } from './image.js';
 import { toRgb565le } from './rgb565.js';

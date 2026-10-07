@@ -1,5 +1,5 @@
-import { getProfile } from '@openak820/profiles';
-import type { ModelProfile } from '@openak820/profiles';
+import { getProfile } from '@openkey/devices';
+import type { ModelProfile } from '@openkey/devices';
 
 export interface SonixFeatureVariant {
   id: string;

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Confidence, FeatureSupport } from '@openak820/core';
+import type { Confidence, FeatureSupport } from '@openkey/core';
 
 export function Card({
   title,
@@ -51,7 +51,7 @@ export function SupportBadge({ s }: { s: FeatureSupport }) {
 export function MirrorNote() {
   return (
     <p className="note">
-      This keyboard's firmware cannot report this setting. OpenAK820 shows what it last wrote from
+      This keyboard's firmware cannot report this setting. OpenKey shows what it last wrote from
       this browser; settings made with other software or on the keyboard itself are not visible
       here.
     </p>

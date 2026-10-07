@@ -1,5 +1,5 @@
-import { FEATURES, hex16, isAvailable } from '@openak820/core';
-import { getProfile } from '@openak820/profiles';
+import { FEATURES, hex16, isAvailable } from '@openkey/core';
+import { getProfile } from '@openkey/devices';
 import { useKeyboard } from '../state/keyboard.js';
 import { Card, ConfidenceBadge, SupportBadge } from '../components/ui.js';
 import { KeyboardView } from '../components/KeyboardView.js';

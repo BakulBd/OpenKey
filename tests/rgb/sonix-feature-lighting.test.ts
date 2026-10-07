@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { RgbConfig } from '@openak820/core';
-import { sonixFeature } from '@openak820/protocols';
+import type { RgbConfig } from '@openkey/core';
+import { sonixFeature } from '@openkey/protocols';
 import { fixture, hex } from '../helpers.js';
 
 interface LightingFixture {

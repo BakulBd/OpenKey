@@ -1,5 +1,5 @@
-import { MODIFIER_BITS, describeAction, keyboardUsages, usageName } from '@openak820/core';
-import type { KeyAction, KeyboardLayout, MouseAction, PhysicalKey } from '@openak820/core';
+import { MODIFIER_BITS, describeAction, keyboardUsages, usageName } from '@openkey/core';
+import type { KeyAction, KeyboardLayout, MouseAction, PhysicalKey } from '@openkey/core';
 
 const KEY_ALIASES: Record<string, number> = {
   esc: 0x29,

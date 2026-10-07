@@ -14,7 +14,7 @@ export * as qmkVia from './families/minor/qmk-via.js';
 export * as sonixDongle from './families/minor/sonix-dongle.js';
 export * as crs from './families/minor/crs-aa55cc33.js';
 
-/** Registry with every protocol family OpenAK820 knows. */
+/** Registry with every protocol family OpenKey knows. */
 export function createDefaultRegistry(): ProtocolRegistry {
   return new ProtocolRegistry()
     .register(sonixFeatureProtocol)

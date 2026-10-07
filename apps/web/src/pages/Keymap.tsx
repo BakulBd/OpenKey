@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { describeAction, keyBySlot, usageName } from '@openak820/core';
-import type { KeyAction, KeymapState, LayerId } from '@openak820/core';
+import { describeAction, keyBySlot, usageName } from '@openkey/core';
+import type { KeyAction, KeymapState, LayerId } from '@openkey/core';
 import { useKeyboard } from '../state/keyboard.js';
 import { KeyboardView } from '../components/KeyboardView.js';
 import { ActionPicker } from '../components/ActionPicker.js';

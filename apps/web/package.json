@@ -1,5 +1,5 @@
 {
-  "name": "@openak820/web",
+  "name": "@openkey/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,11 +11,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@openak820/core": "workspace:*",
-    "@openak820/hid": "workspace:*",
-    "@openak820/profiles": "workspace:*",
-    "@openak820/protocols": "workspace:*",
-    "@openak820/tft": "workspace:*",
+    "@openkey/core": "workspace:*",
+    "@openkey/hid": "workspace:*",
+    "@openkey/devices": "workspace:*",
+    "@openkey/protocols": "workspace:*",
+    "@openkey/tft": "workspace:*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

@@ -1,5 +1,5 @@
-import { PermissionError, TransportError, WebHidUnavailableError } from '@openak820/core';
-import type { TransportMode } from '@openak820/core';
+import { PermissionError, TransportError, WebHidUnavailableError } from '@openkey/core';
+import type { TransportMode } from '@openkey/core';
 import { InputQueue } from './input-queue.js';
 import type {
   HidCollection,

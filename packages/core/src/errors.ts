@@ -3,7 +3,7 @@
  * human-readable explanation without string matching.
  */
 
-export type OpenAk820ErrorCode =
+export type OpenKeyErrorCode =
   | 'DEVICE_NOT_FOUND'
   | 'UNSUPPORTED_DEVICE'
   | 'UNSUPPORTED_PROTOCOL'
@@ -19,12 +19,12 @@ export type OpenAk820ErrorCode =
   | 'SAFETY_BLOCKED'
   | 'WEBHID_UNAVAILABLE';
 
-export class OpenAk820Error extends Error {
-  readonly code: OpenAk820ErrorCode;
+export class OpenKeyError extends Error {
+  readonly code: OpenKeyErrorCode;
   readonly details: Readonly<Record<string, unknown>>;
 
   constructor(
-    code: OpenAk820ErrorCode,
+    code: OpenKeyErrorCode,
     message: string,
     details: Record<string, unknown> = {},
     options?: ErrorOptions,
@@ -36,7 +36,7 @@ export class OpenAk820Error extends Error {
   }
 }
 
-export class DeviceNotFoundError extends OpenAk820Error {
+export class DeviceNotFoundError extends OpenKeyError {
   constructor(
     message = 'No supported AK820-family keyboard was found.',
     details: Record<string, unknown> = {},
@@ -45,19 +45,19 @@ export class DeviceNotFoundError extends OpenAk820Error {
   }
 }
 
-export class UnsupportedDeviceError extends OpenAk820Error {
+export class UnsupportedDeviceError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}) {
     super('UNSUPPORTED_DEVICE', message, details);
   }
 }
 
-export class UnsupportedProtocolError extends OpenAk820Error {
+export class UnsupportedProtocolError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}) {
     super('UNSUPPORTED_PROTOCOL', message, details);
   }
 }
 
-export class UnsupportedFeatureError extends OpenAk820Error {
+export class UnsupportedFeatureError extends OpenKeyError {
   readonly feature: string;
   constructor(feature: string, reason: string, details: Record<string, unknown> = {}) {
     super('UNSUPPORTED_FEATURE', `${feature} is not supported: ${reason}`, { feature, ...details });
@@ -65,74 +65,74 @@ export class UnsupportedFeatureError extends OpenAk820Error {
   }
 }
 
-export class TransportError extends OpenAk820Error {
+export class TransportError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}, options?: ErrorOptions) {
     super('TRANSPORT', message, details, options);
   }
 }
 
-export class PermissionError extends OpenAk820Error {
+export class PermissionError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}, options?: ErrorOptions) {
     super('PERMISSION', message, details, options);
   }
 }
 
-export class ProtocolError extends OpenAk820Error {
+export class ProtocolError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}) {
     super('PROTOCOL', message, details);
   }
 }
 
-export class TimeoutError extends OpenAk820Error {
+export class TimeoutError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}) {
     super('TIMEOUT', message, details);
   }
 }
 
-export class MalformedResponseError extends OpenAk820Error {
+export class MalformedResponseError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}) {
     super('MALFORMED_RESPONSE', message, details);
   }
 }
 
-export class FirmwareMismatchError extends OpenAk820Error {
+export class FirmwareMismatchError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}) {
     super('FIRMWARE_MISMATCH', message, details);
   }
 }
 
-export class CapabilityMismatchError extends OpenAk820Error {
+export class CapabilityMismatchError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}) {
     super('CAPABILITY_MISMATCH', message, details);
   }
 }
 
-export class TftUploadError extends OpenAk820Error {
+export class TftUploadError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}, options?: ErrorOptions) {
     super('TFT_UPLOAD', message, details, options);
   }
 }
 
 /** Raised when an operation is refused by the safety policy (e.g. an unverified write). */
-export class SafetyBlockedError extends OpenAk820Error {
+export class SafetyBlockedError extends OpenKeyError {
   constructor(message: string, details: Record<string, unknown> = {}) {
     super('SAFETY_BLOCKED', message, details);
   }
 }
 
-export class WebHidUnavailableError extends OpenAk820Error {
+export class WebHidUnavailableError extends OpenKeyError {
   constructor(message = 'WebHID is not available in this browser.') {
     super('WEBHID_UNAVAILABLE', message);
   }
 }
 
-export function isOpenAk820Error(e: unknown): e is OpenAk820Error {
-  return e instanceof OpenAk820Error;
+export function isOpenKeyError(e: unknown): e is OpenKeyError {
+  return e instanceof OpenKeyError;
 }
 
 /** Human-readable explanation for UIs and the CLI. */
 export function explainError(e: unknown): { title: string; detail: string; hint?: string } {
-  if (!isOpenAk820Error(e)) {
+  if (!isOpenKeyError(e)) {
     const msg = e instanceof Error ? e.message : String(e);
     return { title: 'Unexpected error', detail: msg };
   }
@@ -147,7 +147,7 @@ export function explainError(e: unknown): { title: string; detail: string; hint?
       return {
         title: 'Permission denied',
         detail: e.message,
-        hint: 'On Linux install the OpenAK820 udev rule (udev/99-openak820.rules) and replug the keyboard. In the browser, grant access in the device picker.',
+        hint: 'On Linux install the OpenKey udev rule (udev/99-openkey.rules) and replug the keyboard. In the browser, grant access in the device picker.',
       };
     case 'TRANSPORT':
       return {

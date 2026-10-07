@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "OpenAK820 model profile",
+  "title": "OpenKey model profile",
   "type": "object",
   "required": [
     "id",

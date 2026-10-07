@@ -1,5 +1,5 @@
-import { ProtocolError, TimeoutError, sleep as realSleep, toHex } from '@openak820/core';
-import type { HidTransport } from '@openak820/hid';
+import { ProtocolError, TimeoutError, sleep as realSleep, toHex } from '@openkey/core';
+import type { HidTransport } from '@openkey/hid';
 import {
   CMD_DELAY_MS,
   CMD_NAMES,

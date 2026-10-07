@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { KeyAction } from '@openak820/core';
-import { sonixFeature } from '@openak820/protocols';
-import { getLayout } from '@openak820/profiles';
+import type { KeyAction } from '@openkey/core';
+import { sonixFeature } from '@openkey/protocols';
+import { getLayout } from '@openkey/devices';
 import { fixture, hex } from '../helpers.js';
 
 interface SlotFixture {

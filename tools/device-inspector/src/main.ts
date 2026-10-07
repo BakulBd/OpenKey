@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { formatBcd, hex16 } from '@openak820/core';
-import { describeCollections, parseReportDescriptor } from '@openak820/hid';
-import { scanHidraw } from '@openak820/hid-node';
+import { formatBcd, hex16 } from '@openkey/core';
+import { describeCollections, parseReportDescriptor } from '@openkey/hid';
+import { scanHidraw } from '@openkey/hid-node';
 
 /**
  * Linux hardware inspector: sysfs + hidraw descriptors (+ `lsusb -v` when available). Read-only and

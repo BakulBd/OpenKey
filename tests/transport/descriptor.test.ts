@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseReportDescriptor } from '@openak820/hid';
+import { parseReportDescriptor } from '@openkey/hid';
 import { fixture, hex, readRe } from '../helpers.js';
 
 interface DeviceFixture {

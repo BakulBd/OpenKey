@@ -1,5 +1,5 @@
-import { describeCollections } from '@openak820/hid';
-import { formatBcd, hex16 } from '@openak820/core';
+import { describeCollections } from '@openkey/hid';
+import { formatBcd, hex16 } from '@openkey/core';
 import type { DetectionReport } from './registry.js';
 
 const COLLECTION_NAMES: Record<string, string> = {
@@ -16,7 +16,7 @@ function collectionName(page: number, usage: number): string {
   );
 }
 
-/** Plain-text rendering used by `openak820 detect` (verbose adds descriptors and probe steps). */
+/** Plain-text rendering used by `openkey detect` (verbose adds descriptors and probe steps). */
 export function formatDetectionReport(r: DetectionReport, verbose = false): string {
   const L: string[] = [];
   L.push('USB device found');

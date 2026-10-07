@@ -3,7 +3,7 @@
 Only verified information. Legend: ✅ confirmed on hardware · 🟦 implemented from official code, not yet
 hardware-tested · 🟨 community-documented / experimental · ⬜ not available on this model/link · ❔ unknown.
 "Read" columns say whether the keyboard can report the setting (the Windows-protocol firmware is write-only
-for most settings; OpenAK820 then shows what it last wrote).
+for most settings; OpenKey then shows what it last wrote).
 
 | Device                                         | VID             | PID             | Firmware             | Protocol                      | USB                                   | 2.4 GHz                                | BT                           | Device info        | Keymap / Fn             | RGB             | Per-key RGB        | Macros        | TFT                                   | Settings                              |
 | ---------------------------------------------- | --------------- | --------------- | -------------------- | ----------------------------- | ------------------------------------- | -------------------------------------- | ---------------------------- | ------------------ | ----------------------- | --------------- | ------------------ | ------------- | ------------------------------------- | ------------------------------------- |

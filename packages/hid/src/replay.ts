@@ -1,4 +1,4 @@
-import { fromHex } from '@openak820/core';
+import { fromHex } from '@openkey/core';
 import type { MockBehavior } from './mock.js';
 
 export interface RecordedPacket {

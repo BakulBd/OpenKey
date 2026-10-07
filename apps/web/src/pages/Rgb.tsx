@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { hexToRgb, rgbToHex } from '@openak820/core';
-import type { Direction, PerKeyRgb, RgbConfig } from '@openak820/core';
+import { hexToRgb, rgbToHex } from '@openkey/core';
+import type { Direction, PerKeyRgb, RgbConfig } from '@openkey/core';
 import { useKeyboard } from '../state/keyboard.js';
 import { Card, Field, MirrorNote } from '../components/ui.js';
 import { KeyboardView } from '../components/KeyboardView.js';

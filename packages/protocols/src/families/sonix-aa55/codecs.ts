@@ -1,4 +1,4 @@
-import { ProtocolError, clamp, u16le } from '@openak820/core';
+import { ProtocolError, clamp, u16le } from '@openkey/core';
 import type {
   Direction,
   KeyAction,
@@ -6,7 +6,7 @@ import type {
   Macro,
   MacroEvent,
   RgbConfig,
-} from '@openak820/core';
+} from '@openkey/core';
 import { decodeCommonSlot, encodeCommonSlot } from '../common/key-slot.js';
 import type { Slot } from '../common/key-slot.js';
 import {
@@ -86,7 +86,7 @@ export interface Aa55GameMode {
   pushButtonMode: number;
   nkroSwitch: number;
   wirelessReportRate: number;
-  /** Bytes OpenAK820 does not interpret, preserved on write. */
+  /** Bytes OpenKey does not interpret, preserved on write. */
   raw: number[];
 }
 
@@ -194,7 +194,7 @@ export function encodeSlotAa55(a: KeyAction): Slot {
   const s = encodeCommonSlot(a);
   if (s) return s;
   throw new ProtocolError(
-    `Key action "${a.kind}" is not supported by the online-driver encoder in OpenAK820`,
+    `Key action "${a.kind}" is not supported by the online-driver encoder in OpenKey`,
   );
 }
 

@@ -2,8 +2,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { PNG } from 'pngjs';
 import jpeg from 'jpeg-js';
-import { decodeGif, pattern, redBlueAnimation } from '@openak820/tft';
-import type { AnimationFrame, PatternName } from '@openak820/tft';
+import { decodeGif, pattern, redBlueAnimation } from '@openkey/tft';
+import type { AnimationFrame, PatternName } from '@openkey/tft';
 
 /** Loads `pattern:<name>`, `pattern:red-blue`, or a PNG/JPEG/GIF file as animation frames. */
 export async function loadFrames(

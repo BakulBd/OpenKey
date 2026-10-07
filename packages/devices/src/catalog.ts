@@ -1,6 +1,6 @@
 /**
  * Every AK820-family identity found in official AJAZZ software or credible public research.
- * Used to name a device even when OpenAK820 cannot configure it. Detection never relies on this
+ * Used to name a device even when OpenKey cannot configure it. Detection never relies on this
  * table to pick a protocol; descriptors and probes do that.
  */
 export type CatalogStatus = 'supported' | 'experimental' | 'identified' | 'unsupported';

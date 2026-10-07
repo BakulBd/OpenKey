@@ -1,6 +1,6 @@
-import { MockHidDevice } from '@openak820/hid';
-import type { MockBehavior } from '@openak820/hid';
-import type { DeviceIdentity } from '@openak820/core';
+import { MockHidDevice } from '@openkey/hid';
+import type { MockBehavior } from '@openkey/hid';
+import type { DeviceIdentity } from '@openkey/core';
 import {
   ACK_OFFSET,
   ACK_OK,

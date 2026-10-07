@@ -1,9 +1,9 @@
-import { Confidence, PacketLog, confidenceRank } from '@openak820/core';
-import type { KeyboardDriver, StateStore, TransportMode } from '@openak820/core';
-import { LoggingTransport } from '@openak820/hid';
-import { lookupCatalog } from '@openak820/profiles';
-import type { CatalogEntry } from '@openak820/profiles';
-import type { HidCollection, HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openak820/hid';
+import { Confidence, PacketLog, confidenceRank } from '@openkey/core';
+import type { KeyboardDriver, StateStore, TransportMode } from '@openkey/core';
+import { LoggingTransport } from '@openkey/hid';
+import { lookupCatalog } from '@openkey/devices';
+import type { CatalogEntry } from '@openkey/devices';
+import type { HidCollection, HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
 
 /** How much I/O detection may perform. */
 export type ProbeLevel =
@@ -155,7 +155,7 @@ export class ProtocolRegistry {
     if (known) {
       report.catalog = known;
       if (known.status === 'identified' || known.status === 'unsupported') {
-        report.notes.push(`Recognised as ${known.model} (${known.mcu}). OpenAK820 does not configure this revision yet: ${known.evidence}.`);
+        report.notes.push(`Recognised as ${known.model} (${known.mcu}). OpenKey does not configure this revision yet: ${known.evidence}.`);
       }
     }
     if (group.transportHint === 'bluetooth') {

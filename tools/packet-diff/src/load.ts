@@ -10,8 +10,8 @@ const hexToBytes = (h: string): number[] =>
 
 /**
  * Accepts:
- * - OpenAK820 experiment files (tools/capture) `{ packets: [{direction, kind, hex}] }`
- * - OpenAK820 packet logs (`openak820 … --json` → `packets` / PacketLog.toJSON())
+ * - OpenKey experiment files (tools/capture) `{ packets: [{direction, kind, hex}] }`
+ * - OpenKey packet logs (`openkey … --json` → `packets` / PacketLog.toJSON())
  * - fixture files with `packets: [{kind, hex}]`
  * - plain text: one hex packet per line, optional `>`/`<` prefix for direction
  */

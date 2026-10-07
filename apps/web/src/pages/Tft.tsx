@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import type { TftFrame, TftInfo, UploadProgress } from '@openak820/core';
+import type { TftFrame, TftInfo, UploadProgress } from '@openkey/core';
 import {
   decodeGif,
   fromRgb565le,
   pattern,
   prepareAnimation,
   redBlueAnimation,
-} from '@openak820/tft';
-import type { AnimationFrame, FitMode, PatternName } from '@openak820/tft';
+} from '@openkey/tft';
+import type { AnimationFrame, FitMode, PatternName } from '@openkey/tft';
 import { useKeyboard } from '../state/keyboard.js';
 import { Card, Field } from '../components/ui.js';
 

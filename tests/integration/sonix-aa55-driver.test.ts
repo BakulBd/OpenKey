@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { Confidence, MemoryStateStore, isOpenAk820Error } from '@openak820/core';
+import { Confidence, MemoryStateStore, isOpenKeyError } from '@openkey/core';
 import {
   connectKeyboard,
   createDefaultRegistry,
   sonixAa55,
   sonixFeature,
-} from '@openak820/protocols';
-import { pattern, prepareFrame } from '@openak820/tft';
+} from '@openkey/protocols';
+import { pattern, prepareFrame } from '@openkey/tft';
 import { noSleep } from '../helpers.js';
 
 async function setup(allowExperimental = false) {
@@ -124,7 +124,7 @@ describe('online-driver protocol (sonix-aa55)', () => {
     const link = new sonixAa55.Aa55Link(t);
     for (const cmd of [15, 79, 130])
       await expect(link.transfer({ cmd })).rejects.toSatisfy(
-        (e) => isOpenAk820Error(e) && e.code === 'SAFETY_BLOCKED',
+        (e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED',
       );
     expect(sim.device.traffic).toHaveLength(0);
   });

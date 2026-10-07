@@ -1,13 +1,13 @@
 import { BACKUP_FORMAT, BACKUP_VERSION, planRestore } from './backup.js';
 import type { Backup, BackupSection, RestorePlan } from './backup.js';
 import type { KeyboardDriver } from './driver.js';
-import { isOpenAk820Error } from './errors.js';
+import { isOpenKeyError } from './errors.js';
 
 async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
   try {
     return await fn();
   } catch (e) {
-    if (isOpenAk820Error(e) && e.code === 'UNSUPPORTED_FEATURE') return undefined;
+    if (isOpenKeyError(e) && e.code === 'UNSUPPORTED_FEATURE') return undefined;
     throw e;
   }
 }
@@ -15,7 +15,7 @@ async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
 /** Collects everything the driver can report (device reads and mirrors) into a backup document. */
 export async function collectBackup(
   driver: KeyboardDriver,
-  createdBy = 'OpenAK820',
+  createdBy = 'OpenKey',
 ): Promise<Backup> {
   const info = await driver.getDeviceInfo();
   const caps = driver.getCapabilities();

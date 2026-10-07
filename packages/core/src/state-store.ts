@@ -1,5 +1,5 @@
 /**
- * Persistent key/value storage for "mirror" state: values OpenAK820 wrote to firmware that the
+ * Persistent key/value storage for "mirror" state: values OpenKey wrote to firmware that the
  * firmware cannot report back. Implementations: in-memory (tests), localStorage (web),
  * JSON file (CLI). Values must be JSON-serialisable.
  */

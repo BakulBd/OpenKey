@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MockHidDevice } from '@openak820/hid';
-import { createDefaultRegistry, crs, qmkVia, sonixDongle } from '@openak820/protocols';
+import { MockHidDevice } from '@openkey/hid';
+import { createDefaultRegistry, crs, qmkVia, sonixDongle } from '@openkey/protocols';
 
 describe('2.4 GHz receiver protocol', () => {
   it('appends the additive checksum seen in mrworldwide captures', () => {

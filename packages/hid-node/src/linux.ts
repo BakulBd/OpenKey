@@ -1,8 +1,8 @@
 import { promises as fs, constants as fsConstants } from 'node:fs';
-import { PermissionError, TransportError } from '@openak820/core';
-import type { TransportMode } from '@openak820/core';
-import { InputQueue, interfaceLabel, transportHintFromIdentity } from '@openak820/hid';
-import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openak820/hid';
+import { PermissionError, TransportError } from '@openkey/core';
+import type { TransportMode } from '@openkey/core';
+import { InputQueue, interfaceLabel, transportHintFromIdentity } from '@openkey/hid';
+import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
 import { busTransport, groupKey, nodeToInterface, scanHidraw } from './sysfs.js';
 import type { LinuxHidrawNode } from './sysfs.js';
 
@@ -32,7 +32,7 @@ async function loadNodeHid(): Promise<{
 }
 
 export const UDEV_HINT =
-  'Install the udev rule: sudo cp udev/99-openak820.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger, then replug the keyboard.';
+  'Install the udev rule: sudo cp udev/99-openkey.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger, then replug the keyboard.';
 
 /**
  * HID transport over a Linux hidraw node. Uses hidapi's hidraw backend (via node-hid) because

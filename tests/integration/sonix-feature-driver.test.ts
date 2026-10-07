@@ -3,12 +3,12 @@ import {
   Confidence,
   MemoryStateStore,
   collectBackup,
-  isOpenAk820Error,
+  isOpenKeyError,
   planRestore,
   applyBackup,
-} from '@openak820/core';
-import { connectKeyboard, createDefaultRegistry, sonixFeature } from '@openak820/protocols';
-import { pattern, prepareFrame } from '@openak820/tft';
+} from '@openkey/core';
+import { connectKeyboard, createDefaultRegistry, sonixFeature } from '@openkey/protocols';
+import { pattern, prepareFrame } from '@openkey/tft';
 import { noSleep } from '../helpers.js';
 
 async function setup(
@@ -162,7 +162,7 @@ describe('sonix-feature driver against the firmware simulator', () => {
     });
     await expect(
       driver.setKeymap({ layer: 'base', provenance: 'mirror', slots: {} }),
-    ).rejects.toSatisfy((e) => isOpenAk820Error(e) && e.code === 'SAFETY_BLOCKED');
+    ).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED');
   });
 
   it('refuses configuration over Bluetooth', async () => {
@@ -173,7 +173,7 @@ describe('sonix-feature driver against the firmware simulator', () => {
     const driver = await createDefaultRegistry()
       .get('sonix-feature')!
       .createDriver(group, {
-        log: new (await import('@openak820/core')).PacketLog(),
+        log: new (await import('@openkey/core')).PacketLog(),
         store: new MemoryStateStore(),
       });
     await expect(driver.connect()).rejects.toThrow(/Bluetooth/);

@@ -1,8 +1,8 @@
-import { maxReportSize } from '@openak820/hid';
-import type { HidCollection, HidDeviceGroup, HidInterfaceInfo } from '@openak820/hid';
+import { maxReportSize } from '@openkey/hid';
+import type { HidCollection, HidDeviceGroup, HidInterfaceInfo } from '@openkey/hid';
 import { CONFIG_USAGE_PAGES } from './constants.js';
 
-/** Largest command frame OpenAK820 will send to an AA/55 command pipe. */
+/** Largest command frame OpenKey will send to an AA/55 command pipe. */
 export const MAX_COMMAND_PACKET = 64;
 
 /**

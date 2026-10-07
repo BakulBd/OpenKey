@@ -1,11 +1,11 @@
-import { FeatureStatus } from '@openak820/core';
+import { FeatureStatus } from '@openkey/core';
 import {
   BaseKeyboardDriver,
   Confidence,
   SafetyBlockedError,
   emptyCapabilities,
   clamp,
-} from '@openak820/core';
+} from '@openkey/core';
 import type {
   Capabilities,
   DeviceInfo,
@@ -14,10 +14,10 @@ import type {
   PerKeyRgb,
   RgbConfig,
   TransportMode,
-} from '@openak820/core';
-import { LoggingTransport, findInterface } from '@openak820/hid';
-import type { HidDeviceGroup, HidTransport } from '@openak820/hid';
-import { getLayout } from '@openak820/profiles';
+} from '@openkey/core';
+import { LoggingTransport, findInterface } from '@openkey/hid';
+import type { HidDeviceGroup, HidTransport } from '@openkey/hid';
+import { getLayout } from '@openkey/devices';
 import type {
   CandidateMatch,
   DriverOptions,
@@ -29,7 +29,7 @@ import type {
 /**
  * CRS-controller AK820 Max Plus (VID 1A2C). Community evidence only: armoredvortex/ajazz-ak820-max-plus
  * PROTOCOL.md and arafatamim/OpenRGBAK820Plugin. 64-byte reports "AA 55 CC 33 <opcode> …" on FF02.
- * OpenAK820 never probes it with I/O and keeps every write experimental until verified.
+ * OpenKey never probes it with I/O and keeps every write experimental until verified.
  */
 export const CRS_VENDOR_ID = 0x1a2c;
 export const CRS_USAGE_PAGE = 0xff02;

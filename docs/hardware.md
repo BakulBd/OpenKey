@@ -13,7 +13,7 @@
 | Layout      | 81 keys, ANSI, key-matrix slots row×18+col                                                                                        | official key table  |
 
 Linux nodes are assigned dynamically (`/dev/hidraw4…7` on the test machine at the time of writing);
-OpenAK820 never relies on node numbers or interface numbers, only on collections.
+OpenKey never relies on node numbers or interface numbers, only on collections.
 
 ## Related hardware (community teardowns, AK820 Pro)
 
@@ -22,5 +22,5 @@ HFD80CP100 MCU (SN32F299 clone), WCH CH582F radio, PY25Q128HA 16 MB SPI flash, G
 
 ## Linux permissions
 
-hidraw nodes are root-only by default. Install `udev/99-openak820.rules` (grants `plugdev` and the
+hidraw nodes are root-only by default. Install `udev/99-openkey.rules` (grants `plugdev` and the
 logged-in seat via `uaccess`) and replug. Chrome's WebHID needs the same rule.

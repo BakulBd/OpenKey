@@ -3,9 +3,9 @@ import {
   PacketLog,
   UnsupportedDeviceError,
   UnsupportedProtocolError,
-} from '@openak820/core';
-import type { KeyboardDriver, StateStore } from '@openak820/core';
-import type { HidDeviceGroup } from '@openak820/hid';
+} from '@openkey/core';
+import type { KeyboardDriver, StateStore } from '@openkey/core';
+import type { HidDeviceGroup } from '@openkey/hid';
 import type { DetectionReport, DriverOptions, ProbeLevel, ProtocolRegistry } from './registry.js';
 
 export interface ConnectOptions {

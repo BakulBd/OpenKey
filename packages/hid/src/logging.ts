@@ -1,4 +1,4 @@
-import type { PacketLog } from '@openak820/core';
+import type { PacketLog } from '@openkey/core';
 import type { HidInterfaceInfo, HidTransport } from './types.js';
 
 /** Decorates a transport so every report is recorded in a PacketLog (Diagnostics, captures, debug). */

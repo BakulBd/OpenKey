@@ -1,7 +1,7 @@
-# OpenAK820 – grant the logged-in user (uaccess) and the plugdev group access to the HID
+# OpenKey – grant the logged-in user (uaccess) and the plugdev group access to the HID
 # interfaces of AJAZZ AK820-family keyboards and receivers. Needed by the CLI and by Chromium's
 # WebHID on Linux. Install:
-#   sudo cp udev/99-openak820.rules /etc/udev/rules.d/
+#   sudo cp udev/99-openkey.rules /etc/udev/rules.d/
 #   sudo udevadm control --reload-rules && sudo udevadm trigger
 # then unplug and replug the keyboard.
 

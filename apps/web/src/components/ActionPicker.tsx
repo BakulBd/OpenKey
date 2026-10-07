@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { MODIFIER_BITS, consumerUsages, keyboardUsages } from '@openak820/core';
-import type { KeyAction, MouseAction } from '@openak820/core';
+import { MODIFIER_BITS, consumerUsages, keyboardUsages } from '@openkey/core';
+import type { KeyAction, MouseAction } from '@openkey/core';
 
 const MOUSE: [MouseAction, string][] = [
   ['left', 'Left click'],

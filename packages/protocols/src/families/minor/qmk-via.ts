@@ -1,8 +1,8 @@
-import { BaseKeyboardDriver, FeatureStatus, Confidence, emptyCapabilities, hex16, toHex } from '@openak820/core';
-import type { Capabilities, DeviceInfo, KeyboardLayout, TransportMode } from '@openak820/core';
-import { findInterface, maxReportSize } from '@openak820/hid';
-import type { HidCollection, HidDeviceGroup } from '@openak820/hid';
-import { getLayout } from '@openak820/profiles';
+import { BaseKeyboardDriver, FeatureStatus, Confidence, emptyCapabilities, hex16, toHex } from '@openkey/core';
+import type { Capabilities, DeviceInfo, KeyboardLayout, TransportMode } from '@openkey/core';
+import { findInterface, maxReportSize } from '@openkey/hid';
+import type { HidCollection, HidDeviceGroup } from '@openkey/hid';
+import { getLayout } from '@openkey/devices';
 import type {
   CandidateMatch,
   ProbeContext,

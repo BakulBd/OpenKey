@@ -140,4 +140,4 @@ Sleep: 0 never, 1 = 1 min, 2 = 5 min, 3 = 30 min. Key response levels 1–5. STR
 ## Safety
 
 The driver contains firmware-update code (`FirmwareUpdateTool.exe` download) and reset buttons; none
-of their commands are implemented. OpenAK820 only sends the commands in the table above.
+of their commands are implemented. OpenKey only sends the commands in the table above.

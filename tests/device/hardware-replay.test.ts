@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Confidence, MemoryStateStore, PacketLog } from '@openak820/core';
-import { MockHidDevice, replayBehavior } from '@openak820/hid';
-import type { RecordedPacket } from '@openak820/hid';
-import { createDefaultRegistry, sonixFeature } from '@openak820/protocols';
+import { Confidence, MemoryStateStore, PacketLog } from '@openkey/core';
+import { MockHidDevice, replayBehavior } from '@openkey/hid';
+import type { RecordedPacket } from '@openkey/hid';
+import { createDefaultRegistry, sonixFeature } from '@openkey/protocols';
 import { fixture, noSleep } from '../helpers.js';
 
 /** Replays captures from the physical AK820 MAX PLUS (fixtures/*-hw.json). */

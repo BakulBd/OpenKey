@@ -6,7 +6,7 @@ import { EXPERIMENTS } from './experiments.js';
 import type { ExperimentRecord } from './experiments.js';
 
 /**
- * Converts a usbmon/USBPcap capture into an OpenAK820 experiment record using tshark field
+ * Converts a usbmon/USBPcap capture into an OpenKey experiment record using tshark field
  * extraction. HID class requests are decoded from the setup packet:
  *   bmRequestType 0x21 bRequest 0x09 (SET_REPORT), 0xA1 0x01 (GET_REPORT); wValue high byte = report type
  *   (1 input, 2 output, 3 feature), low byte = report ID; wIndex = interface.

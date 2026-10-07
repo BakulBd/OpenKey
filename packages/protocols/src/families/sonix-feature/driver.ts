@@ -7,7 +7,7 @@ import {
   UnsupportedFeatureError,
   formatBcd,
   toHex,
-} from '@openak820/core';
+} from '@openkey/core';
 import type {
   Capabilities,
   DeviceInfo,
@@ -30,10 +30,10 @@ import type {
   TftStatus,
   TransportMode,
   UploadOptions,
-} from '@openak820/core';
-import { LoggingTransport, findInterface } from '@openak820/hid';
-import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openak820/hid';
-import { getLayout } from '@openak820/profiles';
+} from '@openkey/core';
+import { LoggingTransport, findInterface } from '@openkey/hid';
+import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
+import { getLayout } from '@openkey/devices';
 import type { DriverOptions } from '../../registry.js';
 import {
   CONTROL_USAGE_PAGE,

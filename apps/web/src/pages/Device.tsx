@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SystemSettings } from '@openak820/core';
+import type { SystemSettings } from '@openkey/core';
 import { useKeyboard } from '../state/keyboard.js';
 import { Card, Field, MirrorNote } from '../components/ui.js';
 

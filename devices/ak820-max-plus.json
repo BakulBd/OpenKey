@@ -1,5 +1,5 @@
 {
-  "$schema": "./profile.schema.json",
+  "$schema": "./device.schema.json",
   "id": "ak820-max-plus",
   "model": "AJAZZ AK820 MAX / MAX PLUS",
   "notes": "The MAX and MAX PLUS TFT editions share one USB identity (product string \"AK820 MAX\") and one official driver package; firmware does not report which edition it is.",

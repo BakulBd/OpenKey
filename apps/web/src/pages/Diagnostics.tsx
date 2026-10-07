@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { capabilitySummary, formatPacket } from '@openak820/core';
-import type { PacketRecord } from '@openak820/core';
-import { describeCollections } from '@openak820/hid';
-import { formatDetectionReport } from '@openak820/protocols';
+import { capabilitySummary, formatPacket } from '@openkey/core';
+import type { PacketRecord } from '@openkey/core';
+import { describeCollections } from '@openkey/hid';
+import { formatDetectionReport } from '@openkey/protocols';
 import { useKeyboard } from '../state/keyboard.js';
 import { Card } from '../components/ui.js';
 
@@ -22,7 +22,7 @@ export function DiagnosticsPage() {
   const [packets, setPackets] = useState<PacketRecord[]>([]);
   const [debug, setDebug] = useState(() => {
     try {
-      return localStorage.getItem('openak820.debug') === '1';
+      return localStorage.getItem('openkey.debug') === '1';
     } catch {
       return false;
     }
@@ -46,7 +46,7 @@ export function DiagnosticsPage() {
                 onChange={(e) => {
                   setDebug(e.target.checked);
                   try {
-                    localStorage.setItem('openak820.debug', e.target.checked ? '1' : '0');
+                    localStorage.setItem('openkey.debug', e.target.checked ? '1' : '0');
                   } catch {
                     /* ignore */
                   }
@@ -58,7 +58,7 @@ export function DiagnosticsPage() {
               <button
                 className="ghost"
                 onClick={() =>
-                  download('openak820-diagnostics.json', {
+                  download('openkey-diagnostics.json', {
                     detection,
                     info: conn?.info,
                     capabilities: conn?.caps,

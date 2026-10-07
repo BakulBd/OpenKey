@@ -1,4 +1,4 @@
-import { Confidence, clamp } from '@openak820/core';
+import { Confidence, clamp } from '@openkey/core';
 import type {
   Direction,
   EffectCatalog,
@@ -6,7 +6,7 @@ import type {
   PerKeyRgb,
   Rgb,
   RgbConfig,
-} from '@openak820/core';
+} from '@openkey/core';
 import {
   MONO_TABLE_BYTES,
   PACKET_SIZE,

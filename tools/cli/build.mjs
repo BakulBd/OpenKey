@@ -6,7 +6,7 @@ await build({
   platform: 'node',
   format: 'esm',
   target: 'node20',
-  outfile: 'tools/cli/dist/openak820.mjs',
+  outfile: 'tools/cli/dist/openkey.mjs',
   external: ['node-hid'],
   banner: {
     js: "#!/usr/bin/env node\nimport { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);",

@@ -1,5 +1,5 @@
-import { ProtocolError } from '@openak820/core';
-import type { KeyAction, KeymapState } from '@openak820/core';
+import { ProtocolError } from '@openkey/core';
+import type { KeyAction, KeymapState } from '@openkey/core';
 import { Page, decodeCommonSlot, encodeCommonSlot } from '../../common/key-slot.js';
 import type { Slot } from '../../common/key-slot.js';
 import { TABLE_BYTES, TABLE_SLOTS } from '../constants.js';

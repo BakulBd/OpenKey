@@ -29,7 +29,7 @@ export interface Backup {
   settings?: SystemSettings;
   /** TFT content cannot be read back from firmware; only metadata of the last upload is kept. */
   tft?: { lastUpload?: { frames: number; at: string } };
-  /** For each section: whether the data came from the device or from OpenAK820's mirror. */
+  /** For each section: whether the data came from the device or from OpenKey's mirror. */
   provenance: Partial<Record<BackupSection, 'device' | 'mirror'>>;
   /** Fields this version does not understand are carried forward untouched. */
   unknown: Record<string, unknown>;

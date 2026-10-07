@@ -1,8 +1,8 @@
 {
-  "$schema": "./profile.schema.json",
+  "$schema": "./device.schema.json",
   "id": "ak820-pro-qmk",
   "model": "AJAZZ AK820 Pro (custom QMK firmware)",
-  "notes": "Community QMK port (fpb/qmk_firmware). Configuration belongs to VIA/Vial; OpenAK820 only identifies it.",
+  "notes": "Community QMK port (fpb/qmk_firmware). Configuration belongs to VIA/Vial; OpenKey only identifies it.",
   "vendorIds": ["0x0C45"],
   "productIds": ["0x8009"],
   "productNames": [],

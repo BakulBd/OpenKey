@@ -1,16 +1,16 @@
-# OpenAK820
+# OpenKey
 
 **An open-source, cross-platform WebHID configurator for the AJAZZ AK820 keyboard family.**
 
-OpenAK820 configures AJAZZ AK820 keyboards without the vendor software: keymap and Fn layer, lighting,
+OpenKey configures AJAZZ AK820 keyboards without the vendor software: keymap and Fn layer, lighting,
 per-key colours, macros, the TFT screen (images, GIFs, clock) and keyboard settings. It runs in a
-Chromium browser via WebHID, and as a command-line tool (`openak820`) on Linux.
+Chromium browser via WebHID, and as a command-line tool (`openkey`) on Linux.
 
-It is one application for the whole family. Connect a keyboard and OpenAK820 reads its HID
+It is one application for the whole family. Connect a keyboard and OpenKey reads its HID
 descriptors, works out which of the several incompatible AK820 protocols it speaks, confirms that with a
 read-only probe, and shows only the features that keyboard actually has.
 
-> OpenAK820 does not distribute proprietary AJAZZ firmware or proprietary driver binaries.
+> OpenKey does not distribute proprietary AJAZZ firmware or proprietary driver binaries.
 
 ## Supported keyboards
 
@@ -28,7 +28,7 @@ Details: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 ## How detection works
 
 1. **Enumerate.** All HID interfaces of the device are grouped (WebHID `HIDDevice.collections`, or Linux
-   sysfs report descriptors parsed by OpenAK820).
+   sysfs report descriptors parsed by OpenKey).
 2. **Match.** Each protocol family checks the descriptors: usage pages, usages, report IDs and report
    sizes. Example: the AK820 MAX has a 64-byte feature report on usage page FF13 and a 4096-byte output
    report on FF68; an online-driver AK820 Pro has a 64-byte output report on FF68 instead.
@@ -36,7 +36,7 @@ Details: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
    START handshake, answered with `04 18 00 01`).
 4. **Select.** The best confirmed candidate wins; ties are reported, never guessed.
 
-`openak820 detect --verbose` prints the whole reasoning:
+`openkey detect --verbose` prints the whole reasoning:
 
 ```
 Candidate protocol: AJAZZ Windows-driver protocol (feature reports on FF13 + 4096-byte data on FF68)
@@ -66,28 +66,28 @@ Connect the keyboard with a USB data cable in wired mode. Settings are not confi
 **Linux:** install the udev rule so Chrome (and the CLI) may open the keyboard:
 
 ```
-sudo cp udev/99-openak820.rules /etc/udev/rules.d/
+sudo cp udev/99-openkey.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger   # then replug the keyboard
 ```
 
 ## Using the CLI
 
 ```
-pnpm openak820 list
-pnpm openak820 detect --verbose
-pnpm openak820 info [--read-lighting]
-pnpm openak820 keymap set Caps=key:ctrl F12=consumer:mute [--layer fn]
-pnpm openak820 rgb set --effect Static --color '#ff0000' --brightness 5
-pnpm openak820 perkey set --all '#202040'
-pnpm openak820 macro set 0 "down:a,wait:20,up:a"
-pnpm openak820 tft upload picture.gif --fit cover --dither
-pnpm openak820 clock sync
-pnpm openak820 backup | restore backup.json --dry-run
-pnpm openak820 diagnostics --json
+pnpm openkey list
+pnpm openkey detect --verbose
+pnpm openkey info [--read-lighting]
+pnpm openkey keymap set Caps=key:ctrl F12=consumer:mute [--layer fn]
+pnpm openkey rgb set --effect Static --color '#ff0000' --brightness 5
+pnpm openkey perkey set --all '#202040'
+pnpm openkey macro set 0 "down:a,wait:20,up:a"
+pnpm openkey tft upload picture.gif --fit cover --dither
+pnpm openkey clock sync
+pnpm openkey backup | restore backup.json --dry-run
+pnpm openkey diagnostics --json
 ```
 
-`pnpm build:cli` produces a standalone `tools/cli/dist/openak820.mjs`. Every write asks for confirmation
-(or `--yes`); keymap, macro and restore operations save a backup first. `OPENAK820_DEBUG=1` prints every
+`pnpm build:cli` produces a standalone `tools/cli/dist/openkey.mjs`. Every write asks for confirmation
+(or `--yes`); keymap, macro and restore operations save a backup first. `OPENKEY_DEBUG=1` prints every
 HID report with timing.
 
 ## Current features (AK820 MAX / MAX PLUS)
@@ -104,7 +104,7 @@ HID report with timing.
 | Backup / restore with change preview                        | yes                   | yes   |
 
 \* The firmware is write-only for these settings (the official software never reads them either);
-OpenAK820 shows what it last wrote and labels it accordingly.
+OpenKey shows what it last wrote and labels it accordingly.
 
 ## Known limitations
 
@@ -113,12 +113,12 @@ OpenAK820 shows what it last wrote and labels it accordingly.
   [docs/RESEARCH_LOG.md](docs/RESEARCH_LOG.md).
 - No battery level over USB on the Windows-protocol firmware; the knob is not remappable on any Sonix AK820.
 - The 2.4 GHz receiver protocol is only partly known; Bluetooth has no configuration channel.
-- The MAX and MAX PLUS report the same USB identity; OpenAK820 cannot tell them apart.
+- The MAX and MAX PLUS report the same USB identity; OpenKey cannot tell them apart.
 - WebHID merges two identical keyboards plugged in at the same time.
 
 ## Safety
 
-OpenAK820 never flashes firmware, enters the bootloader, erases flash, runs factory resets or sends
+OpenKey never flashes firmware, enters the bootloader, erases flash, runs factory resets or sends
 guessed commands; such commands are blocked in code. See [docs/security.md](docs/security.md).
 
 ## Reverse-engineering methodology
@@ -139,11 +139,11 @@ pnpm lint
 pnpm inspect       # Linux device inspector (sysfs, no permissions needed)
 pnpm probe         # first-contact probe, saves a fixture
 pnpm packet-diff a.json b.json
-OPENAK820_HIL=1 pnpm test   # hardware-in-the-loop tests (opt-in)
+OPENKEY_HIL=1 pnpm test   # hardware-in-the-loop tests (opt-in)
 ```
 
 Layout: `packages/` (core, hid, hid-node, protocols, tft, profiles), `apps/web`, `tools/` (cli,
-device-inspector, probe-device, packet-diff, capture), `profiles/`, `fixtures/`, `tests/`, `docs/`.
+device-inspector, probe-device, packet-diff, capture), `devices/`, `fixtures/`, `tests/`, `docs/`.
 Architecture: [docs/architecture.md](docs/architecture.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License

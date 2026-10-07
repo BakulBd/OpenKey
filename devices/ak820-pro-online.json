@@ -1,5 +1,5 @@
 {
-  "$schema": "./profile.schema.json",
+  "$schema": "./device.schema.json",
   "id": "ak820-pro-online",
   "model": "AJAZZ AK820 Pro",
   "notes": "Units whose firmware speaks the AJAZZ online-driver protocol (AA/55 output reports on a 64-byte FF68 collection, TFT data on FF67).",

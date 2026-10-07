@@ -1,14 +1,14 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { MemoryStateStore, PacketLog, explainError, formatBcd, hex16 } from '@openak820/core';
-import { enumerateLinux } from '@openak820/hid-node';
+import { MemoryStateStore, PacketLog, explainError, formatBcd, hex16 } from '@openkey/core';
+import { enumerateLinux } from '@openkey/hid-node';
 import {
   connectKeyboard,
   createDefaultRegistry,
   formatDetectionReport,
-} from '@openak820/protocols';
-import type { ProbeLevel } from '@openak820/protocols';
+} from '@openkey/protocols';
+import type { ProbeLevel } from '@openkey/protocols';
 
 /**
  * First-contact probe: detect → device info → save a fixture with every raw packet.
@@ -53,7 +53,7 @@ try {
     file,
     `${JSON.stringify(
       {
-        description: `openak820 probe (${values.level}) on ${info.model}`,
+        description: `openkey probe (${values.level}) on ${info.model}`,
         date,
         device: info.model,
         firmware: info.firmware,

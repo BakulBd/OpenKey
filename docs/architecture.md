@@ -4,19 +4,19 @@
                          apps/web (React, WebHID)        tools/cli (Node, hidraw)
                                     \                          /
                                      \                        /
-                              @openak820/protocols: ProtocolRegistry
+                              @openkey/protocols: ProtocolRegistry
                        detect(group) → match (descriptors) → probe (read-only) → select
                                  |            |            |          |          |
                           sonix-feature  sonix-aa55  sonix-dongle  qmk-via  crs-aa55cc33
                                  \            |            /
                               families/common (key slots, per-key entries)
                                               |
-                         @openak820/core: KeyboardDriver, model, errors, backup, StateStore
+                         @openkey/core: KeyboardDriver, model, errors, backup, StateStore
                                               |
-                         @openak820/hid: HidTransport, descriptor parser, WebHID, mock, replay
-                         @openak820/hid-node: Linux sysfs enumeration + hidraw transport (node-hid)
-                         @openak820/tft: RGB565, fit, dither, GIF decode, test patterns
-                         @openak820/profiles: model profiles (profiles/*.json) and layouts
+                         @openkey/hid: HidTransport, descriptor parser, WebHID, mock, replay
+                         @openkey/hid-node: Linux sysfs enumeration + hidraw transport (node-hid)
+                         @openkey/tft: RGB565, fit, dither, GIF decode, test patterns
+                         @openkey/devices: device definitions (devices/*.json) and layouts
 ```
 
 ## Principles
@@ -39,8 +39,8 @@
 ## Adding a keyboard
 
 1. Run `pnpm inspect` and share the output (no device access needed).
-2. If its descriptors match an existing family, add a profile in `profiles/` and a layout in
-   `packages/profiles/src/layouts/`, and map its product string in the family's variant table.
+2. If its descriptors match an existing family, add a definition in `devices/` and a layout in
+   `packages/devices/src/layouts/`, and map its product string in the family's variant table.
 3. Otherwise, capture the official software (see `docs/reverse-engineering/capture-methodology.md`),
    document the protocol, and add a family under `packages/protocols/src/families/` with `match`, a
    read-only `probe`, a driver, a simulator and tests.

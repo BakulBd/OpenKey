@@ -1,10 +1,10 @@
-import type { KeyboardLayout, TransportMode } from '@openak820/core';
-import maxPlus from '../../../profiles/ak820-max-plus.json' with { type: 'json' };
-import pro from '../../../profiles/ak820-pro.json' with { type: 'json' };
-import proOnline from '../../../profiles/ak820-pro-online.json' with { type: 'json' };
-import maxCrs from '../../../profiles/ak820-max-crs.json' with { type: 'json' };
-import dongle from '../../../profiles/ak820-dongle.json' with { type: 'json' };
-import proQmk from '../../../profiles/ak820-pro-qmk.json' with { type: 'json' };
+import type { KeyboardLayout, TransportMode } from '@openkey/core';
+import maxPlus from '../../../devices/ak820-max-plus.json' with { type: 'json' };
+import pro from '../../../devices/ak820-pro.json' with { type: 'json' };
+import proOnline from '../../../devices/ak820-pro-online.json' with { type: 'json' };
+import maxCrs from '../../../devices/ak820-max-crs.json' with { type: 'json' };
+import dongle from '../../../devices/ak820-dongle.json' with { type: 'json' };
+import proQmk from '../../../devices/ak820-pro-qmk.json' with { type: 'json' };
 import layoutMax from './layouts/ak820-max.json' with { type: 'json' };
 import layoutPro from './layouts/ak820-pro.json' with { type: 'json' };
 import layoutProOnline from './layouts/ak820-pro-online.json' with { type: 'json' };

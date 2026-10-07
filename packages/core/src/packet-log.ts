@@ -95,15 +95,16 @@ export function formatPacket(r: PacketRecord): string {
   return `${head}${dur}\n           ${toHexCompact(r.bytes)}${dec}${err}`;
 }
 
-/** True when OPENAK820_DEBUG=1 (Node) or localStorage["openak820.debug"]="1" (browser). */
+/** True when OPENKEY_DEBUG=1 (Node) or localStorage["openkey.debug"]="1" (browser). */
 export function isDebugEnabled(): boolean {
   try {
     const g = globalThis as {
       process?: { env?: Record<string, string | undefined> };
       localStorage?: Storage;
     };
-    if (g.process?.env?.OPENAK820_DEBUG === '1') return true;
-    if (g.localStorage?.getItem('openak820.debug') === '1') return true;
+    const env = g.process?.env;
+    if (env?.OPENKEY_DEBUG === '1' || env?.OPENAK820_DEBUG === '1') return true;
+    if (g.localStorage?.getItem('openkey.debug') === '1') return true;
   } catch {
     // Storage may be unavailable (private mode, sandboxed iframe).
   }
