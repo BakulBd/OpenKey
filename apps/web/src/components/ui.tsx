@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Confidence, FeatureSupport } from '@openkey/core';
+import type { Evidence, FeatureSupport } from '@openkey/core';
 
 export function Card({
   title,
@@ -25,14 +25,16 @@ export function Card({
   );
 }
 
-export function ConfidenceBadge({ value }: { value: Confidence }) {
-  const label = {
-    CONFIRMED: 'Confirmed',
-    STRONGLY_SUPPORTED: 'Strongly supported',
+export function EvidenceBadge({ value }: { value: Evidence }) {
+  const label: Record<Evidence, string> = {
+    VERIFIED: 'Verified',
+    OBSERVED: 'Observed',
     INFERRED: 'Inferred',
-    UNVERIFIED: 'Unverified',
-  }[value];
-  return <span className={`badge conf-${value.toLowerCase()}`}>{label}</span>;
+    HYPOTHESIS: 'Hypothesis',
+    UNKNOWN: 'Unknown',
+    NOT_TESTED: 'Not tested',
+  };
+  return <span className={`badge conf-${value.toLowerCase()}`}>{label[value]}</span>;
 }
 
 export function SupportBadge({ s }: { s: FeatureSupport }) {

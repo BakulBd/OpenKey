@@ -6,7 +6,7 @@
  "reportId": 0,
  "command": "IMAGE 0x72 + data pipe chunks",
  "evidence": "DeviceDriver.exe FUN_00422980, FUN_0044f2d0; aks075-linux USB capture of the sibling AKS075",
- "confidence": "STRONGLY_SUPPORTED",
+ "confidence": "OBSERVED",
  "singleFrame": {
   "payloadBytes": 33024,
   "chunks": 9,

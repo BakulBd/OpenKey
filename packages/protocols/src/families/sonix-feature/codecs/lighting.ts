@@ -1,4 +1,4 @@
-import { Confidence, clamp } from '@openkey/core';
+import { Evidence, clamp } from '@openkey/core';
 import type {
   Direction,
   EffectCatalog,
@@ -39,7 +39,7 @@ export const LIGHT_OFFSETS = {
 
 /** Radio-button wiring in FUN_0042ab40/FUN_00438xxx: right=1/left=0 (horizontal), up=2/down=3 (vertical). */
 export const DIRECTION_CODES: Record<Direction, number> = { left: 0, right: 1, up: 2, down: 3 };
-export const DIRECTION_CONFIDENCE = Confidence.STRONGLY_SUPPORTED;
+export const DIRECTION_CONFIDENCE = Evidence.OBSERVED;
 
 type Ctl = EffectDescriptor['controls'];
 const H: Direction[] = ['left', 'right'];

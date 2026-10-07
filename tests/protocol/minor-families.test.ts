@@ -68,7 +68,7 @@ describe('QMK / VIA', () => {
       ],
     );
     const r = await createDefaultRegistry().detect(dev.group(), { level: 'handshake' });
-    expect(r.selected).toMatchObject({ protocolId: 'qmk-via', confidence: 'CONFIRMED' });
+    expect(r.selected).toMatchObject({ protocolId: 'qmk-via', confidence: 'VERIFIED' });
     expect(qmkVia.qmkViaProtocol.id).toBe('qmk-via');
   });
 });

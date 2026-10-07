@@ -1,7 +1,7 @@
 import { FeatureStatus } from '@openkey/core';
 import {
   BaseKeyboardDriver,
-  Confidence,
+  Evidence,
   SafetyBlockedError,
   UnsupportedFeatureError,
   emptyCapabilities,
@@ -120,17 +120,17 @@ class SonixDongleDriver extends BaseKeyboardDriver {
   }
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
-    c.deviceInfo = { status: FeatureStatus.SUPPORTED_READ_ONLY, read: 'device', write: false, confidence: Confidence.CONFIRMED };
+    c.deviceInfo = { status: FeatureStatus.SUPPORTED_READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
     c.battery = {
       status: FeatureStatus.SUPPORTED_READ_ONLY,
       read: 'device',
       write: false,
-      confidence: Confidence.STRONGLY_SUPPORTED,
+      confidence: Evidence.OBSERVED,
       source: 'FUN_00435890: ping 20 01, answer byte 3',
     };
-    c.tft = { status: FeatureStatus.NOT_SUPPORTED, read: 'none', write: false, confidence: Confidence.STRONGLY_SUPPORTED, note: 'Official menu_wireless: screen=0' };
+    c.tft = { status: FeatureStatus.NOT_SUPPORTED, read: 'none', write: false, confidence: Evidence.OBSERVED, note: 'Official menu_wireless: screen=0' };
     c.rgb = { status: FeatureStatus.CONFIGURABLE, read: 'none', write: true,
-      confidence: Confidence.INFERRED,
+      confidence: Evidence.INFERRED,
       note: 'Experimental: official 2.4 GHz lighting packet, not hardware-verified.',
     };
     return c;
@@ -140,7 +140,7 @@ class SonixDongleDriver extends BaseKeyboardDriver {
       model: 'AJAZZ AK820 2.4 GHz receiver',
       profileId: 'ak820-dongle',
       identity: this.group.identity,
-      firmware: { version: null, source: 'not exposed', confidence: Confidence.UNVERIFIED },
+      firmware: { version: null, source: 'not exposed', confidence: Evidence.HYPOTHESIS },
       transport: '2.4ghz',
       protocol: { id: this.protocolId, name: 'AJAZZ 2.4 GHz receiver protocol (32-byte reports)' },
       battery: null,
@@ -209,7 +209,7 @@ export const sonixDongleProtocol: ProtocolDefinition = {
     if (ctx.level !== 'handshake')
       return {
         status: 'skipped',
-        confidence: Confidence.INFERRED,
+        confidence: Evidence.INFERRED,
         summary: 'Descriptor signature only.',
         steps: [],
         facts: {},
@@ -221,7 +221,7 @@ export const sonixDongleProtocol: ProtocolDefinition = {
     const ok = !!r && r[0] === PING[0] && r[1] === PING[1];
     return {
       status: ok ? 'pass' : 'fail',
-      confidence: ok ? Confidence.STRONGLY_SUPPORTED : Confidence.UNVERIFIED,
+      confidence: ok ? Evidence.OBSERVED : Evidence.HYPOTHESIS,
       summary: ok
         ? 'Receiver answered ping (keyboard linked).'
         : 'No ping answer (keyboard asleep or different receiver protocol).',

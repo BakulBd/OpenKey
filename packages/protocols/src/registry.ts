@@ -1,4 +1,4 @@
-import { Confidence, PacketLog, confidenceRank } from '@openkey/core';
+import { Evidence, PacketLog, evidenceRank } from '@openkey/core';
 import type { KeyboardDriver, StateStore, TransportMode } from '@openkey/core';
 import { LoggingTransport } from '@openkey/hid';
 import { lookupCatalog } from '@openkey/devices';
@@ -33,7 +33,7 @@ export interface ProbeStep {
 
 export interface ProbeResult {
   status: 'pass' | 'fail' | 'skipped' | 'error';
-  confidence: Confidence;
+  confidence: Evidence;
   summary: string;
   steps: ProbeStep[];
   /** Protocol-specific facts learned (device-info fields, variant id …). */
@@ -55,7 +55,7 @@ export interface DriverOptions {
   /** Override the delay between commands (tests use 0). */
   cmdDelayMs?: number;
   sleep?: (ms: number) => Promise<void>;
-  /** Allows writes whose evidence is below STRONGLY_SUPPORTED. Off by default. */
+  /** Allows writes whose evidence is below OBSERVED. Off by default. */
   allowExperimental?: boolean;
 }
 
@@ -96,7 +96,7 @@ export interface DetectionReport {
   interfaces: { interfaceNumber?: number; path?: string; collections: HidCollection[] }[];
   level: ProbeLevel;
   candidates: CandidateReport[];
-  selected: { protocolId: string; confidence: Confidence; reasons: string[] } | null;
+  selected: { protocolId: string; confidence: Evidence; reasons: string[] } | null;
   /** True when several protocols passed equally and the user must decide. */
   ambiguous: boolean;
   notes: string[];
@@ -172,12 +172,12 @@ export class ProtocolRegistry {
       };
       report.candidates.push(cand);
       if (!match.applicable) continue;
-      const confirmed = report.candidates.find((c) => c.probe?.status === 'pass' && c.probe.confidence === Confidence.CONFIRMED);
+      const confirmed = report.candidates.find((c) => c.probe?.status === 'pass' && c.probe.confidence === Evidence.VERIFIED);
       if (confirmed && level !== 'descriptor') {
         // Never send another family's packets to a device whose protocol is already confirmed.
         cand.probe = {
           status: 'skipped',
-          confidence: Confidence.UNVERIFIED,
+          confidence: Evidence.HYPOTHESIS,
           summary: `Not probed: ${confirmed.protocol.id} is already confirmed for this device.`,
           steps: [],
           facts: {},
@@ -187,7 +187,7 @@ export class ProtocolRegistry {
       if (level === 'descriptor') {
         cand.probe = {
           status: 'skipped',
-          confidence: Confidence.INFERRED,
+          confidence: Evidence.INFERRED,
           summary: 'Descriptor signature only (no I/O performed).',
           steps: [],
           facts: {},
@@ -210,7 +210,7 @@ export class ProtocolRegistry {
       } catch (e) {
         cand.probe = {
           status: 'error',
-          confidence: Confidence.UNVERIFIED,
+          confidence: Evidence.HYPOTHESIS,
           summary: e instanceof Error ? e.message : String(e),
           steps: [],
           facts: { errorCode: (e as { code?: string }).code },
@@ -231,11 +231,11 @@ export function selectCandidate(report: DetectionReport): void {
       c.match.applicable &&
       c.probe &&
       (c.probe.status === 'pass' ||
-        (c.probe.status === 'skipped' && c.probe.confidence !== Confidence.UNVERIFIED)),
+        (c.probe.status === 'skipped' && c.probe.confidence !== Evidence.HYPOTHESIS)),
   );
   if (passed.length === 0) return;
   const rank = (c: CandidateReport): number => {
-    const conf = confidenceRank(c.probe!.confidence);
+    const conf = evidenceRank(c.probe!.confidence);
     const passBonus = c.probe!.status === 'pass' ? 1 : 0;
     return conf * 1000 + passBonus * 500 + c.match.score;
   };

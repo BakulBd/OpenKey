@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Confidence, MemoryStateStore, PacketLog } from '@openkey/core';
+import { Evidence, MemoryStateStore, PacketLog } from '@openkey/core';
 import { MockHidDevice, replayBehavior } from '@openkey/hid';
 import type { RecordedPacket } from '@openkey/hid';
 import { createDefaultRegistry, sonixFeature } from '@openkey/protocols';
@@ -26,7 +26,7 @@ function deviceFrom(packets: RecordedPacket[]) {
 }
 
 describe('hardware replay: AK820 MAX PLUS', () => {
-  it('START handshake capture yields a CONFIRMED detection', async () => {
+  it('START handshake capture yields a VERIFIED detection', async () => {
     const fx = fixture<{ packets: RecordedPacket[] }>(
       'device-info/ak820-max-plus-start-handshake-hw.json',
     );
@@ -34,7 +34,7 @@ describe('hardware replay: AK820 MAX PLUS', () => {
     const report = await createDefaultRegistry().detect(dev.group(), { level: 'handshake' });
     expect(report.selected).toMatchObject({
       protocolId: 'sonix-feature',
-      confidence: Confidence.CONFIRMED,
+      confidence: Evidence.VERIFIED,
     });
     expect(behavior.remaining()).toBe(0);
   });

@@ -5,25 +5,25 @@ HID topology. Reimplemented from the official driver
 "AK820 MAX&MAX PLUS Tri-mode RGB 0.85in ColorScreen" V1.0.0.5 (`DeviceDriver.exe`, MSVC x86, image
 base `0x400000`; function names below are its addresses) and verified on the hardware where noted.
 
-Confidence levels: **CONFIRMED** = observed on the AK820 MAX PLUS test unit (bcdDevice 1.07);
-**STRONGLY_SUPPORTED** = traced byte-for-byte in the official driver, not yet exercised on hardware;
+Confidence levels: **VERIFIED** = observed on the AK820 MAX PLUS test unit (bcdDevice 1.07);
+**OBSERVED** = traced byte-for-byte in the official driver, not yet exercised on hardware;
 **INFERRED** = reasoned, single source.
 
 ## Transport
 
 | Item                | Value                                                                                                                    | Evidence                                              | Confidence          |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------------------- |
-| Control pipe        | Vendor collection usage page `0xFF13`, usage `0x01`; 64-byte input, output and **feature** report; no report IDs         | report descriptor, `FUN_0044edc0`…                    | CONFIRMED           |
-| Data pipe           | Usage page `0xFF68`, usage `0x61`; 64-byte input, **4096-byte output**; no report IDs; interrupt OUT EP 0x03, IN EP 0x84 | report descriptor, `lsusb`                            | CONFIRMED           |
-| Report ID           | 0 (Windows buffer `[0x00, payload…]` of 65 bytes)                                                                        | `FUN_0044eed0`                                        | CONFIRMED           |
-| Command transfer    | `HidD_SetFeature` with 64-byte payload                                                                                   | `FUN_00451440`                                        | CONFIRMED           |
-| Acknowledgement     | `IOCTL_HID_GET_FEATURE` (`0xB0192`) returns the last packet with **payload[3] = 0x01**                                   | `FUN_0044eed0` checks byte 3; hardware: `04 18 00 01` | CONFIRMED           |
-| Busy                | payload[3] = `0xFF` → retry once                                                                                         | `FUN_0044f0c0`                                        | STRONGLY_SUPPORTED  |
-| Pacing              | sleep `cmd_delaytime` = **35 ms** before each SET and before each GET                                                    | `layouts/rgb-keyboard.xml`, `FUN_0044eed0`            | STRONGLY_SUPPORTED  |
-| Multi-packet writes | consecutive 64-byte feature reports, no per-packet handshake; a failed SET is retried up to 10 times                     | `FUN_0044eed0`                                        | STRONGLY_SUPPORTED  |
-| Data chunks         | 4096-byte output report on FF68, then wait ≤300 ms for one 64-byte input report (content ignored)                        | `FUN_0044f2d0`, `FUN_004511f0`                        | STRONGLY_SUPPORTED  |
-| Linux note          | hidraw strips a leading `0x00`; always write `[reportId, …payload]`                                                      | aks075-linux                                          | CONFIRMED (sibling) |
-| Passive read        | GET_FEATURE without a prior command returns the echo of the last command (all zero after power-up)                       | hardware                                              | CONFIRMED           |
+| Control pipe        | Vendor collection usage page `0xFF13`, usage `0x01`; 64-byte input, output and **feature** report; no report IDs         | report descriptor, `FUN_0044edc0`…                    | VERIFIED           |
+| Data pipe           | Usage page `0xFF68`, usage `0x61`; 64-byte input, **4096-byte output**; no report IDs; interrupt OUT EP 0x03, IN EP 0x84 | report descriptor, `lsusb`                            | VERIFIED           |
+| Report ID           | 0 (Windows buffer `[0x00, payload…]` of 65 bytes)                                                                        | `FUN_0044eed0`                                        | VERIFIED           |
+| Command transfer    | `HidD_SetFeature` with 64-byte payload                                                                                   | `FUN_00451440`                                        | VERIFIED           |
+| Acknowledgement     | `IOCTL_HID_GET_FEATURE` (`0xB0192`) returns the last packet with **payload[3] = 0x01**                                   | `FUN_0044eed0` checks byte 3; hardware: `04 18 00 01` | VERIFIED           |
+| Busy                | payload[3] = `0xFF` → retry once                                                                                         | `FUN_0044f0c0`                                        | OBSERVED  |
+| Pacing              | sleep `cmd_delaytime` = **35 ms** before each SET and before each GET                                                    | `layouts/rgb-keyboard.xml`, `FUN_0044eed0`            | OBSERVED  |
+| Multi-packet writes | consecutive 64-byte feature reports, no per-packet handshake; a failed SET is retried up to 10 times                     | `FUN_0044eed0`                                        | OBSERVED  |
+| Data chunks         | 4096-byte output report on FF68, then wait ≤300 ms for one 64-byte input report (content ignored)                        | `FUN_0044f2d0`, `FUN_004511f0`                        | OBSERVED  |
+| Linux note          | hidraw strips a leading `0x00`; always write `[reportId, …payload]`                                                      | aks075-linux                                          | VERIFIED (sibling) |
+| Passive read        | GET_FEATURE without a prior command returns the echo of the last command (all zero after power-up)                       | hardware                                              | VERIFIED           |
 
 There is **no device-information command**. The official driver identifies the keyboard only by
 VID, PID, USB product string and HID topology, and it never reads keymaps, macros or settings back.
@@ -37,20 +37,20 @@ offset  0    1    2    3..7   8     9     10..63
 
 | cmd  | Name             | Sequence (H = handshake read)                                           | Evidence                       | Confidence               |
 | ---- | ---------------- | ----------------------------------------------------------------------- | ------------------------------ | ------------------------ |
-| `18` | START            | opens a configuration transaction (H)                                   | all write functions            | CONFIRMED (ack observed) |
-| `02` | SAVE             | commits to flash (H)                                                    | all write functions            | CONFIRMED (ack observed) |
-| `F0` | FINISH           | ends lighting/keymap transactions                                       | `FUN_0042b100`, `FUN_00418420` | STRONGLY_SUPPORTED       |
-| `13` | LIGHT_MODE       | `arg8=01`, then lighting data packet                                    | `FUN_0042b100`                 | STRONGLY_SUPPORTED       |
-| `23` | PER_KEY_RGB      | `arg8=09`, then 576-byte table                                          | `FUN_0044ba10`                 | STRONGLY_SUPPORTED       |
-| `F5` | READ_PER_KEY_RGB | `arg8=09`, ack, then 9 × GET_FEATURE                                    | `FUN_0042aee0`, `FUN_0044f3a0` | CONFIRMED                |
-| `20` | REALTIME_RGB     | `arg8=08`, 512-byte packed table, then `02`                             | `FUN_004329e0`                 | STRONGLY_SUPPORTED       |
-| `11` | KEYMAP_BASE      | `arg8=09`, 576-byte table                                               | `FUN_00418420(0)`              | STRONGLY_SUPPORTED       |
-| `27` | KEYMAP_FN        | `arg8=09`, 576-byte table                                               | `FUN_00418420(1)`              | STRONGLY_SUPPORTED       |
-| `19` | MACRO_BEGIN      | sent instead of START before macros (H)                                 | `FUN_0042d6f0`                 | STRONGLY_SUPPORTED       |
-| `15` | MACRO_DATA       | `arg8=packets`, storage image                                           | `FUN_0042d6f0`                 | STRONGLY_SUPPORTED       |
-| `17` | SETTINGS         | `sub=01 arg8=01`, then settings data packet                             | `FUN_00414060`                 | STRONGLY_SUPPORTED       |
-| `28` | TIME             | `arg8=01`, then clock data packet (H)                                   | `FUN_00423940`                 | STRONGLY_SUPPORTED       |
-| `72` | IMAGE            | `sub=slot`, `arg8..9 = chunk count` (u16 LE), then chunks on FF68       | `FUN_00422980`                 | STRONGLY_SUPPORTED       |
+| `18` | START            | opens a configuration transaction (H)                                   | all write functions            | VERIFIED (ack observed) |
+| `02` | SAVE             | commits to flash (H)                                                    | all write functions            | VERIFIED (ack observed) |
+| `F0` | FINISH           | ends lighting/keymap transactions                                       | `FUN_0042b100`, `FUN_00418420` | OBSERVED       |
+| `13` | LIGHT_MODE       | `arg8=01`, then lighting data packet                                    | `FUN_0042b100`                 | OBSERVED       |
+| `23` | PER_KEY_RGB      | `arg8=09`, then 576-byte table                                          | `FUN_0044ba10`                 | OBSERVED       |
+| `F5` | READ_PER_KEY_RGB | `arg8=09`, ack, then 9 × GET_FEATURE                                    | `FUN_0042aee0`, `FUN_0044f3a0` | VERIFIED                |
+| `20` | REALTIME_RGB     | `arg8=08`, 512-byte packed table, then `02`                             | `FUN_004329e0`                 | OBSERVED       |
+| `11` | KEYMAP_BASE      | `arg8=09`, 576-byte table                                               | `FUN_00418420(0)`              | OBSERVED       |
+| `27` | KEYMAP_FN        | `arg8=09`, 576-byte table                                               | `FUN_00418420(1)`              | OBSERVED       |
+| `19` | MACRO_BEGIN      | sent instead of START before macros (H)                                 | `FUN_0042d6f0`                 | OBSERVED       |
+| `15` | MACRO_DATA       | `arg8=packets`, storage image                                           | `FUN_0042d6f0`                 | OBSERVED       |
+| `17` | SETTINGS         | `sub=01 arg8=01`, then settings data packet                             | `FUN_00414060`                 | OBSERVED       |
+| `28` | TIME             | `arg8=01`, then clock data packet (H)                                   | `FUN_00423940`                 | OBSERVED       |
+| `72` | IMAGE            | `sub=slot`, `arg8..9 = chunk count` (u16 LE), then chunks on FF68       | `FUN_00422980`                 | OBSERVED       |
 | `2B` | —                | appears only as data (`Alt+Tab` = `04 2B` in a key slot), not a command | `FUN_00418070`                 | n/a                      |
 
 Data packets are plain 64-byte feature reports that do **not** start with `04`.
@@ -78,7 +78,7 @@ Effects (official name table, language ids 521–540): 0 LED off, 1 Static, 2 Si
 4 Glittering, 5 Falling, 6 Colourful, 7 Breath, 8 Spectrum, 9 Outward, 10 Scrolling, 11 Rolling,
 12 Rotating, 13 Explode, 14 Launch, 15 Ripples, 16 Flowing, 17 Pulsating, 18 Tilt, 19 Shuttle;
 0x80 = per-key table. Brightness and speed 0–5 (`brightness_max`, `speed_max`). Direction:
-left 0, right 1, up 2, down 3 (radio wiring in the light page). STRONGLY_SUPPORTED.
+left 0, right 1, up 2, down 3 (radio wiring in the light page). OBSERVED.
 
 ## Tables: keymap, per-key colours
 
@@ -87,7 +87,7 @@ The entry index is the **key-matrix slot** `row × 18 + column` from the officia
 (Esc = 1, `` ` `` = 19, Tab = 37, Caps = 55, LShift = 73, LCtrl = 91; highest used slot 121).
 
 Per-key entry: `[index, R, G, B]`. The read-back from hardware carries `index` in every one of the
-144 entries and has no trailer (CONFIRMED; fixture `rgb/ak820-max-plus-read-per-key-hw.json`).
+144 entries and has no trailer (VERIFIED; fixture `rgb/ak820-max-plus-read-per-key-hw.json`).
 
 Key slot (`FUN_00418070`):
 
@@ -120,7 +120,7 @@ Key slot (`FUN_00418070`):
 0 00  1 01  2 disable Alt+Tab  3 disable Alt+F4  4 disable Win  5 fn_switch  6 sleep  7 00  8 key response  … 62 AA  63 55
 ```
 
-Sleep: 0 never, 1 = 1 min, 2 = 5 min, 3 = 30 min. Key response levels 1–5. STRONGLY_SUPPORTED.
+Sleep: 0 never, 1 = 1 min, 2 = 5 min, 3 = 30 min. Key response levels 1–5. OBSERVED.
 (The Pro tools put sleep at byte 8 – that layout is wrong for this firmware.)
 
 ## Clock data (`FUN_00423940`)

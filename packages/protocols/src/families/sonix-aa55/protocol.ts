@@ -1,4 +1,4 @@
-import { Confidence, hex16, toHex } from '@openkey/core';
+import { Evidence, hex16, toHex } from '@openkey/core';
 import { findInterface, maxReportSize } from '@openkey/hid';
 import type { HidDeviceGroup } from '@openkey/hid';
 import type {
@@ -44,7 +44,7 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
   if (ctx.level === 'passive') {
     return {
       status: 'skipped',
-      confidence: Confidence.INFERRED,
+      confidence: Evidence.INFERRED,
       summary: 'This protocol has no passive read; descriptor signature only.',
       steps: [],
       facts: {},
@@ -58,7 +58,7 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
     info.vid === ctx.group.identity.vendorId && info.pid === ctx.group.identity.productId;
   return {
     status: idMatches ? 'pass' : 'fail',
-    confidence: idMatches ? Confidence.CONFIRMED : Confidence.INFERRED,
+    confidence: idMatches ? Evidence.VERIFIED : Evidence.INFERRED,
     summary: idMatches
       ? `GET_DEVICE_INFO answered; firmware ${info.version}, VID/PID fields match USB identity.`
       : `GET_DEVICE_INFO answered but VID/PID fields (${hex16(info.vid)}:${hex16(info.pid)}) differ from USB identity.`,

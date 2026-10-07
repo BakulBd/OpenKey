@@ -3,7 +3,7 @@
  "device": "AJAZZ AK820 MAX PLUS TFT",
  "firmware": "bcdDevice 1.07",
  "transport": "usb",
- "confidence": "CONFIRMED",
+ "confidence": "VERIFIED",
  "source": "lsusb -v and /sys/class/hidraw/*/device/report_descriptor on the test unit",
  "identity": {
   "vendorId": 3141,

@@ -9,8 +9,8 @@ How to record and analyse traffic so that every protocol claim has evidence behi
 3. **Record state.** Write down the keyboard state before and after, and what you saw on the keyboard.
 4. **Never guess packets at the hardware.** Captures come from the official software; OpenKey only
    sends what has been traced or captured. Unknown commands are documented, never "tried".
-5. **Confidence is earned.** Findings start as UNVERIFIED and are promoted in the research log only with
-   evidence (CONFIRMED needs a hardware observation).
+5. **Confidence is earned.** Findings start as HYPOTHESIS and are promoted in the research log only with
+   evidence (VERIFIED needs a hardware observation).
 
 ## Recording
 

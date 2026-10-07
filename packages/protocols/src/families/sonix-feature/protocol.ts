@@ -1,4 +1,4 @@
-import { Confidence, toHex } from '@openkey/core';
+import { Evidence, toHex } from '@openkey/core';
 import { findInterface } from '@openkey/hid';
 import type { HidCollection, HidDeviceGroup, HidInterfaceInfo } from '@openkey/hid';
 import type {
@@ -86,7 +86,7 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
   if (!ctrlIface)
     return {
       status: 'fail',
-      confidence: Confidence.UNVERIFIED,
+      confidence: Evidence.HYPOTHESIS,
       summary: 'Control collection missing',
       steps,
       facts,
@@ -106,7 +106,7 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
   if (peek.length !== PACKET_SIZE) {
     return {
       status: 'fail',
-      confidence: Confidence.UNVERIFIED,
+      confidence: Evidence.HYPOTHESIS,
       summary: 'Feature report has unexpected length',
       steps,
       facts,
@@ -115,7 +115,7 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
   if (ctx.level === 'passive') {
     return {
       status: 'pass',
-      confidence: Confidence.STRONGLY_SUPPORTED,
+      confidence: Evidence.OBSERVED,
       summary: 'Descriptor signature and readable 64-byte feature report (no command sent).',
       steps,
       facts,
@@ -146,14 +146,14 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
   return ok
     ? {
         status: 'pass',
-        confidence: Confidence.CONFIRMED,
+        confidence: Evidence.VERIFIED,
         summary: 'Firmware acknowledged the official START handshake on the FF13 control pipe.',
         steps,
         facts,
       }
     : {
         status: 'fail',
-        confidence: Confidence.UNVERIFIED,
+        confidence: Evidence.HYPOTHESIS,
         summary: 'START was not acknowledged',
         steps,
         facts,

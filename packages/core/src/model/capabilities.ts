@@ -1,4 +1,4 @@
-import { Confidence } from '../confidence.js';
+import { Evidence } from '../evidence.js';
 
 export const FEATURES = [
   'deviceInfo',
@@ -58,7 +58,7 @@ export interface FeatureSupport {
   status: FeatureStatus;
   read: ReadSource;
   write: boolean;
-  confidence: Confidence;
+  confidence: Evidence;
   /** Short human value for fixed/read-only features, e.g. "1000 Hz" or "Volume ±, Mute". */
   value?: string;
   note?: string;
@@ -72,13 +72,13 @@ export function feature(
   status: FeatureStatus,
   init: Partial<Omit<FeatureSupport, 'status'>> = {},
 ): FeatureSupport {
-  return { status, read: 'none', write: false, confidence: Confidence.UNVERIFIED, ...init };
+  return { status, read: 'none', write: false, confidence: Evidence.HYPOTHESIS, ...init };
 }
 
 export const configurable = (
   read: ReadSource,
   write: boolean,
-  confidence: Confidence,
+  confidence: Evidence,
   extra: Partial<FeatureSupport> = {},
 ): FeatureSupport => feature(FeatureStatus.CONFIGURABLE, { read, write, confidence, ...extra });
 

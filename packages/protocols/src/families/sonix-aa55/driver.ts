@@ -1,7 +1,7 @@
 import { FeatureStatus, configurable, feature } from '@openkey/core';
 import {
   BaseKeyboardDriver,
-  Confidence,
+  Evidence,
   ScopedStateStore,
   TftUploadError,
   UnsupportedFeatureError,
@@ -130,7 +130,7 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
 
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
-    const S = Confidence.STRONGLY_SUPPORTED;
+    const S = Evidence.OBSERVED;
     c.deviceInfo = feature(FeatureStatus.SUPPORTED_READ_ONLY, { read: 'device', confidence: S, source: 'GET_DEVICE_INFO (_n)' });
     c.keymap = configurable('device', true, S);
     c.fnLayer = configurable('device', true, S);
@@ -142,7 +142,7 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
     c.gameMode = configurable('device', true, S, { source: 'game-mode struct byte 1' });
     c.pollingRate = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
       read: 'device',
-      confidence: Confidence.INFERRED,
+      confidence: Evidence.INFERRED,
       note: 'reportRate byte is read; its value mapping is not known yet.',
     });
     c.knob = feature(FeatureStatus.PHYSICALLY_PRESENT_NOT_PROGRAMMABLE, {
@@ -151,10 +151,10 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
       note: 'wheelKeys is empty for the AK820 Pro in the online driver.',
     });
     if (this.tftLink) {
-      c.tft = configurable('none', true, Confidence.INFERRED, { note: 'Chunk format from the online driver; not hardware-verified by OpenKey (experimental).' });
+      c.tft = configurable('none', true, Evidence.INFERRED, { note: 'Chunk format from the online driver; not hardware-verified by OpenKey (experimental).' });
       c.tftGif = { ...c.tft };
-      c.tftClock = configurable('none', true, Confidence.INFERRED);
-      c.tftBuiltIn = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, { confidence: Confidence.INFERRED, note: 'SET_TFT_BUILT_IN_INDEX exists; built-in count unknown.' });
+      c.tftClock = configurable('none', true, Evidence.INFERRED);
+      c.tftBuiltIn = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, { confidence: Evidence.INFERRED, note: 'SET_TFT_BUILT_IN_INDEX exists; built-in count unknown.' });
     }
     c.factoryDefaults = configurable('none', true, S, { note: 'Writes the firmware default matrix read from the keyboard. The factory-reset command is blocked by policy.' });
     return c;
@@ -163,7 +163,7 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
   async getDeviceInfo(): Promise<DeviceInfo> {
     const i =
       this.info ?? decodeDeviceInfo(await this.l().read(Cmd.GET_DEVICE_INFO, DEVICE_INFO_BYTES));
-    const S = Confidence.STRONGLY_SUPPORTED;
+    const S = Evidence.OBSERVED;
     return {
       model: this.profile.model,
       profileId: this.profile.id,
@@ -209,7 +209,7 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
           key: 'workMode',
           label: 'Work mode',
           value: i.workMode,
-          confidence: Confidence.INFERRED,
+          confidence: Evidence.INFERRED,
           source: 'GET_DEVICE_INFO',
         },
       ],

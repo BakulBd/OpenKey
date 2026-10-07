@@ -62,7 +62,7 @@ export function formatDetectionReport(r: DetectionReport, verbose = false): stri
   L.push('');
   if (r.selected) {
     L.push(`Selected: ${r.selected.protocolId}`);
-    L.push(`Confidence: ${r.selected.confidence}`);
+    L.push(`Evidence: ${r.selected.confidence}`);
     if (verbose) for (const reason of r.selected.reasons) L.push(`  because: ${reason}`);
   } else {
     L.push('Selected: none');

@@ -6,7 +6,7 @@
  "reportId": 0,
  "command": "MACRO_BEGIN 0x19, MACRO_DATA 0x15 + storage image",
  "evidence": "DeviceDriver.exe FUN_0042d6f0",
- "confidence": "STRONGLY_SUPPORTED",
+ "confidence": "OBSERVED",
  "example": {
   "macros": [
    {

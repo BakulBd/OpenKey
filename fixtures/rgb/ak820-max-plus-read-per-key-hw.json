@@ -6,7 +6,7 @@
  "transport": "usb",
  "interface": "if3 FF13:0001",
  "reportId": 0,
- "confidence": "CONFIRMED",
+ "confidence": "VERIFIED",
  "source": "hardware",
  "packets": [
   {

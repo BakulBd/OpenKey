@@ -1,7 +1,7 @@
 import { FeatureStatus } from '@openkey/core';
 import {
   BaseKeyboardDriver,
-  Confidence,
+  Evidence,
   SafetyBlockedError,
   emptyCapabilities,
   clamp,
@@ -120,13 +120,13 @@ class CrsDriver extends BaseKeyboardDriver {
   }
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
-    c.deviceInfo = { status: FeatureStatus.SUPPORTED_READ_ONLY, read: 'device', write: false, confidence: Confidence.CONFIRMED };
+    c.deviceInfo = { status: FeatureStatus.SUPPORTED_READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
     c.rgb = { status: FeatureStatus.CONFIGURABLE, read: 'none', write: true,
-      confidence: Confidence.INFERRED,
+      confidence: Evidence.INFERRED,
       note: 'Experimental (community protocol).',
     };
     c.perKeyRgb = { status: FeatureStatus.CONFIGURABLE, read: 'none', write: true,
-      confidence: Confidence.INFERRED,
+      confidence: Evidence.INFERRED,
       note: 'Experimental (community protocol).',
     };
     return c;
@@ -136,7 +136,7 @@ class CrsDriver extends BaseKeyboardDriver {
       model: 'AJAZZ AK820 Max Plus (CRS controller)',
       profileId: 'ak820-max-crs',
       identity: this.group.identity,
-      firmware: { version: null, source: 'not exposed', confidence: Confidence.UNVERIFIED },
+      firmware: { version: null, source: 'not exposed', confidence: Evidence.HYPOTHESIS },
       transport: this.transport,
       protocol: { id: this.protocolId, name: 'CRS AA 55 CC 33 protocol (community)' },
       battery: null,
@@ -231,7 +231,7 @@ export const crsProtocol: ProtocolDefinition = {
   async probe(_ctx: ProbeContext): Promise<ProbeResult> {
     return {
       status: 'skipped',
-      confidence: Confidence.INFERRED,
+      confidence: Evidence.INFERRED,
       summary: 'No verified read-only command; descriptor signature only.',
       steps: [],
       facts: {},

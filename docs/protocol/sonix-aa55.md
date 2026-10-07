@@ -4,7 +4,7 @@ Reimplemented from the official web driver at https://ajazz.driveall.cn (bundle
 `layout-classic-CcyMQaqB.js`, built 2026-09-11). Function names refer to that minified bundle.
 Used by AK820 Pro units supported by the online driver and by AK820 MAX HE boards.
 **Not hardware-verified by OpenKey** (the test unit belongs to `sonix-feature`); everything here is
-STRONGLY_SUPPORTED from official code unless marked INFERRED.
+OBSERVED from official code unless marked INFERRED.
 
 ## Selection
 

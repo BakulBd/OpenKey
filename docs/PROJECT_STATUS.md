@@ -59,7 +59,7 @@ the official driver's expectations; they are not evidence about the firmware.
 ## Next tasks
 
 1. With the owner's consent: run the write experiments one at a time (lighting → per-key → clock →
-   settings → keymap → macros → TFT), read back where possible, record fixtures, promote to CONFIRMED.
+   settings → keymap → macros → TFT), read back where possible, record fixtures, promote to VERIFIED.
 2. Plug in the 2.4 GHz receiver and run `pnpm inspect`, `openkey detect`.
 3. Measure the actual report cadence with `openkey polling` while typing.
 4. Capture the official driver in a Windows VM for the open questions above.

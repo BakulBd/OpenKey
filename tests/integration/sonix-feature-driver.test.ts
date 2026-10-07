@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  Confidence,
+  Evidence,
   MemoryStateStore,
   collectBackup,
   isOpenKeyError,
@@ -32,11 +32,11 @@ const featureSets = (sim: InstanceType<typeof sonixFeature.SonixFeatureSimulator
     .map((t) => Array.from(t.data.subarray(0, 2)));
 
 describe('sonix-feature driver against the firmware simulator', () => {
-  it('detects the protocol with a CONFIRMED handshake', async () => {
+  it('detects the protocol with a VERIFIED handshake', async () => {
     const { detection } = await setup();
     expect(detection.selected).toMatchObject({
       protocolId: 'sonix-feature',
-      confidence: Confidence.CONFIRMED,
+      confidence: Evidence.VERIFIED,
     });
     const probe = detection.candidates.find((c) => c.protocol.id === 'sonix-feature')!.probe!;
     expect(probe.steps.map((s) => s.status)).toEqual(['pass', 'pass']);

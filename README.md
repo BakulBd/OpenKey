@@ -45,7 +45,7 @@ Candidate protocol: AJAZZ Windows-driver protocol (feature reports on FF13 + 409
 Candidate protocol: AJAZZ online-driver protocol (AA/55 output reports)
   Descriptor match: NO (FF68 output report is 4096 bytes: a bulk data pipe, not an AA/55 command pipe)
 Selected: sonix-feature
-Confidence: CONFIRMED
+Confidence: VERIFIED
 ```
 
 ## Using the web app

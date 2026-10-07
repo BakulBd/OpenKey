@@ -1,4 +1,4 @@
-import { BaseKeyboardDriver, FeatureStatus, Confidence, emptyCapabilities, hex16, toHex } from '@openkey/core';
+import { BaseKeyboardDriver, FeatureStatus, Evidence, emptyCapabilities, hex16, toHex } from '@openkey/core';
 import type { Capabilities, DeviceInfo, KeyboardLayout, TransportMode } from '@openkey/core';
 import { findInterface, maxReportSize } from '@openkey/hid';
 import type { HidCollection, HidDeviceGroup } from '@openkey/hid';
@@ -36,7 +36,7 @@ class QmkViaDriver extends BaseKeyboardDriver {
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
     c.deviceInfo = { status: FeatureStatus.SUPPORTED_READ_ONLY, read: 'device', write: false,
-      confidence: Confidence.CONFIRMED,
+      confidence: Evidence.VERIFIED,
       note: 'Custom QMK firmware: configure it with VIA/Vial.',
     };
     return c;
@@ -50,7 +50,7 @@ class QmkViaDriver extends BaseKeyboardDriver {
       firmware: {
         version: this.viaVersion !== null ? `VIA protocol ${hex16(this.viaVersion)}` : null,
         source: 'VIA id_get_protocol_version',
-        confidence: Confidence.STRONGLY_SUPPORTED,
+        confidence: Evidence.OBSERVED,
       },
       transport: this.transport,
       protocol: { id: this.protocolId, name: 'QMK VIA raw HID' },
@@ -93,7 +93,7 @@ export const qmkViaProtocol: ProtocolDefinition = {
     if (ctx.level !== 'handshake')
       return {
         status: 'skipped',
-        confidence: Confidence.INFERRED,
+        confidence: Evidence.INFERRED,
         summary: 'Descriptor signature only.',
         steps: [],
         facts: {},
@@ -110,7 +110,7 @@ export const qmkViaProtocol: ProtocolDefinition = {
     const version = ok ? (r[1]! << 8) | r[2]! : null;
     return {
       status: ok ? 'pass' : 'fail',
-      confidence: ok ? Confidence.CONFIRMED : Confidence.UNVERIFIED,
+      confidence: ok ? Evidence.VERIFIED : Evidence.HYPOTHESIS,
       summary: ok ? `VIA protocol version ${hex16(version!)}` : 'No VIA answer',
       steps: [
         {

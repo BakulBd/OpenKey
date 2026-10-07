@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Confidence, MemoryStateStore, isOpenKeyError } from '@openkey/core';
+import { Evidence, MemoryStateStore, isOpenKeyError } from '@openkey/core';
 import {
   connectKeyboard,
   createDefaultRegistry,
@@ -54,7 +54,7 @@ describe('online-driver protocol (sonix-aa55)', () => {
     const { detection, driver } = await setup();
     expect(detection.selected).toMatchObject({
       protocolId: 'sonix-aa55',
-      confidence: Confidence.CONFIRMED,
+      confidence: Evidence.VERIFIED,
     });
     const sf = detection.candidates.find((c) => c.protocol.id === 'sonix-feature')!;
     expect(sf.match.applicable).toBe(false);

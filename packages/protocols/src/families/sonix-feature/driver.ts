@@ -1,6 +1,6 @@
 import {
   BaseKeyboardDriver,
-  Confidence,
+  Evidence,
   SafetyBlockedError,
   ScopedStateStore,
   TftUploadError,
@@ -185,7 +185,7 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
       firmware: {
         version: fw,
         source: fw ? 'USB bcdDevice' : 'not exposed by this platform (WebHID hides bcdDevice)',
-        confidence: fw ? Confidence.INFERRED : Confidence.UNVERIFIED,
+        confidence: fw ? Evidence.INFERRED : Evidence.HYPOTHESIS,
       },
       transport: this.transport,
       protocol: {
@@ -199,14 +199,14 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
           key: 'productString',
           label: 'USB product string',
           value: id.productName,
-          confidence: Confidence.CONFIRMED,
+          confidence: Evidence.VERIFIED,
           source: 'USB descriptor',
         },
         {
           key: 'manufacturer',
           label: 'Manufacturer',
           value: id.manufacturer ?? null,
-          confidence: Confidence.CONFIRMED,
+          confidence: Evidence.VERIFIED,
           source: 'USB descriptor',
         },
         {
@@ -215,28 +215,28 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
           value: p.tft
             ? `${p.tft.width}×${p.tft.height} RGB565, ≤${p.tft.maxFrames} frames`
             : 'none',
-          confidence: Confidence.STRONGLY_SUPPORTED,
+          confidence: Evidence.OBSERVED,
           source: 'official driver layout <screen>',
         },
         {
           key: 'layout',
           label: 'Layout',
           value: this.layout.name,
-          confidence: Confidence.STRONGLY_SUPPORTED,
+          confidence: Evidence.OBSERVED,
           source: 'official driver key table',
         },
         {
           key: 'macroSlots',
           label: 'Macro slots',
           value: MACRO_SLOTS,
-          confidence: Confidence.STRONGLY_SUPPORTED,
+          confidence: Evidence.OBSERVED,
           source: 'FUN_0042d6f0',
         },
         {
           key: 'battery',
           label: 'Battery',
           value: 'not readable over this protocol',
-          confidence: Confidence.INFERRED,
+          confidence: Evidence.INFERRED,
           source: 'no battery query in official wired driver',
         },
       ],

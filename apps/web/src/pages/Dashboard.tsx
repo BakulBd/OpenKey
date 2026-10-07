@@ -1,7 +1,7 @@
 import { FEATURES, hex16, isAvailable } from '@openkey/core';
 import { getProfile } from '@openkey/devices';
 import { useKeyboard } from '../state/keyboard.js';
-import { Card, ConfidenceBadge, SupportBadge } from '../components/ui.js';
+import { Card, EvidenceBadge, SupportBadge } from '../components/ui.js';
 import { KeyboardView } from '../components/KeyboardView.js';
 
 const LABELS: Record<string, string> = {
@@ -66,7 +66,7 @@ export function Dashboard() {
             <dd>{info.protocol.name}</dd>
             <dt>Detection</dt>
             <dd>
-              {detection.selected && <ConfidenceBadge value={detection.selected.confidence} />}
+              {detection.selected && <EvidenceBadge value={detection.selected.confidence} />}
             </dd>
             <dt>Battery</dt>
             <dd>

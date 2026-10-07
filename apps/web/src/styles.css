@@ -330,11 +330,11 @@ input[type='number'] {
 .badge.muted {
   color: var(--dim);
 }
-.conf-confirmed {
+.conf-verified {
   color: var(--ok);
   border-color: var(--ok);
 }
-.conf-strongly_supported {
+.conf-observed {
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -342,7 +342,7 @@ input[type='number'] {
   color: var(--warn);
   border-color: var(--warn);
 }
-.conf-unverified {
+.conf-hypothesis {
   color: var(--err);
   border-color: var(--err);
 }

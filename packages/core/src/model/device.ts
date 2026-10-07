@@ -1,4 +1,4 @@
-import type { Confidence } from '../confidence.js';
+import type { Evidence } from '../evidence.js';
 
 /** How the keyboard is currently attached to the host. */
 export type TransportMode = 'usb' | '2.4ghz' | 'bluetooth' | 'unknown';
@@ -19,7 +19,7 @@ export interface InfoField {
   key: string;
   label: string;
   value: string | number | boolean | null;
-  confidence: Confidence;
+  confidence: Evidence;
   source: string;
 }
 
@@ -29,7 +29,7 @@ export interface DeviceInfo {
   /** Profile id the detector resolved to, e.g. "ak820-max-plus". */
   profileId: string;
   identity: DeviceIdentity;
-  firmware: { version: string | null; source: string; confidence: Confidence };
+  firmware: { version: string | null; source: string; confidence: Evidence };
   transport: TransportMode;
   protocol: { id: string; name: string; revision?: string };
   battery?: { level: number; charging: boolean } | null;

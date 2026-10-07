@@ -212,7 +212,7 @@ export function formatDiff(r: DiffReport, maxPackets = 40): string {
   if (r.packets.every((p) => p.identical)) L.push('Captures are byte-identical.');
   L.push('');
   L.push(
-    'Confidence of every finding above: UNVERIFIED until confirmed by a controlled experiment.',
+    'Evidence for every finding above: HYPOTHESIS until confirmed by a controlled experiment.',
   );
   return L.join('\n');
 }

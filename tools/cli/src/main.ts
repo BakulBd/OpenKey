@@ -204,7 +204,7 @@ async function cmdInfo(flags: GlobalFlags, p: Parsed): Promise<void> {
           `Firmware: ${info.firmware.version ?? 'unknown'} (${info.firmware.source}; ${info.firmware.confidence})`,
           `Protocol: ${info.protocol.name} [${info.protocol.id}]`,
           `Transport: ${info.transport}`,
-          `Confidence: ${detection.selected?.confidence ?? 'n/a'}`,
+          `Evidence: ${detection.selected?.confidence ?? 'n/a'}`,
           '',
           'Capabilities:',
           ...FEATURES.filter((f) => caps[f].write || caps[f].read !== 'none').map(

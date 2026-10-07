@@ -15,8 +15,8 @@ connected (cable, receiver, Bluetooth).
    one change per capture, controlled assets, before/after state.
 2. Add the capture (converted to JSON, without unrelated traffic) under `fixtures/`, with device, firmware,
    transport, interface, report ID, raw bytes and expected parsing.
-3. Add an entry to [docs/RESEARCH_LOG.md](docs/RESEARCH_LOG.md) with a confidence level. CONFIRMED needs a
-   hardware observation; official-code findings are STRONGLY_SUPPORTED.
+3. Add an entry to [docs/RESEARCH_LOG.md](docs/RESEARCH_LOG.md) with a confidence level. VERIFIED needs a
+   hardware observation; official-code findings are OBSERVED.
 4. Implement the encoder/decoder with named constants that cite their evidence, plus a test that uses the
    fixture.
 

@@ -6,7 +6,7 @@
  "reportId": 0,
  "command": "Key slot encoding (KEYMAP_BASE 0x11 / KEYMAP_FN 0x27 tables)",
  "evidence": "DeviceDriver.exe FUN_00418070 (per-key encoder) and FUN_00418420 (table builder)",
- "confidence": "STRONGLY_SUPPORTED",
+ "confidence": "OBSERVED",
  "cases": [
   {
    "action": {

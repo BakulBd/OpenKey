@@ -1,5 +1,5 @@
 export * from './errors.js';
-export * from './confidence.js';
+export * from './evidence.js';
 export * from './bytes.js';
 export * from './packet-log.js';
 export * from './state-store.js';

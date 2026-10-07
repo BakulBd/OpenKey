@@ -6,7 +6,7 @@
  "reportId": 0,
  "command": "LIGHT_MODE 0x13 + data packet",
  "evidence": "DeviceDriver.exe FUN_0042b100 (packet), FUN_0042ab40 (field meaning), FUN_00438xxx (direction radios)",
- "confidence": "STRONGLY_SUPPORTED",
+ "confidence": "OBSERVED",
  "example": {
   "config": {
    "effect": 1,

@@ -1,9 +1,9 @@
-import { Confidence, FeatureStatus, configurable, emptyCapabilities, feature } from '@openkey/core';
+import { Evidence, FeatureStatus, configurable, emptyCapabilities, feature } from '@openkey/core';
 import type { Capabilities, TransportMode } from '@openkey/core';
 import type { SonixFeatureVariant } from './variants.js';
 
-const S = Confidence.STRONGLY_SUPPORTED;
-const C = Confidence.CONFIRMED;
+const S = Evidence.OBSERVED;
+const C = Evidence.VERIFIED;
 
 /**
  * Capabilities of the Windows-driver firmware family, per link. Every status cites its evidence;
@@ -31,7 +31,7 @@ export function sonixFeatureCapabilities(variant: SonixFeatureVariant, transport
     source: 'official driver UI (language table, settings packet)',
   });
   caps.tftBuiltIn = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-    confidence: Confidence.INFERRED,
+    confidence: Evidence.INFERRED,
     note: 'Built-in animations are switched on the keyboard; no PC command was found in the official driver.',
   });
 
@@ -62,7 +62,7 @@ export function sonixFeatureCapabilities(variant: SonixFeatureVariant, transport
   caps.keyResponse = configurable('mirror', true, S);
   caps.winLock = configurable('mirror', true, S, { source: 'FUN_00414060 byte 4' });
   caps.altLocks = configurable('mirror', true, S, { source: 'FUN_00414060 bytes 2–3' });
-  caps.factoryDefaults = configurable('none', true, Confidence.INFERRED, { note: 'Keymap/Fn defaults via an all-default table; no factory-reset command is sent.' });
+  caps.factoryDefaults = configurable('none', true, Evidence.INFERRED, { note: 'Keymap/Fn defaults via an all-default table; no factory-reset command is sent.' });
   // Battery: official software polls it only through the 2.4 GHz receiver (FUN_00435890).
   caps.battery = feature(FeatureStatus.NOT_SUPPORTED, {
     confidence: S,
