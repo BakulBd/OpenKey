@@ -21,7 +21,8 @@ const LABELS: Record<string, string> = {
   gameMode: 'Game mode',
   sleep: 'Sleep timer',
   keyResponse: 'Key response',
-  osKeyLocks: 'Win / Alt locks',
+  winLock: 'Windows key lock',
+  altLocks: 'Alt+Tab / Alt+F4 locks',
   factoryDefaults: 'Restore defaults',
 };
 

@@ -28,7 +28,7 @@ export function DevicePage() {
           ))}
         </dl>
       </Card>
-      {s && (caps.sleep.write || caps.osKeyLocks.write || caps.gameMode.write) && (
+      {s && (caps.sleep.write || (caps.winLock.write || caps.altLocks.write) || caps.gameMode.write) && (
         <Card
           title="Keyboard settings"
           actions={
@@ -75,7 +75,7 @@ export function DevicePage() {
                 </select>
               </Field>
             )}
-            {caps.osKeyLocks.write && (
+            {(caps.winLock.write || caps.altLocks.write) && (
               <>
                 <Field label="Disable Windows key">
                   <input
