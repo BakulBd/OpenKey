@@ -1,0 +1,29 @@
+{
+ "description": "START handshake on the physical AK820 MAX PLUS (openak820 detect --level handshake)",
+ "date": "2026-10-07",
+ "device": "AJAZZ AK820 MAX PLUS TFT (USB 0C45:8009 'AK820 MAX', bcdDevice 1.07)",
+ "firmware": "1.07 (bcdDevice)",
+ "transport": "usb",
+ "interface": "if3 FF13:0001 (/dev/hidraw7 at capture time)",
+ "reportId": 0,
+ "confidence": "CONFIRMED",
+ "source": "hardware",
+ "packets": [
+  {
+   "kind": "feature-get",
+   "hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+  },
+  {
+   "kind": "feature-set",
+   "hex": "04 18 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+  },
+  {
+   "kind": "feature-get",
+   "hex": "04 18 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+  }
+ ],
+ "interpretation": [
+  "GET_FEATURE without a preceding command returns the echo of the last command (zeros after power-up)",
+  "START 04 18 is acknowledged as 04 18 00 01 (payload[3] = 01)"
+ ]
+}

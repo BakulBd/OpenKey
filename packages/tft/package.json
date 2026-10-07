@@ -1,0 +1,14 @@
+{
+  "name": "@openak820/tft",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openak820/core": "workspace:*",
+    "gifuct-js": "^2.1.2"
+  }
+}

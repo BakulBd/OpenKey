@@ -1,0 +1,48 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "ak820-max-plus",
+  "model": "AJAZZ AK820 MAX / MAX PLUS",
+  "notes": "The MAX and MAX PLUS TFT editions share one USB identity (product string \"AK820 MAX\") and one official driver package; firmware does not report which edition it is.",
+  "vendorIds": ["0x0C45"],
+  "productIds": ["0x8009", "0x800A"],
+  "productNames": ["AK820 MAX"],
+  "firmwareRange": { "min": null, "max": null, "tested": ["1.07"] },
+  "usagePages": ["0xFF13", "0xFF68"],
+  "usages": { "0xFF13": ["0x01"], "0xFF68": ["0x61"] },
+  "protocolFamily": "sonix-feature",
+  "variant": "ak820-max",
+  "layout": "ak820-max",
+  "transportModes": {
+    "usb": {
+      "configuration": "supported",
+      "evidence": "Official driver config.xml mode 0 (VID 0C45, PID 8009/800A); hardware topology on the test unit."
+    },
+    "2.4ghz": {
+      "configuration": "partial",
+      "evidence": "Official driver config.xml mode 2 (dongles 05AC:024F and 0C45:FDFD) and menu_wireless (no screen). Dongle protocol differs (32-byte output reports); not yet verified on hardware."
+    },
+    "bluetooth": {
+      "configuration": "unsupported",
+      "evidence": "Official driver message 62: keyboard settings are not supported in Bluetooth mode."
+    }
+  },
+  "tft": {
+    "width": 128,
+    "height": 128,
+    "maxFrames": 255,
+    "slots": 1,
+    "headerBytes": 256,
+    "chunkBytes": 4096,
+    "delayUnitMs": 2
+  },
+  "rgb": { "brightnessMax": 5, "speedMax": 5, "defaultEffect": 11, "perKey": true },
+  "macros": { "slots": 100, "storageBytes": 3584, "eventBudgetBytes": 2700 },
+  "knob": {
+    "configurable": false,
+    "note": "No knob/wheel remapping exists in the official driver for this model."
+  },
+  "evidence": [
+    "Official AJAZZ Windows driver 'AK820 MAX&MAX PLUS Tri-mode RGB 0.85in ColorScreen V1.0.0.5' (DeviceDriver.exe, config.xml, layouts/rgb-keyboard.xml)",
+    "Linux hidraw topology of the test unit (re/descriptors)"
+  ]
+}

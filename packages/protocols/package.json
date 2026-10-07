@@ -1,0 +1,16 @@
+{
+  "name": "@openak820/protocols",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openak820/core": "workspace:*",
+    "@openak820/hid": "workspace:*",
+    "@openak820/tft": "workspace:*",
+    "@openak820/profiles": "workspace:*"
+  }
+}

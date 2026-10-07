@@ -1,0 +1,6 @@
+apps/web/dist
+tools/cli/dist
+pnpm-lock.yaml
+re
+fixtures
+packages/profiles/src/layouts

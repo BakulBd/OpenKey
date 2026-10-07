@@ -1,0 +1,16 @@
+{
+  "name": "@openak820/hid-node",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Node.js HID backends (Linux hidraw via sysfs + node-hid).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openak820/core": "workspace:*",
+    "@openak820/hid": "workspace:*",
+    "node-hid": "^3.1.2"
+  }
+}

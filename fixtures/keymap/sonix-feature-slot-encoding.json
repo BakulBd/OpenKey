@@ -1,0 +1,196 @@
+{
+ "device": "AJAZZ AK820 MAX / MAX PLUS (sonix-feature)",
+ "firmware": "any (protocol of official driver V1.0.0.5)",
+ "transport": "usb",
+ "interface": "FF13:0001 (control, feature reports)",
+ "reportId": 0,
+ "command": "Key slot encoding (KEYMAP_BASE 0x11 / KEYMAP_FN 0x27 tables)",
+ "evidence": "DeviceDriver.exe FUN_00418070 (per-key encoder) and FUN_00418420 (table builder)",
+ "confidence": "STRONGLY_SUPPORTED",
+ "cases": [
+  {
+   "action": {
+    "kind": "default"
+   },
+   "slot": "00 00 00 00",
+   "note": "zero slot = firmware default (unassigned keys are left zero)"
+  },
+  {
+   "action": {
+    "kind": "disabled"
+   },
+   "slot": "05 03 00 00",
+   "note": "UI 'Disable Key' (type 1)"
+  },
+  {
+   "action": {
+    "kind": "keyboard",
+    "usage": 4,
+    "modifiers": 0
+   },
+   "slot": "02 00 04 00",
+   "note": "type 2, plain key A"
+  },
+  {
+   "action": {
+    "kind": "keyboard",
+    "usage": 6,
+    "modifiers": 1
+   },
+   "slot": "02 01 06 00",
+   "note": "Ctrl+C (Windows shortcut table entry 6)"
+  },
+  {
+   "action": {
+    "kind": "keyboard",
+    "usage": 7,
+    "modifiers": 8
+   },
+   "slot": "02 08 07 00",
+   "note": "Win+D 'Show Desktop'"
+  },
+  {
+   "action": {
+    "kind": "keyboard",
+    "usage": 43,
+    "modifiers": 4
+   },
+   "slot": "02 04 2b 00",
+   "note": "Alt+Tab 'Switch Windows'"
+  },
+  {
+   "action": {
+    "kind": "keyboard",
+    "usage": 224,
+    "modifiers": 0
+   },
+   "slot": "02 01 00 00",
+   "note": "bare modifier key: modifier bit, usage 0"
+  },
+  {
+   "action": {
+    "kind": "consumer",
+    "usage": 205
+   },
+   "slot": "03 cd 00 00",
+   "note": "Play/Pause"
+  },
+  {
+   "action": {
+    "kind": "consumer",
+    "usage": 402
+   },
+   "slot": "03 92 01 00",
+   "note": "Calculator (AL Calculator 0x192)"
+  },
+  {
+   "action": {
+    "kind": "mouse",
+    "action": "left"
+   },
+   "slot": "01 01 01 00"
+  },
+  {
+   "action": {
+    "kind": "mouse",
+    "action": "middle"
+   },
+   "slot": "01 01 04 00"
+  },
+  {
+   "action": {
+    "kind": "mouse",
+    "action": "right"
+   },
+   "slot": "01 01 02 00"
+  },
+  {
+   "action": {
+    "kind": "mouse",
+    "action": "left+right"
+   },
+   "slot": "01 01 03 00",
+   "note": "UI 'Double Click'"
+  },
+  {
+   "action": {
+    "kind": "mouse",
+    "action": "wheel-up"
+   },
+   "slot": "01 03 01 00"
+  },
+  {
+   "action": {
+    "kind": "mouse",
+    "action": "wheel-down"
+   },
+   "slot": "01 03 ff 00"
+  },
+  {
+   "action": {
+    "kind": "mouse",
+    "action": "back"
+   },
+   "slot": "01 01 08 00"
+  },
+  {
+   "action": {
+    "kind": "mouse",
+    "action": "forward"
+   },
+   "slot": "01 01 10 00"
+  },
+  {
+   "action": {
+    "kind": "macro",
+    "index": 2,
+    "mode": "once",
+    "repeat": 0
+   },
+   "slot": "06 02 00 00",
+   "note": "mode byte INFERRED from online-driver numbering"
+  }
+ ],
+ "table": {
+  "bytes": 576,
+  "packets": 9,
+  "slotIndex": "layout key_index (row*18+col)",
+  "trailer": "aa 55 at offset 574",
+  "sequence": [
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "04 18 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": true,
+    "name": "START"
+   },
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "04 11 00 00 00 00 00 00 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": true,
+    "name": "KEYMAP_BASE, 9 packets (0x27 for Fn layer)"
+   },
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "<9 \u00d7 64-byte table packets>",
+    "handshake": false
+   },
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "04 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": true,
+    "name": "SAVE"
+   },
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "04 f0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": true,
+    "name": "FINISH"
+   }
+  ]
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "device": "AJAZZ AK820 MAX / MAX PLUS (sonix-feature)",
+ "firmware": "any (protocol of official driver V1.0.0.5)",
+ "transport": "usb",
+ "interface": "FF13:0001 (control, feature reports)",
+ "reportId": 0,
+ "command": "TIME 0x28 + data packet",
+ "evidence": "DeviceDriver.exe FUN_00423940",
+ "confidence": "STRONGLY_SUPPORTED",
+ "example": {
+  "date": "2026-05-16T14:30:45 (Saturday)",
+  "data": "00 01 5a 1a 05 10 0e 1e 2d 00 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 aa 55"
+ },
+ "note": "Byte 10 is the day of week (0=Sunday). Community fixtures with 0x04 there were captured on a Thursday."
+}

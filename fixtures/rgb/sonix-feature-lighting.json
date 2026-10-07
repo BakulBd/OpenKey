@@ -1,0 +1,71 @@
+{
+ "device": "AJAZZ AK820 MAX / MAX PLUS (sonix-feature)",
+ "firmware": "any (protocol of official driver V1.0.0.5)",
+ "transport": "usb",
+ "interface": "FF13:0001 (control, feature reports)",
+ "reportId": 0,
+ "command": "LIGHT_MODE 0x13 + data packet",
+ "evidence": "DeviceDriver.exe FUN_0042b100 (packet), FUN_0042ab40 (field meaning), FUN_00438xxx (direction radios)",
+ "confidence": "STRONGLY_SUPPORTED",
+ "example": {
+  "config": {
+   "effect": 1,
+   "color": {
+    "r": 255,
+    "g": 0,
+    "b": 0
+   },
+   "colorful": false,
+   "brightness": 5,
+   "speed": 3,
+   "direction": "left"
+  },
+  "sequence": [
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "04 18 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": true,
+    "name": "START"
+   },
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "04 13 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": true,
+    "name": "LIGHT_MODE"
+   },
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "01 ff 00 00 00 00 00 00 00 05 03 00 00 00 aa 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": false,
+    "name": "data: effect, R,G,B, colorful, brightness, speed, direction, AA 55"
+   },
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "04 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": true,
+    "name": "SAVE"
+   },
+   {
+    "dir": "out",
+    "kind": "feature-set",
+    "hex": "04 f0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "handshake": false,
+    "name": "FINISH"
+   }
+  ]
+ },
+ "directions": {
+  "left": 0,
+  "right": 1,
+  "up": 2,
+  "down": 3
+ },
+ "ack": {
+  "description": "GET_FEATURE after a handshaked packet returns the packet with payload[3]=01",
+  "example": "04 18 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+ }
+}

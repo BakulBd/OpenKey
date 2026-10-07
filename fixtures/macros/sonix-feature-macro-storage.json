@@ -1,0 +1,39 @@
+{
+ "device": "AJAZZ AK820 MAX / MAX PLUS (sonix-feature)",
+ "firmware": "any (protocol of official driver V1.0.0.5)",
+ "transport": "usb",
+ "interface": "FF13:0001 (control, feature reports)",
+ "reportId": 0,
+ "command": "MACRO_BEGIN 0x19, MACRO_DATA 0x15 + storage image",
+ "evidence": "DeviceDriver.exe FUN_0042d6f0",
+ "confidence": "STRONGLY_SUPPORTED",
+ "example": {
+  "macros": [
+   {
+    "index": 0,
+    "events": [
+     {
+      "type": "key",
+      "usage": 4,
+      "down": true
+     },
+     {
+      "type": "delay",
+      "ms": 20
+     },
+     {
+      "type": "key",
+      "usage": 4,
+      "down": false
+     }
+    ]
+   }
+  ],
+  "imageFirstBytes": {
+   "0": "90 01",
+   "400": "04 00 00 00 00 00 00 00 00 00 04 b0 14 00 00 50 00 00 04 30 0a 00 00 50"
+  },
+  "packets": 8,
+  "note": "entry count 4 (2 key events + 2 delays); last delay defaults to 10 ms; packets = floor(424/64)+2 = 8"
+ }
+}

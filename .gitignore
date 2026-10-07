@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+# Proprietary vendor material is analysed locally only and never committed.
+vendor/*
+!vendor/README.md
+# Raw packet captures can be large and may contain unrelated USB traffic.
+captures/*.pcapng
+re/tools/read_feature
+.env

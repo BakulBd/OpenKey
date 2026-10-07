@@ -1,0 +1,25 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "ak820-pro-qmk",
+  "model": "AJAZZ AK820 Pro (custom QMK firmware)",
+  "notes": "Community QMK port (fpb/qmk_firmware). Configuration belongs to VIA/Vial; OpenAK820 only identifies it.",
+  "vendorIds": ["0x0C45"],
+  "productIds": ["0x8009"],
+  "productNames": [],
+  "firmwareRange": { "min": null, "max": null, "tested": [] },
+  "usagePages": ["0xFF60"],
+  "usages": { "0xFF60": ["0x61"] },
+  "protocolFamily": "qmk-via",
+  "variant": "qmk",
+  "layout": "ak820-pro",
+  "transportModes": {
+    "usb": { "configuration": "partial", "evidence": "VIA raw HID protocol" },
+    "2.4ghz": { "configuration": "unknown", "evidence": "n/a" },
+    "bluetooth": { "configuration": "unknown", "evidence": "n/a" }
+  },
+  "tft": null,
+  "rgb": null,
+  "macros": null,
+  "knob": { "configurable": false, "note": "Use VIA." },
+  "evidence": ["fpb/time-util-ak820pro ak820ctl.c"]
+}

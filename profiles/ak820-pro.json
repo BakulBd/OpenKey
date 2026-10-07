@@ -1,0 +1,41 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "ak820-pro",
+  "model": "AJAZZ AK820 Pro",
+  "notes": "Units whose firmware exposes the Windows-driver topology (FF13 feature control pipe + FF68 4096-byte data pipe).",
+  "vendorIds": ["0x0C45"],
+  "productIds": ["0x8009", "0x800A"],
+  "productNames": ["AK820"],
+  "firmwareRange": { "min": null, "max": null, "tested": [] },
+  "usagePages": ["0xFF13", "0xFF68"],
+  "usages": { "0xFF13": ["0x01"], "0xFF68": ["0x61"] },
+  "protocolFamily": "sonix-feature",
+  "variant": "ak820-pro",
+  "layout": "ak820-pro",
+  "transportModes": {
+    "usb": {
+      "configuration": "supported",
+      "evidence": "Official driver 'AK820 PRO Screen V1.0.0.5' config.xml; community tools (gohv, aks075-linux, kabelklaus)."
+    },
+    "2.4ghz": {
+      "configuration": "partial",
+      "evidence": "Official driver config.xml lists dongle 0C45:FDFD; not verified."
+    },
+    "bluetooth": { "configuration": "unsupported", "evidence": "Official driver message 62." }
+  },
+  "tft": {
+    "width": 128,
+    "height": 128,
+    "maxFrames": 140,
+    "slots": 1,
+    "headerBytes": 256,
+    "chunkBytes": 4096,
+    "delayUnitMs": 2
+  },
+  "rgb": { "brightnessMax": 5, "speedMax": 5, "defaultEffect": 11, "perKey": true },
+  "macros": { "slots": 100, "storageBytes": 3584, "eventBudgetBytes": 2700 },
+  "knob": { "configurable": false, "note": "Knob is firmware-fixed (volume)." },
+  "evidence": [
+    "Official AJAZZ Windows driver 'AK820 PRO Tri-mode RGB Screen V1.0.0.5' (DeviceDriver.exe, config.xml)"
+  ]
+}

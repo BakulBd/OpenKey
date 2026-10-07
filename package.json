@@ -1,0 +1,46 @@
+{
+  "name": "openak820",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An open-source, cross-platform WebHID configurator for the AJAZZ AK820 keyboard family.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "openak820": "tsx tools/cli/src/main.ts",
+    "inspect": "tsx tools/device-inspector/src/main.ts",
+    "probe": "tsx tools/probe-device/src/main.ts",
+    "packet-diff": "tsx tools/packet-diff/src/main.ts",
+    "dev": "pnpm --filter @openak820/web dev",
+    "build": "pnpm build:cli && pnpm build:web",
+    "build:cli": "node tools/cli/build.mjs",
+    "build:web": "pnpm --filter @openak820/web build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @openak820/web typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@openak820/core": "workspace:^",
+    "@openak820/hid": "workspace:^",
+    "@openak820/hid-node": "workspace:^",
+    "@openak820/profiles": "workspace:^",
+    "@openak820/protocols": "workspace:^",
+    "@openak820/tft": "workspace:^",
+    "@types/node": "^26.6.4",
+    "@types/w3c-web-hid": "^1.0.7",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.12.0",
+    "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^3"
+  }
+}

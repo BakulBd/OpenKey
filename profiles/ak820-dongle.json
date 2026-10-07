@@ -1,0 +1,31 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "ak820-dongle",
+  "model": "AJAZZ AK820 2.4 GHz receiver",
+  "notes": "Receiver used by AK820 Pro / MAX in 2.4 GHz mode. Exposes a 32-byte vendor protocol, not the wired protocol.",
+  "vendorIds": ["0x0C45", "0x05AC"],
+  "productIds": ["0xFDFD", "0x024F"],
+  "productNames": ["2.4G Dongle", "AJAZZ AK820 MAX 2.4G"],
+  "firmwareRange": { "min": null, "max": null, "tested": [] },
+  "usagePages": [],
+  "usages": {},
+  "protocolFamily": "sonix-dongle",
+  "variant": "ak820-dongle",
+  "layout": "ak820-max",
+  "transportModes": {
+    "usb": { "configuration": "unsupported", "evidence": "n/a" },
+    "2.4ghz": {
+      "configuration": "partial",
+      "evidence": "Official driver function 0x44f5f0 (32-byte output report + additive checksum); afonsusousa/mrworldwide capture. Not verified by OpenAK820 hardware."
+    },
+    "bluetooth": { "configuration": "unsupported", "evidence": "n/a" }
+  },
+  "tft": null,
+  "rgb": { "brightnessMax": 5, "speedMax": 5, "defaultEffect": 11, "perKey": false },
+  "macros": null,
+  "knob": { "configurable": false, "note": "n/a" },
+  "evidence": [
+    "Official AK820 MAX driver config.xml (2.4G TYPE-A modes)",
+    "afonsusousa/mrworldwide"
+  ]
+}

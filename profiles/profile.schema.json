@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpenAK820 model profile",
+  "type": "object",
+  "required": [
+    "id",
+    "model",
+    "vendorIds",
+    "productIds",
+    "productNames",
+    "protocolFamily",
+    "variant",
+    "layout",
+    "transportModes",
+    "evidence"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "model": { "type": "string" },
+    "notes": { "type": "string" },
+    "vendorIds": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^0x[0-9A-Fa-f]{4}$" }
+    },
+    "productIds": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^0x[0-9A-Fa-f]{4}$" }
+    },
+    "productNames": { "type": "array", "items": { "type": "string" } },
+    "firmwareRange": { "type": "object" },
+    "usagePages": { "type": "array", "items": { "type": "string" } },
+    "usages": { "type": "object" },
+    "protocolFamily": {
+      "enum": ["sonix-feature", "sonix-aa55", "sonix-dongle", "crs-aa55cc33", "qmk-via"]
+    },
+    "variant": { "type": "string" },
+    "layout": { "type": "string" },
+    "transportModes": { "type": "object" },
+    "tft": { "type": ["object", "null"] },
+    "rgb": { "type": ["object", "null"] },
+    "macros": { "type": ["object", "null"] },
+    "knob": { "type": "object" },
+    "evidence": { "type": "array", "items": { "type": "string" } }
+  }
+}

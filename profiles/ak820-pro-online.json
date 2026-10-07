@@ -1,0 +1,60 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "ak820-pro-online",
+  "model": "AJAZZ AK820 Pro",
+  "notes": "Units whose firmware speaks the AJAZZ online-driver protocol (AA/55 output reports on a 64-byte FF68 collection, TFT data on FF67).",
+  "vendorIds": ["0x0C45"],
+  "productIds": ["0x8009"],
+  "productNames": ["AK820"],
+  "firmwareRange": {
+    "min": null,
+    "max": null,
+    "tested": []
+  },
+  "usagePages": ["0xFF68", "0xFF67"],
+  "usages": {},
+  "protocolFamily": "sonix-aa55",
+  "variant": "ak820-pro-online",
+  "layout": "ak820-pro-online",
+  "transportModes": {
+    "usb": {
+      "configuration": "supported",
+      "evidence": "AJAZZ online driver config 3141-32777-AK820 (ajazz.driveall.cn); wsclx/ak820pro-modder hardware notes."
+    },
+    "2.4ghz": {
+      "configuration": "unknown",
+      "evidence": "Not documented."
+    },
+    "bluetooth": {
+      "configuration": "unsupported",
+      "evidence": "No configuration interface over Bluetooth reported."
+    }
+  },
+  "tft": {
+    "width": 128,
+    "height": 128,
+    "maxFrames": null,
+    "slots": 1,
+    "headerBytes": 256,
+    "chunkBytes": null,
+    "delayUnitMs": 5
+  },
+  "rgb": {
+    "brightnessMax": 5,
+    "speedMax": 5,
+    "defaultEffect": null,
+    "perKey": true
+  },
+  "macros": {
+    "slots": 100,
+    "storageBytes": null
+  },
+  "knob": {
+    "configurable": false,
+    "note": "wheelKeys is empty for this model in the online driver."
+  },
+  "evidence": [
+    "AJAZZ online driver bundle layout-classic (2026-09-11): device config, protocol functions ht/ya/hd/_n",
+    "wsclx/ak820pro-modder docs/PROTOCOL.md"
+  ]
+}

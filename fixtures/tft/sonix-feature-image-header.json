@@ -1,0 +1,25 @@
+{
+ "device": "AJAZZ AK820 MAX / MAX PLUS (sonix-feature)",
+ "firmware": "any (protocol of official driver V1.0.0.5)",
+ "transport": "usb",
+ "interface": "FF13:0001 (commands) + FF68:0061 (4096-byte output chunks)",
+ "reportId": 0,
+ "command": "IMAGE 0x72 + data pipe chunks",
+ "evidence": "DeviceDriver.exe FUN_00422980, FUN_0044f2d0; aks075-linux USB capture of the sibling AKS075",
+ "confidence": "STRONGLY_SUPPORTED",
+ "singleFrame": {
+  "payloadBytes": 33024,
+  "chunks": 9,
+  "header": "01 01 ff ff \u2026",
+  "imageCommand": "04 72 01 00 00 00 00 00 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+ },
+ "twoFrame": {
+  "delays": [
+   500,
+   500
+  ],
+  "header": "02 fa fa ff \u2026",
+  "chunks": 17
+ },
+ "pixelFormat": "RGB565 little endian, row-major; red = 00 f8, green = e0 07, blue = 1f 00"
+}
