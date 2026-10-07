@@ -149,3 +149,18 @@ describe('AK820 capability regression (USB)', () => {
       expect(caps[f].status).toBe(FeatureStatus.UNKNOWN);
   });
 });
+
+describe('device catalogue', () => {
+  it('never resolves a VID:PID shared by different products to one model', async () => {
+    const { lookupCatalog, lookupCatalogAll } = await import('@openkey/devices');
+    const id = { vendorId: 0x258a, productId: 0x010c, productName: 'USB-HID Keyboard' };
+    expect(lookupCatalogAll(id).map((e) => e.brand).sort()).toEqual(['AJAZZ', 'AULA']);
+    expect(lookupCatalog(id)).toBeUndefined();
+    expect(lookupCatalog({ vendorId: 0x0c45, productId: 0x8009, productName: 'AK820 MAX' })?.status).toBe('experimental');
+  });
+
+  it('no catalogue entry claims "verified" without hardware-verified writes', async () => {
+    const { CATALOG } = await import('@openkey/devices');
+    expect(CATALOG.filter((e) => e.status === 'verified')).toEqual([]);
+  });
+});

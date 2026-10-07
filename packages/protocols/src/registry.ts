@@ -1,7 +1,7 @@
 import { Evidence, PacketLog, evidenceRank } from '@openkey/core';
 import type { EvidenceSource, KeyboardDriver, StateStore, TransportMode } from '@openkey/core';
 import { LoggingTransport } from '@openkey/hid';
-import { lookupCatalog } from '@openkey/devices';
+import { lookupCatalog, lookupCatalogAll } from '@openkey/devices';
 import type { CatalogEntry } from '@openkey/devices';
 import type { HidCollection, HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
 
@@ -221,9 +221,15 @@ export class ProtocolRegistry {
     const known = lookupCatalog(group.identity);
     if (known) {
       report.catalog = known;
-      if (known.status === 'identified' || known.status === 'unsupported') {
-        report.notes.push(`Recognised as ${known.model} (${known.mcu}). OpenKey does not configure this revision yet: ${known.evidence}.`);
+      if (known.status === 'research' || known.status === 'unsupported') {
+        report.notes.push(`Recognised as ${known.brand} ${known.model} (${known.mcu}). OpenKey does not configure it yet: ${known.evidence}.`);
       }
+    } else {
+      const shared = lookupCatalogAll(group.identity);
+      if (shared.length > 1)
+        report.notes.push(
+          `This USB identity is shared by different products (${shared.map((e) => `${e.brand} ${e.model}`).join('; ')}); it does not identify the model.`,
+        );
     }
     if (group.transportHint === 'bluetooth') {
       report.notes.push(

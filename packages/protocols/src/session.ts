@@ -58,7 +58,7 @@ export async function connectKeyboard(
       throw new UnsupportedDeviceError(
         detection.catalog
           ? `${detection.catalog.model} (${detection.catalog.mcu}) is recognised but not configurable yet.`
-          : `No known AK820-family protocol matches "${group.identity.productName}".`,
+          : `No known protocol matches "${group.identity.productName}".`,
         {
           candidates: detection.candidates.map((c) => ({
             id: c.protocol.id,
