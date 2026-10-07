@@ -24,10 +24,9 @@ import type {
   TxResult,
   WriteDecision,
 } from '@openkey/core';
-import { CATALOG } from '@openkey/devices';
+import { CATALOG } from '@openkey/devices/catalog';
 import { WebHidBackend, webHidSupport } from '@openkey/hid';
 import type { HidDeviceGroup, WebHidSupport } from '@openkey/hid';
-import { buildFingerprint, connectKeyboard, createDefaultRegistry, sonixFeature } from '@openkey/protocols';
 import type { AdapterManifest, DetectionReport, DeviceFingerprint } from '@openkey/protocols';
 import { IdbStateStore } from './db.js';
 import { SafetyDialog } from '../components/SafetyDialog.js';
@@ -182,6 +181,8 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
   const attach = useCallback(
     async (group: HidDeviceGroup, demo: boolean): Promise<boolean> => {
       const log = new PacketLog();
+      // The protocol stack is loaded on the first connection, not with the landing page.
+      const { buildFingerprint, connectKeyboard, createDefaultRegistry } = await import('@openkey/protocols');
       const registry = createDefaultRegistry();
       dispatch({ type: 'OPENED' });
       dispatch({ type: 'INSPECTED' });
@@ -250,6 +251,7 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
 
   const connectDemo = useCallback(async () => {
     dispatch({ type: 'OPEN_DEMO' });
+    const { sonixFeature } = await import('@openkey/protocols');
     const sim = new sonixFeature.SonixFeatureSimulator();
     await attach(sim.device.group(), true);
   }, [attach]);

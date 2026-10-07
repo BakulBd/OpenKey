@@ -1,5 +1,5 @@
-import { CATALOG } from '@openkey/devices';
-import type { CatalogStatus } from '@openkey/devices';
+import { CATALOG } from '@openkey/devices/catalog';
+import type { CatalogStatus } from '@openkey/devices/catalog';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
