@@ -62,6 +62,16 @@ class QmkViaDriver extends BaseKeyboardDriver {
 
 export const qmkViaProtocol: ProtocolDefinition = {
   id: 'qmk-via',
+  manifest: {
+    version: '0.1.0',
+    status: 'research',
+    transports: { input: ['usb'], configuration: ['usb'] },
+    verification: 'Identification via the VIA protocol-version query; configuration belongs to VIA/Vial.',
+    safety: 'Read-only: only id_get_protocol_version is sent.',
+    provenance: [
+      { source: 'public-specification', reference: 'QMK raw HID / VIA documentation', status: Evidence.OBSERVED },
+    ],
+  },
   name: 'QMK / VIA raw HID (custom firmware)',
   family: 'qmk-via',
   priority: 60,

@@ -162,6 +162,20 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
 
 export const sonixFeatureProtocol: ProtocolDefinition = {
   id: SONIX_FEATURE_PROTOCOL_ID,
+  manifest: {
+    version: '1.0.0',
+    status: 'experimental',
+    transports: { input: ['usb', '2.4ghz', 'bluetooth'], configuration: ['usb'] },
+    verification:
+      'Detection, START handshake and per-key colour read verified on an AK820 MAX PLUS (fw 1.07, USB). Writes are reproduced from the official driver and not yet verified on hardware.',
+    safety:
+      'Writes need the experimental opt-in until verified. Most settings cannot be read back; OpenKey mirrors what it wrote. No firmware, bootloader or erase command exists in this adapter.',
+    provenance: [
+      { source: 'hardware-verification', reference: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json', status: Evidence.VERIFIED },
+      { source: 'hardware-verification', reference: 'fixtures/rgb/ak820-max-plus-read-per-key-hw.json', status: Evidence.VERIFIED },
+      { source: 'official-driver', reference: 'AJAZZ AK820 MAX&MAX PLUS driver V1.0.0.5 (docs/reverse-engineering/official-driver-analysis.md)', status: Evidence.OBSERVED },
+    ],
+  },
   name: 'AJAZZ Windows-driver protocol (feature reports on FF13 + 4096-byte data on FF68)',
   family: 'sonix-feature',
   priority: 50,

@@ -1,4 +1,4 @@
-import { FeatureStatus } from '@openkey/core';
+import { FeatureStatus, SafetyLevel } from '@openkey/core';
 import {
   BaseKeyboardDriver,
   Evidence,
@@ -121,11 +121,11 @@ class CrsDriver extends BaseKeyboardDriver {
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
     c.deviceInfo = { status: FeatureStatus.READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
-    c.rgb = { status: FeatureStatus.CONFIGURABLE, read: 'none', write: true,
+    c.rgb = { status: FeatureStatus.WRITE_ONLY, read: 'none', write: true, safety: SafetyLevel.CAUTION,
       confidence: Evidence.INFERRED,
       note: 'Experimental (community protocol).',
     };
-    c.perKeyRgb = { status: FeatureStatus.CONFIGURABLE, read: 'none', write: true,
+    c.perKeyRgb = { status: FeatureStatus.WRITE_ONLY, read: 'none', write: true, safety: SafetyLevel.CAUTION,
       confidence: Evidence.INFERRED,
       note: 'Experimental (community protocol).',
     };
@@ -202,6 +202,16 @@ class CrsDriver extends BaseKeyboardDriver {
 
 export const crsProtocol: ProtocolDefinition = {
   id: 'crs-aa55cc33',
+  manifest: {
+    version: '0.1.0',
+    status: 'research',
+    transports: { input: ['usb', '2.4ghz'], configuration: ['usb', '2.4ghz'] },
+    verification: 'Identification only; not tested on hardware by OpenKey.',
+    safety: 'Lighting writes from community documentation need the experimental opt-in.',
+    provenance: [
+      { source: 'public-reverse-engineering', reference: 'armoredvortex/ajazz-ak820-max-plus', status: Evidence.INFERRED },
+    ],
+  },
   name: 'CRS AK820 Max Plus protocol (AA 55 CC 33, community-documented)',
   family: 'crs-aa55cc33',
   priority: 30,

@@ -1,5 +1,5 @@
 import { Evidence, PacketLog, evidenceRank } from '@openkey/core';
-import type { KeyboardDriver, StateStore, TransportMode } from '@openkey/core';
+import type { EvidenceSource, KeyboardDriver, StateStore, TransportMode } from '@openkey/core';
 import { LoggingTransport } from '@openkey/hid';
 import { lookupCatalog } from '@openkey/devices';
 import type { CatalogEntry } from '@openkey/devices';
@@ -59,8 +59,35 @@ export interface DriverOptions {
   allowExperimental?: boolean;
 }
 
+/**
+ * Maturity of an adapter, as shown in the compatibility center.
+ * - verified: reads and writes verified on hardware.
+ * - experimental: implemented from primary evidence; some operations not yet verified on hardware.
+ * - community: implemented from community documentation only.
+ * - research: identification only; no configuration.
+ * - planned: descriptor signature only; never sends anything.
+ */
+export type AdapterStatus = 'verified' | 'experimental' | 'community' | 'research' | 'planned';
+
+export interface AdapterManifest {
+  /** Adapter version, bumped when its wire behaviour changes. */
+  version: string;
+  status: AdapterStatus;
+  /**
+   * Links the keyboard *types* over versus links that carry configuration. Never inferred from each
+   * other: many keyboards type over Bluetooth but cannot be configured over it.
+   */
+  transports: { input: TransportMode[]; configuration: TransportMode[] };
+  /** What has been verified, in one sentence. */
+  verification: string;
+  /** Safety policy summary shown in Diagnostics. */
+  safety: string;
+  provenance: { source: EvidenceSource; reference: string; status: Evidence }[];
+}
+
 export interface ProtocolDefinition {
   id: string;
+  manifest: AdapterManifest;
   name: string;
   family: string;
   /** Higher runs first and wins ties of equal confidence and score. */
@@ -74,6 +101,30 @@ export interface ProtocolDefinition {
   match(group: HidDeviceGroup): CandidateMatch;
   probe(ctx: ProbeContext): Promise<ProbeResult>;
   createDriver(group: HidDeviceGroup, opts: DriverOptions): Promise<KeyboardDriver>;
+}
+
+/**
+ * An adapter that exists only as research: a descriptor signature used to name *possible* protocol
+ * families for unknown devices. It has no probe and no driver, so it can never send a packet.
+ */
+export interface PlannedAdapter {
+  id: string;
+  name: string;
+  family: string;
+  manifest: AdapterManifest;
+  /** Descriptor-only signature; must not perform I/O. */
+  signature(group: HidDeviceGroup): CandidateMatch;
+  /** Why it is not implemented yet. */
+  blockers: string[];
+}
+
+export interface PossibleFamily {
+  id: string;
+  name: string;
+  family: string;
+  status: AdapterStatus;
+  score: number;
+  reasons: string[];
 }
 
 export interface CandidateReport {
@@ -102,10 +153,25 @@ export interface DetectionReport {
   notes: string[];
   /** Known-device catalogue entry for naming (never used to choose the protocol). */
   catalog?: CatalogEntry;
+  /** Families whose descriptor signature matches, including planned ones. Informational only. */
+  possibleFamilies: PossibleFamily[];
 }
 
 export class ProtocolRegistry {
   private readonly protocols: ProtocolDefinition[] = [];
+  private readonly plannedAdapters: PlannedAdapter[] = [];
+
+  /** Registers a research-only adapter (signature, no I/O). */
+  plan(p: PlannedAdapter): this {
+    if (this.plannedAdapters.some((x) => x.id === p.id) || this.get(p.id))
+      throw new Error(`Adapter ${p.id} already registered`);
+    this.plannedAdapters.push(p);
+    return this;
+  }
+
+  planned(): readonly PlannedAdapter[] {
+    return this.plannedAdapters;
+  }
 
   register(p: ProtocolDefinition): this {
     if (this.protocols.some((x) => x.id === p.id))
@@ -150,6 +216,7 @@ export class ProtocolRegistry {
       selected: null,
       ambiguous: false,
       notes: [],
+      possibleFamilies: [],
     };
     const known = lookupCatalog(group.identity);
     if (known) {
@@ -220,7 +287,24 @@ export class ProtocolRegistry {
       }
     }
     selectCandidate(report);
+    report.possibleFamilies = this.possibleFamilies(group, report);
     return report;
+  }
+
+  /** Descriptor-level family hints for diagnostics and unknown-device mode. Performs no I/O. */
+  possibleFamilies(group: HidDeviceGroup, report?: DetectionReport): PossibleFamily[] {
+    const out: PossibleFamily[] = [];
+    for (const p of this.protocols) {
+      const m = report?.candidates.find((c) => c.protocol.id === p.id)?.match ?? p.match(group);
+      if (m.applicable)
+        out.push({ id: p.id, name: p.name, family: p.family, status: p.manifest.status, score: m.score, reasons: m.reasons });
+    }
+    for (const p of this.plannedAdapters) {
+      const m = p.signature(group);
+      if (m.applicable)
+        out.push({ id: p.id, name: p.name, family: p.family, status: p.manifest.status, score: m.score, reasons: m.reasons });
+    }
+    return out.sort((a, b) => b.score - a.score);
   }
 }
 

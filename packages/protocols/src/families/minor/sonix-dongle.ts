@@ -1,4 +1,4 @@
-import { FeatureStatus } from '@openkey/core';
+import { FeatureStatus, SafetyLevel } from '@openkey/core';
 import {
   BaseKeyboardDriver,
   Evidence,
@@ -129,7 +129,7 @@ class SonixDongleDriver extends BaseKeyboardDriver {
       source: 'FUN_00435890: ping 20 01, answer byte 3',
     };
     c.tft = { status: FeatureStatus.NOT_SUPPORTED, read: 'none', write: false, confidence: Evidence.OBSERVED, note: 'Official menu_wireless: screen=0' };
-    c.rgb = { status: FeatureStatus.CONFIGURABLE, read: 'none', write: true,
+    c.rgb = { status: FeatureStatus.WRITE_ONLY, read: 'none', write: true, safety: SafetyLevel.CAUTION,
       confidence: Evidence.INFERRED,
       note: 'Experimental: official 2.4 GHz lighting packet, not hardware-verified.',
     };
@@ -174,6 +174,16 @@ class SonixDongleDriver extends BaseKeyboardDriver {
 
 export const sonixDongleProtocol: ProtocolDefinition = {
   id: 'sonix-dongle',
+  manifest: {
+    version: '0.1.0',
+    status: 'research',
+    transports: { input: ['2.4ghz'], configuration: ['2.4ghz'] },
+    verification: 'Implemented from the official driver; no receiver was available for testing.',
+    safety: 'Only the ping and battery read are offered; lighting writes need the experimental opt-in.',
+    provenance: [
+      { source: 'official-driver', reference: 'AK820 MAX driver FUN_0044f5f0 / FUN_0042b2a0', status: Evidence.OBSERVED },
+    ],
+  },
   name: 'AJAZZ 2.4 GHz receiver protocol (32-byte output reports + checksum)',
   family: 'sonix-dongle',
   priority: 45,

@@ -1,4 +1,4 @@
-import { Evidence, FeatureStatus, configurable, emptyCapabilities, feature } from '@openkey/core';
+import { Evidence, FeatureStatus, SafetyLevel, configurable, emptyCapabilities, feature } from '@openkey/core';
 import type { Capabilities, TransportMode } from '@openkey/core';
 import type { SonixFeatureVariant } from './variants.js';
 
@@ -36,33 +36,37 @@ export function sonixFeatureCapabilities(variant: SonixFeatureVariant, transport
   });
 
   if (transport === 'bluetooth') {
-    const bt = (note: string) => feature(FeatureStatus.NOT_SUPPORTED, { confidence: S, note, source: 'official driver message 62' });
+    const bt = (note: string) =>
+      feature(FeatureStatus.TRANSPORT_LIMITED, { confidence: S, note, source: 'official driver message 62' });
     for (const f of ['keymap', 'fnLayer', 'macros', 'rgb', 'perKeyRgb', 'realtimeRgb', 'tft', 'tftGif', 'tftClock', 'sleep', 'keyResponse', 'winLock', 'altLocks', 'factoryDefaults'] as const) {
-      caps[f] = bt('Keyboard settings are not supported over Bluetooth; connect by USB cable or the 2.4 GHz receiver.');
+      caps[f] = bt('Keyboard settings are not available over Bluetooth; connect by USB cable.');
     }
     caps.battery = feature(FeatureStatus.UNKNOWN, { note: 'Bluetooth battery reporting depends on the host stack.' });
     caps.pollingRate = feature(FeatureStatus.UNKNOWN, { note: 'Bluetooth link timing is negotiated by the host.' });
     return caps;
   }
 
-  caps.keymap = configurable('mirror', true, S, { note: 'The firmware cannot report its keymap; OpenKey shows what it last wrote.' });
-  caps.fnLayer = configurable('mirror', true, S);
-  caps.macros = configurable('mirror', true, S);
-  caps.rgb = configurable('mirror', true, S);
-  caps.perKeyRgb = configurable('device', true, S, { source: 'F5 read confirmed on hardware' });
-  caps.realtimeRgb = configurable('none', true, S);
+  // Safety classes: settings the firmware cannot report are CAUTION (the previous value is lost
+  // unless a backup exists); bulk screen uploads and default restores are HIGH_RISK.
+  const { CAUTION, HIGH_RISK, SAFE_PERSISTENT, SAFE_VOLATILE } = SafetyLevel;
+  caps.keymap = configurable('mirror', true, S, { safety: CAUTION, note: 'The firmware cannot report its keymap; OpenKey shows what it last wrote.' });
+  caps.fnLayer = configurable('mirror', true, S, { safety: CAUTION });
+  caps.macros = configurable('mirror', true, S, { safety: CAUTION, note: 'Trigger-mode byte values are INFERRED from the online driver.' });
+  caps.rgb = configurable('mirror', true, S, { safety: CAUTION, note: 'Direction codes and which controls each effect honours are not yet verified.' });
+  caps.perKeyRgb = configurable('device', true, S, { safety: SAFE_PERSISTENT, source: 'F5 read verified on hardware; write from the official driver', note: 'Read verified on hardware. Writes can be checked by read-back.' });
+  caps.realtimeRgb = configurable('none', true, S, { safety: SAFE_VOLATILE });
   if (p.tft) {
-    caps.tft = configurable('none', true, S, { value: `${p.tft.width}×${p.tft.height} RGB565`, note: 'Upload only; images cannot be read back.' });
-    caps.tftGif = configurable('none', true, S, { value: `up to ${p.tft.maxFrames} frames` });
-    caps.tftClock = configurable('none', true, S);
+    caps.tft = configurable('none', true, S, { safety: HIGH_RISK, value: `${p.tft.width}×${p.tft.height} RGB565`, note: 'Upload only; images cannot be read back.' });
+    caps.tftGif = configurable('none', true, S, { safety: HIGH_RISK, value: `up to ${p.tft.maxFrames} frames` });
+    caps.tftClock = configurable('none', true, S, { safety: SAFE_PERSISTENT });
   } else {
     for (const f of ['tft', 'tftGif', 'tftClock', 'tftBuiltIn'] as const) caps[f] = feature(FeatureStatus.NOT_SUPPORTED, { confidence: S, note: 'This model has no screen.' });
   }
-  caps.sleep = configurable('mirror', true, S);
-  caps.keyResponse = configurable('mirror', true, S);
-  caps.winLock = configurable('mirror', true, S, { source: 'FUN_00414060 byte 4' });
-  caps.altLocks = configurable('mirror', true, S, { source: 'FUN_00414060 bytes 2–3' });
-  caps.factoryDefaults = configurable('none', true, Evidence.INFERRED, { note: 'Keymap/Fn defaults via an all-default table; no factory-reset command is sent.' });
+  caps.sleep = configurable('mirror', true, S, { safety: CAUTION });
+  caps.keyResponse = configurable('mirror', true, S, { safety: CAUTION });
+  caps.winLock = configurable('mirror', true, S, { safety: CAUTION, source: 'FUN_00414060 byte 4' });
+  caps.altLocks = configurable('mirror', true, S, { safety: CAUTION, source: 'FUN_00414060 bytes 2–3' });
+  caps.factoryDefaults = configurable('none', true, Evidence.INFERRED, { safety: HIGH_RISK, note: 'Keymap/Fn defaults via an all-default table; no factory-reset command is sent.' });
   // Battery: official software polls it only through the 2.4 GHz receiver (FUN_00435890).
   caps.battery = feature(FeatureStatus.NOT_SUPPORTED, {
     confidence: S,
@@ -70,11 +74,12 @@ export function sonixFeatureCapabilities(variant: SonixFeatureVariant, transport
     note: 'Shown on the keyboard screen. The PC can read it only through the 2.4 GHz receiver (ping 20 01, byte 3).',
     source: 'FUN_00435890 (mode 2 only); 8 s passive listen on all vendor pipes: no status reports',
   });
-  caps.pollingRate = feature(FeatureStatus.FIXED, {
-    confidence: C,
-    value: transport === 'usb' ? '1000 Hz ceiling (bInterval 1 ms), fixed' : 'set by the receiver',
-    note: 'Declared USB interrupt interval 1 ms on all interfaces. No polling-rate command exists in the official software. Actual report cadence: measure with `openkey polling`.',
+  caps.pollingRate = feature(transport === 'usb' ? FeatureStatus.FIXED : FeatureStatus.UNKNOWN, {
+    confidence: transport === 'usb' ? C : Evidence.UNKNOWN,
+    value: transport === 'usb' ? 'Declared interval 1 ms (bInterval); measured cadence: not measured' : undefined,
+    note: 'bInterval is the declared USB interrupt interval, a ceiling for the host — not a measured report rate. No polling-rate setting exists in the official software. Measure the cadence in the Latency Lab or with `openkey polling`.',
     source: 'lsusb -v / sysfs bInterval; official driver',
   });
+  // debounce, profiles, firmware, actuation …: no evidence either way, so they stay UNKNOWN.
   return caps;
 }

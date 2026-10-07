@@ -76,6 +76,17 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
 
 export const sonixAa55Protocol: ProtocolDefinition = {
   id: SONIX_AA55_PROTOCOL_ID,
+  manifest: {
+    version: '1.0.0',
+    status: 'community',
+    transports: { input: ['usb', '2.4ghz', 'bluetooth'], configuration: ['usb'] },
+    verification: 'Simulator-tested only; never run on hardware by OpenKey.',
+    safety: 'Writes need the experimental opt-in.',
+    provenance: [
+      { source: 'official-driver', reference: 'AJAZZ online driver bundle 2026-09-11', status: Evidence.OBSERVED },
+      { source: 'public-reverse-engineering', reference: 'wsclx/ak820pro-modder', status: Evidence.INFERRED },
+    ],
+  },
   name: 'AJAZZ online-driver protocol (AA/55 output reports)',
   family: 'sonix-aa55',
   priority: 40,
