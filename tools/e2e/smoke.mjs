@@ -119,7 +119,7 @@ try {
     page.on('pageerror', (e) => failures.push(`[unknown] pageerror: ${e.message}`));
     await page.addInitScript(() => {
       const sent = (window.__hidSends = []);
-      const record = (op) => (...args) => {
+      const record = (op) => () => {
         sent.push(op);
         return Promise.resolve(op === 'receiveFeatureReport' ? new DataView(new ArrayBuffer(64)) : undefined);
       };

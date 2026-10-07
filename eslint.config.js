@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 const browser = Object.fromEntries(
-  ['self', 'caches', 'fetch', 'URL', 'navigator', 'setTimeout', 'console', 'location', 'document', 'window'].map((g) => [g, 'readonly']),
+  ['self', 'caches', 'fetch', 'URL', 'navigator', 'Navigator', 'setTimeout', 'console', 'location', 'document', 'window'].map((g) => [g, 'readonly']),
 );
 const node = Object.fromEntries(['process', 'console', 'URL', 'setTimeout'].map((g) => [g, 'readonly']));
 
