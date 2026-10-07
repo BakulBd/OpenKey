@@ -6,8 +6,11 @@ import type { PerKeyRgb, RgbConfig } from './model/lighting.js';
 import type { Macro } from './model/macros.js';
 import type { SystemSettings } from './model/settings.js';
 
-export const BACKUP_FORMAT = 'openak820-backup';
-export const BACKUP_VERSION = 1;
+export const BACKUP_FORMAT = 'openkey-backup';
+export const BACKUP_VERSION = 2;
+/** Backups written by OpenAK820 (before the rename); read and migrated, never written. */
+export const LEGACY_BACKUP_FORMAT = 'openak820-backup';
+export const LEGACY_BACKUP_VERSION = 1;
 
 export type BackupSection =
   'keymap' | 'fnLayers' | 'rgb' | 'perKeyRgb' | 'macros' | 'settings' | 'tft';
@@ -17,9 +20,15 @@ export interface Backup {
   version: typeof BACKUP_VERSION;
   createdAt: string;
   createdBy: string;
-  device: Pick<DeviceInfo, 'model' | 'profileId' | 'identity'>;
+  /** OpenKey version that wrote the backup ("unknown" for migrated v1 backups). */
+  appVersion: string;
+  device: Pick<DeviceInfo, 'model' | 'profileId' | 'identity'> & {
+    /** Canonical HID descriptor signature, when the writer knew it. */
+    descriptorSignature?: string;
+  };
   firmware: { version: string | null };
   protocol: { id: string; name: string };
+  adapter: { id: string; version: string; family: string };
   transport: TransportMode;
   keymap?: KeymapState;
   fnLayers?: KeymapState;
@@ -40,6 +49,8 @@ const KNOWN_KEYS = new Set([
   'version',
   'createdAt',
   'createdBy',
+  'appVersion',
+  'adapter',
   'device',
   'firmware',
   'protocol',
@@ -66,13 +77,35 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-export function validateBackup(input: unknown): ValidationResult {
+/** v1 (OpenAK820) → v2: adds appVersion and adapter; data sections are unchanged. */
+function migrateV1(v1: Record<string, unknown>): Record<string, unknown> {
+  const protocol = isObject(v1.protocol) ? v1.protocol : {};
+  const id = typeof protocol.id === 'string' ? protocol.id : 'unknown';
+  return {
+    ...v1,
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    appVersion: 'unknown',
+    adapter: { id, version: 'unknown', family: id },
+  };
+}
+
+export function validateBackup(raw: unknown): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
-  if (!isObject(input)) return { ok: false, errors: ['Backup is not a JSON object'], warnings };
-  if (input.format !== BACKUP_FORMAT) errors.push(`Unknown format "${String(input.format)}"`);
-  if (input.version !== BACKUP_VERSION)
-    errors.push(`Unsupported backup version ${String(input.version)}`);
+  if (!isObject(raw)) return { ok: false, errors: ['Backup is not a JSON object'], warnings };
+  let input: Record<string, unknown> = raw;
+  if (input.format === LEGACY_BACKUP_FORMAT && input.version === LEGACY_BACKUP_VERSION) {
+    input = migrateV1(input);
+    warnings.push('Migrated from an OpenAK820 backup (format v1).');
+  } else {
+    if (input.format !== BACKUP_FORMAT) errors.push(`Unknown format "${String(input.format)}"`);
+    else if (typeof input.version === 'number' && input.version > BACKUP_VERSION)
+      errors.push(`Backup version ${input.version} is newer than this OpenKey supports (${BACKUP_VERSION}); update OpenKey.`);
+    else if (input.version !== BACKUP_VERSION)
+      errors.push(`Unsupported backup version ${String(input.version)}`);
+  }
+  if (!isObject(input.adapter) || typeof input.adapter.id !== 'string') errors.push('Missing adapter');
   if (!isObject(input.device) || !isObject(input.device.identity))
     errors.push('Missing device identity');
   if (!isObject(input.protocol) || typeof input.protocol.id !== 'string')
