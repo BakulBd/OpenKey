@@ -88,3 +88,24 @@ export function fitImage(
   }
   return out;
 }
+
+/** Rotates clockwise by `quarterTurns` × 90°. Pure pixel copy; no resampling. */
+export function rotateImage(img: RgbaImage, quarterTurns: number): RgbaImage {
+  const q = ((quarterTurns % 4) + 4) % 4;
+  if (q === 0) return img;
+  const { width: w, height: h } = img;
+  const ow = q % 2 ? h : w;
+  const oh = q % 2 ? w : h;
+  const out = createImage(ow, oh);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const [nx, ny] = q === 1 ? [h - 1 - y, x] : q === 2 ? [w - 1 - x, h - 1 - y] : [y, w - 1 - x];
+      const si = (y * w + x) * 4;
+      const di = (ny * ow + nx) * 4;
+      out.data[di] = img.data[si]!;
+      out.data[di + 1] = img.data[si + 1]!;
+      out.data[di + 2] = img.data[si + 2]!;
+      out.data[di + 3] = img.data[si + 3]!;
+    }
+  return out;
+}

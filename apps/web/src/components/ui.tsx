@@ -1,22 +1,26 @@
 import type { ReactNode } from 'react';
-import type { Evidence, FeatureSupport } from '@openkey/core';
+import type { Evidence, FeatureStatus, FeatureSupport } from '@openkey/core';
+import { STATUS_SYMBOL } from '@openkey/core';
+import { useT } from '../i18n/i18n.js';
 
 export function Card({
   title,
   actions,
   children,
   className = '',
+  id,
 }: {
   title?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
-    <section className={`card ${className}`}>
+    <section className={`card ${className}`} aria-labelledby={id && title ? `${id}-h` : undefined}>
       {(title || actions) && (
         <header className="card-head">
-          {title && <h2>{title}</h2>}
+          {title && <h2 id={id ? `${id}-h` : undefined}>{title}</h2>}
           {actions && <div className="card-actions">{actions}</div>}
         </header>
       )}
@@ -25,50 +29,52 @@ export function Card({
   );
 }
 
-export function EvidenceBadge({ value }: { value: Evidence }) {
-  const label: Record<Evidence, string> = {
-    VERIFIED: 'Verified',
-    OBSERVED: 'Observed',
-    INFERRED: 'Inferred',
-    HYPOTHESIS: 'Hypothesis',
-    UNKNOWN: 'Unknown',
-    NOT_TESTED: 'Not tested',
-  };
-  return <span className={`badge conf-${value.toLowerCase()}`}>{label[value]}</span>;
+export function PageHeader({ title, lead, actions }: { title: ReactNode; lead?: ReactNode; actions?: ReactNode }) {
+  return (
+    <header className="page-head">
+      <div>
+        <h1>{title}</h1>
+        {lead && <p className="lead">{lead}</p>}
+      </div>
+      {actions && <div className="page-actions">{actions}</div>}
+    </header>
+  );
 }
 
-export function SupportBadge({ s }: { s: FeatureSupport }) {
-  if (!s.write && s.read === 'none') return <span className="badge muted">Not available</span>;
-  const parts = [
-    s.read === 'device' ? 'read' : s.read === 'mirror' ? 'remembered' : null,
-    s.write ? 'write' : null,
-  ].filter(Boolean);
+/** Evidence status with a text label (never colour alone). */
+export function EvidenceBadge({ value }: { value: Evidence }) {
+  const t = useT();
+  return <span className={`pill ev-${value.toLowerCase()}`}>{t(`evidence.${value}`)}</span>;
+}
+
+export function StatusBadge({ status }: { status: FeatureStatus }) {
+  const t = useT();
   return (
-    <span className="badge ok" title={s.note}>
-      {parts.join(' · ')}
+    <span className={`pill st-${status.toLowerCase()}`}>
+      <span aria-hidden="true">{STATUS_SYMBOL[status]}</span> {t(`status.${status}`)}
     </span>
   );
 }
 
+export function SupportSummary({ s }: { s: FeatureSupport }) {
+  const t = useT();
+  const parts = [
+    s.read === 'device' ? t('support.readDevice') : s.read === 'mirror' ? t('support.readMirror') : null,
+    s.write ? t('support.write') : null,
+  ].filter(Boolean);
+  return <span className="muted small">{parts.join(' · ') || t('support.none')}</span>;
+}
+
 export function MirrorNote() {
+  const t = useT();
   return (
-    <p className="note">
-      This keyboard's firmware cannot report this setting. OpenKey shows what it last wrote from
-      this browser; settings made with other software or on the keyboard itself are not visible
-      here.
-    </p>
+    <div className="callout info" role="note">
+      {t('mirror.note')}
+    </div>
   );
 }
 
-export function Field({
-  label,
-  children,
-  hint,
-}: {
-  label: string;
-  children: ReactNode;
-  hint?: string;
-}) {
+export function Field({ label, children, hint }: { label: ReactNode; children: ReactNode; hint?: ReactNode }) {
   return (
     <label className="field">
       <span className="field-label">{label}</span>
@@ -81,3 +87,37 @@ export function Field({
 export function Empty({ children }: { children: ReactNode }) {
   return <div className="empty">{children}</div>;
 }
+
+export function KV({ rows }: { rows: [ReactNode, ReactNode][] }) {
+  return (
+    <dl className="kv">
+      {rows.map(([k, v], i) => (
+        <div key={i} className="kv-row">
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export function Loading() {
+  const t = useT();
+  return (
+    <div className="loading" role="status">
+      {t('common.loading')}
+    </div>
+  );
+}
+
+export function download(name: string, data: unknown, type = 'application/json'): void {
+  const body = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  const url = URL.createObjectURL(new Blob([body], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export const hex4 = (n: number): string => n.toString(16).toUpperCase().padStart(4, '0');

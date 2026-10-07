@@ -101,3 +101,16 @@ describe('sonix-feature TFT payload', () => {
     expect(r.dropped).toBe(160);
   });
 });
+
+describe('rotateImage', () => {
+  it('rotates a 2×1 image a quarter turn clockwise into 1×2', async () => {
+    const { createImage, rotateImage } = await import('@openkey/tft');
+    const img = createImage(2, 1);
+    img.data.set([255, 0, 0, 255, 0, 0, 255, 255]);
+    const r = rotateImage(img, 1);
+    expect([r.width, r.height]).toEqual([1, 2]);
+    expect(Array.from(r.data)).toEqual([255, 0, 0, 255, 0, 0, 255, 255]);
+    expect(Array.from(rotateImage(img, 2).data)).toEqual([0, 0, 255, 255, 255, 0, 0, 255]);
+    expect(rotateImage(img, 4)).toBe(img);
+  });
+});

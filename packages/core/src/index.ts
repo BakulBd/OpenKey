@@ -22,3 +22,4 @@ export * from './history.js';
 export * from './connection.js';
 export * from './latency.js';
 export * from './support-bundle.js';
+export * from './keycodes.js';

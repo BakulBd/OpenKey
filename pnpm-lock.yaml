@@ -41,6 +41,9 @@ importers:
       eslint:
         specifier: ^10.12.0
         version: 10.12.0
+      playwright-core:
+        specifier: ^1
+        version: 1.64.0
       prettier:
         specifier: ^3.9.9
         version: 3.9.9
@@ -1208,6 +1211,11 @@ packages:
     engines: {node: '>= 14.15.0'}
     hasBin: true
 
+  playwright-core@1.64.0:
+    resolution: {integrity: sha512-T9r+MZkTECl2+oUcZ26YgZzTrYidTsIhYYkJix+6iDOymOb1FB2RLLSOxRGnZGv5DStt+aduIVbt+E8WygXYpg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   pngjs@7.0.0:
     resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
     engines: {node: '>=14.19.0'}
@@ -2268,6 +2276,8 @@ snapshots:
   picomatch@4.0.7: {}
 
   pkg-prebuilds@1.1.0: {}
+
+  playwright-core@1.64.0: {}
 
   pngjs@7.0.0: {}
 

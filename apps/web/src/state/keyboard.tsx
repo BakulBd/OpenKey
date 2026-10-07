@@ -1,65 +1,130 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { PacketLog, explainError, isOpenKeyError } from '@openkey/core';
-import type { Capabilities, DeviceInfo, KeyboardDriver } from '@openkey/core';
+import {
+  INITIAL_CONNECTION,
+  PacketLog,
+  SafetyLevel,
+  canApply,
+  explainError,
+  isOpenKeyError,
+  mayWrite,
+  runTransaction,
+  transition,
+  writeDecision,
+} from '@openkey/core';
+import type {
+  Capabilities,
+  ConnectionEvent,
+  ConnectionState,
+  DeviceInfo,
+  ErrorExplanation,
+  FeatureId,
+  KeyboardDriver,
+  Transaction,
+  TxResult,
+  WriteDecision,
+} from '@openkey/core';
+import { CATALOG } from '@openkey/devices';
 import { WebHidBackend, webHidSupport } from '@openkey/hid';
 import type { HidDeviceGroup, WebHidSupport } from '@openkey/hid';
-import { connectKeyboard, createDefaultRegistry, sonixFeature } from '@openkey/protocols';
-import type { DetectionReport } from '@openkey/protocols';
-import { LocalStorageStateStore, readPref, writePref } from './storage.js';
+import { buildFingerprint, connectKeyboard, createDefaultRegistry, sonixFeature } from '@openkey/protocols';
+import type { AdapterManifest, DetectionReport, DeviceFingerprint } from '@openkey/protocols';
+import { IdbStateStore } from './db.js';
+import { SafetyDialog } from '../components/SafetyDialog.js';
 
-/** Broad filters: identification happens after the chooser, from descriptors and probes. */
-const FILTERS: HIDDeviceFilter[] = [
-  { vendorId: 0x0c45 },
-  { vendorId: 0x1a2c },
-  { vendorId: 0x05ac, productId: 0x024f },
+/**
+ * Chooser filters for "Connect keyboard": vendor IDs from the catalogue plus the VIA/Vial raw-HID
+ * page. They only decide what the browser lists; identification happens afterwards from
+ * descriptors and read-only probes. "Inspect any HID device" uses no filter at all.
+ */
+const CONNECT_FILTERS: HIDDeviceFilter[] = [
+  ...[...new Set(CATALOG.map((e) => e.vendorId))].map((vendorId) => ({ vendorId })),
+  { usagePage: 0xff60, usage: 0x61 },
 ];
 
-export interface Connection {
+export interface DeviceSession {
+  kind: 'device';
   driver: KeyboardDriver;
   detection: DetectionReport;
+  fingerprint: DeviceFingerprint;
+  manifest: AdapterManifest;
   info: DeviceInfo;
   caps: Capabilities;
   log: PacketLog;
-  demo: boolean;
   group: HidDeviceGroup;
+  demo: boolean;
 }
+
+export interface UnknownSession {
+  kind: 'unknown';
+  detection: DetectionReport;
+  fingerprint: DeviceFingerprint;
+  group: HidDeviceGroup;
+  log: PacketLog;
+  /** Why no adapter took the device. */
+  reason: ErrorExplanation;
+}
+
+export type Session = DeviceSession | UnknownSession;
 
 export interface Notice {
   id: number;
-  kind: 'ok' | 'error' | 'info';
+  kind: 'ok' | 'error' | 'info' | 'warn';
   title: string;
   detail?: string;
+  action?: { label: string; run: () => void };
+}
+
+export interface RecentError {
+  at: string;
+  kind: string;
+  title: string;
+}
+
+export interface WriteGate {
+  decision: WriteDecision;
+  /** True when a write may be sent now (after the confirmation step). */
+  allowed: boolean;
+}
+
+interface PendingConfirm {
+  feature: FeatureId;
+  label: string;
+  decision: WriteDecision;
+  safety: SafetyLevel;
+  resolve(ok: boolean): void;
 }
 
 interface Ctx {
   support: WebHidSupport;
-  status: 'idle' | 'connecting' | 'connected';
-  conn: Connection | null;
-  /** Detection reports of every device offered by the chooser (for Diagnostics when none matched). */
-  lastDetections: DetectionReport[];
+  conn: ConnectionState;
+  session: Session | null;
+  /** The configurable device session, or null in unknown-device mode. */
+  device: DeviceSession | null;
   notices: Notice[];
+  recentErrors: RecentError[];
   experimental: boolean;
   setExperimental(v: boolean): void;
   connect(): Promise<void>;
+  inspect(): Promise<void>;
   connectDemo(): Promise<void>;
   disconnect(): Promise<void>;
-  /** Runs a device operation with error reporting; writes ask for confirmation once per session. */
-  run<T>(
-    label: string,
-    fn: (d: KeyboardDriver) => Promise<T>,
-    opts?: { write?: boolean; quiet?: boolean },
-  ): Promise<T | undefined>;
+  /** Runs a read with error reporting. */
+  read<T>(label: string, fn: (d: KeyboardDriver) => Promise<T>, opts?: { quiet?: boolean }): Promise<T | undefined>;
+  /** Write gate for a feature: what the safety policy allows right now. */
+  gate(feature: FeatureId): WriteGate;
+  /**
+   * Runs a write through the safety policy and the transaction model. Returns the transaction
+   * result, or undefined when the user declined or the policy blocked it.
+   */
+  apply<T>(feature: FeatureId, tx: Transaction<T>, previous: T | undefined, next: T): Promise<TxResult<T> | undefined>;
+  /** Safety gate only (policy + confirmation); for multi-section writes such as a restore. */
+  confirmWrite(feature: FeatureId, label: string): Promise<boolean>;
+  /** Runs a confirmed multi-step write while the connection is in the APPLYING state. */
+  writing<T>(label: string, fn: (d: KeyboardDriver) => Promise<T>): Promise<T | undefined>;
+  notify(n: Omit<Notice, 'id'>): void;
   dismiss(id: number): void;
-  store: LocalStorageStateStore;
+  store: IdbStateStore;
 }
 
 const KeyboardContext = createContext<Ctx | null>(null);
@@ -72,172 +137,311 @@ export function useKeyboard(): Ctx {
 
 let noticeId = 0;
 
-export function KeyboardProvider({ children }: { children: ReactNode }) {
+function reducer(s: ConnectionState, e: ConnectionEvent): ConnectionState {
+  return transition(s, e, (state, ev) => {
+    if (import.meta.env.DEV) console.debug(`[connection] ignored ${ev.type} in ${state.status}`);
+  });
+}
+
+export function KeyboardProvider({ children, messages }: { children: ReactNode; messages: ProviderMessages }) {
   const support = useMemo(() => webHidSupport(), []);
-  const store = useMemo(() => new LocalStorageStateStore(), []);
-  const [status, setStatus] = useState<Ctx['status']>('idle');
-  const [conn, setConn] = useState<Connection | null>(null);
-  const [lastDetections, setLastDetections] = useState<DetectionReport[]>([]);
+  const store = useMemo(() => new IdbStateStore(), []);
+  const [conn, dispatch] = useReducer(reducer, INITIAL_CONNECTION);
+  const [session, setSession] = useState<Session | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [experimental, setExp] = useState(readPref('experimental', '0') === '1');
-  const writesConfirmed = useRef(false);
-  const connRef = useRef<Connection | null>(null);
+  const [recentErrors, setRecentErrors] = useState<RecentError[]>([]);
+  // Experimental writes are a per-session opt-in on purpose: it is never remembered.
+  const [experimental, setExperimental] = useState(false);
+  const [pending, setPending] = useState<PendingConfirm | null>(null);
+  const confirmed = useRef(new Set<FeatureId>());
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
+  const connRef = useRef(conn);
   connRef.current = conn;
 
   const notify = useCallback((n: Omit<Notice, 'id'>) => {
     const id = ++noticeId;
     setNotices((xs) => [...xs.slice(-3), { ...n, id }]);
-    if (n.kind !== 'error')
-      setTimeout(() => setNotices((xs) => xs.filter((x) => x.id !== id)), 4000);
+    if (n.kind === 'ok' || n.kind === 'info') setTimeout(() => setNotices((xs) => xs.filter((x) => x.id !== id)), 5000);
   }, []);
 
-  const finishConnect = useCallback(
+  const reportError = useCallback(
+    (label: string, e: unknown): ErrorExplanation => {
+      const x = explainError(e);
+      setRecentErrors((xs) => [...xs.slice(-19), { at: new Date().toISOString(), kind: x.kind, title: x.title }]);
+      notify({
+        kind: 'error',
+        title: `${label}: ${messages.errorTitle(x)}`,
+        detail: [x.detail, messages.errorReason(x), messages.errorHint(x)].filter(Boolean).join(' — '),
+      });
+      return x;
+    },
+    [messages, notify],
+  );
+
+  const attach = useCallback(
     async (group: HidDeviceGroup, demo: boolean): Promise<boolean> => {
       const log = new PacketLog();
       const registry = createDefaultRegistry();
+      dispatch({ type: 'OPENED' });
+      dispatch({ type: 'INSPECTED' });
       try {
-        const res = await connectKeyboard(group, {
-          registry,
-          level: 'handshake',
-          log,
-          store,
-          allowExperimental: experimental,
-        });
+        const res = await connectKeyboard(group, { registry, level: 'handshake', log, store, allowExperimental: experimental });
+        dispatch({ type: 'DETECTED', mode: demo ? 'demo' : 'supported' });
         const info = await res.driver.getDeviceInfo();
-        setConn({
+        const def = registry.get(res.detection.selected?.protocolId ?? '')!;
+        setSession({
+          kind: 'device',
           driver: res.driver,
           detection: res.detection,
+          fingerprint: buildFingerprint(res.detection),
+          manifest: def.manifest,
           info,
           caps: res.driver.getCapabilities(),
           log,
-          demo,
           group,
+          demo,
         });
-        setLastDetections([res.detection]);
-        setStatus('connected');
-        notify({
-          kind: 'ok',
-          title: `Connected: ${info.model}`,
-          detail: `${res.detection.selected?.protocolId} · ${res.detection.selected?.confidence}`,
-        });
+        confirmed.current.clear();
+        dispatch({ type: 'READ_DONE' });
+        notify({ kind: 'ok', title: messages.connected(info.model), detail: demo ? messages.demoDetail : undefined });
         return true;
       } catch (e) {
-        const report = await registry.detect(group, { level: 'descriptor' }).catch(() => null);
-        if (report) setLastDetections((xs) => [...xs, report]);
-        const x = explainError(e);
-        notify({
-          kind: 'error',
-          title: x.title,
-          detail: `${x.detail}${x.hint ? ` — ${x.hint}` : ''}`,
-        });
+        if (isOpenKeyError(e) && (e.code === 'UNSUPPORTED_DEVICE' || e.code === 'UNSUPPORTED_PROTOCOL')) {
+          // Unknown-device mode: descriptors only from here on. Nothing is written.
+          const detection = await registry.detect(group, { level: 'descriptor', log });
+          setSession({ kind: 'unknown', detection, fingerprint: buildFingerprint(detection), group, log, reason: explainError(e) });
+          dispatch({ type: 'DETECTED', mode: 'unknown' });
+          notify({ kind: 'info', title: messages.unknownDevice(group.identity.productName) });
+          return true;
+        }
+        reportError(messages.connectLabel, e);
+        dispatch({ type: 'FAIL', message: explainError(e).title, recoverable: false });
+        dispatch({ type: 'RESET' });
         return false;
       }
     },
-    [experimental, notify, store],
+    [experimental, messages, notify, reportError, store],
   );
 
-  const connect = useCallback(async () => {
-    if (!support.available) return;
-    setStatus('connecting');
-    setLastDetections([]);
-    try {
-      const backend = new WebHidBackend();
-      const groups = await backend.request(FILTERS);
-      if (groups.length === 0) {
-        notify({
-          kind: 'info',
-          title: 'No device selected',
-          detail: 'Pick your keyboard in the browser dialog. Use a USB data cable and wired mode.',
-        });
-        setStatus('idle');
-        return;
+  const request = useCallback(
+    async (filters: HIDDeviceFilter[]) => {
+      if (!support.available) return;
+      dispatch({ type: 'REQUEST' });
+      try {
+        const groups = await new WebHidBackend().request(filters);
+        if (groups.length === 0) {
+          dispatch({ type: 'PERMISSION_DENIED', message: 'no device selected' });
+          notify({ kind: 'info', title: messages.noDeviceSelected, detail: messages.noDeviceSelectedHint });
+          return;
+        }
+        dispatch({ type: 'PERMISSION_GRANTED' });
+        for (const g of groups) if (await attach(g, false)) return;
+      } catch (e) {
+        dispatch({ type: 'PERMISSION_DENIED', message: explainError(e).title });
+        reportError(messages.connectLabel, e);
       }
-      for (const g of groups) if (await finishConnect(g, false)) return;
-      setStatus('idle');
-    } catch (e) {
-      const x = explainError(e);
-      notify({ kind: 'error', title: x.title, detail: x.detail });
-      setStatus('idle');
-    }
-  }, [finishConnect, notify, support.available]);
+    },
+    [attach, messages, notify, reportError, support.available],
+  );
+
+  const connect = useCallback(() => request(CONNECT_FILTERS), [request]);
+  const inspect = useCallback(() => request([]), [request]);
 
   const connectDemo = useCallback(async () => {
-    setStatus('connecting');
+    dispatch({ type: 'OPEN_DEMO' });
     const sim = new sonixFeature.SonixFeatureSimulator();
-    if (!(await finishConnect(sim.device.group(), true))) setStatus('idle');
-  }, [finishConnect]);
+    await attach(sim.device.group(), true);
+  }, [attach]);
 
   const disconnect = useCallback(async () => {
-    await connRef.current?.driver.disconnect().catch(() => undefined);
-    setConn(null);
-    setStatus('idle');
-    writesConfirmed.current = false;
+    dispatch({ type: 'DISCONNECT' });
+    const s = sessionRef.current;
+    if (s?.kind === 'device') await s.driver.disconnect().catch(() => undefined);
+    setSession(null);
+    confirmed.current.clear();
+    dispatch({ type: 'CLOSED' });
   }, []);
 
-  // Physical unplug: drop the connection instead of leaving a dead handle around.
+  // Unplug: drop the session. Re-plug: offer to reconnect; never reconnect or write on our own.
   useEffect(() => {
     if (!support.available) return;
     const backend = new WebHidBackend();
-    return backend.onDisconnect((d) => {
-      const c = connRef.current;
-      if (
-        c &&
-        !c.demo &&
-        c.group.identity.vendorId === d.vendorId &&
-        c.group.identity.productId === d.productId
-      ) {
-        void disconnect();
-        notify({ kind: 'info', title: 'Keyboard disconnected' });
+    const offUnplug = backend.onDisconnect((d) => {
+      const s = sessionRef.current;
+      if (s && !(s.kind === 'device' && s.demo) && s.group.identity.vendorId === d.vendorId && s.group.identity.productId === d.productId) {
+        setSession(null);
+        dispatch({ type: 'LOST', reason: 'unplugged' });
+        notify({ kind: 'warn', title: messages.disconnected, detail: messages.disconnectedHint });
       }
     });
-  }, [disconnect, notify, support.available]);
+    const offPlug = backend.onConnect(() => {
+      if (sessionRef.current) return;
+      notify({ kind: 'info', title: messages.replugged, action: { label: messages.connectLabel, run: () => void connect() } });
+    });
+    return () => {
+      offUnplug();
+      offPlug();
+    };
+  }, [connect, messages, notify, support.available]);
 
-  const run = useCallback<Ctx['run']>(
+  const read = useCallback<Ctx['read']>(
     async (label, fn, opts = {}) => {
-      const c = connRef.current;
-      if (!c) return undefined;
-      if (opts.write && !writesConfirmed.current) {
-        const ok = window.confirm(
-          `${label}\n\nOpenKey is about to write to the keyboard. It only sends packets reproduced from the official AJAZZ software and never touches firmware or the bootloader. Settings the firmware cannot report are remembered in this browser.\n\nContinue? (asked once per session)`,
-        );
-        if (!ok) return undefined;
-        writesConfirmed.current = true;
-      }
+      const s = sessionRef.current;
+      if (s?.kind !== 'device') return undefined;
       try {
-        const r = await fn(c.driver);
-        if (opts.write && !opts.quiet) notify({ kind: 'ok', title: `${label}: done` });
-        return r;
+        return await fn(s.driver);
       } catch (e) {
-        const x = explainError(e);
-        notify({
-          kind: 'error',
-          title: `${label}: ${x.title}`,
-          detail: `${x.detail}${x.hint ? ` — ${x.hint}` : ''}`,
-        });
-        if (isOpenKeyError(e) && e.code === 'TRANSPORT') await disconnect();
+        if (!opts.quiet || !(isOpenKeyError(e) && e.code === 'UNSUPPORTED_FEATURE')) reportError(label, e);
+        if (isOpenKeyError(e) && e.code === 'TRANSPORT') {
+          setSession(null);
+          dispatch({ type: 'LOST', reason: 'transport error' });
+        }
         return undefined;
       }
     },
-    [disconnect, notify],
+    [reportError],
+  );
+
+  const safetyCtx = useCallback(
+    () => ({ simulated: sessionRef.current?.kind === 'device' && sessionRef.current.demo, experimentalEnabled: experimental }),
+    [experimental],
+  );
+
+  const gate = useCallback<Ctx['gate']>(
+    (feature) => {
+      const s = sessionRef.current;
+      if (s?.kind !== 'device') return { decision: { kind: 'blocked', reason: messages.noDevice }, allowed: false };
+      const decision = writeDecision(s.caps[feature], safetyCtx());
+      return { decision, allowed: mayWrite(decision, safetyCtx()) };
+    },
+    [messages.noDevice, safetyCtx],
+  );
+
+  const ask = useCallback(
+    (feature: FeatureId, label: string, decision: WriteDecision, safety: SafetyLevel) =>
+      new Promise<boolean>((resolve) => setPending({ feature, label, decision, safety, resolve })),
+    [],
+  );
+
+  const confirmWrite = useCallback<Ctx['confirmWrite']>(
+    async (feature, label) => {
+      const s = sessionRef.current;
+      if (s?.kind !== 'device' || !canApply(connRef.current)) return false;
+      const support = s.caps[feature];
+      const ctx = safetyCtx();
+      const decision = writeDecision(support, ctx);
+      if (decision.kind === 'blocked') {
+        notify({ kind: 'error', title: messages.blocked(label), detail: decision.reason });
+        return false;
+      }
+      const safety = support.safety ?? SafetyLevel.UNVERIFIED;
+      // Ask when the opt-in is missing, once per feature per session, and every time for
+      // high-risk operations. Simulated devices never ask.
+      const needsAsk = !ctx.simulated && (!mayWrite(decision, ctx) || !confirmed.current.has(feature) || safety === SafetyLevel.HIGH_RISK);
+      if (needsAsk) {
+        // For experimental writes the dialog only confirms after the user enabled the opt-in.
+        if (!(await ask(feature, label, decision, safety))) return false;
+        confirmed.current.add(feature);
+      }
+      return true;
+    },
+    [ask, messages, notify, safetyCtx],
+  );
+
+  const writing = useCallback<Ctx['writing']>(
+    async (label, fn) => {
+      const s = sessionRef.current;
+      if (s?.kind !== 'device' || !canApply(connRef.current)) return undefined;
+      dispatch({ type: 'APPLY' });
+      try {
+        return await fn(s.driver);
+      } catch (e) {
+        reportError(label, e);
+        return undefined;
+      } finally {
+        dispatch({ type: 'APPLY_SENT', verify: false });
+      }
+    },
+    [reportError],
+  );
+
+  const apply = useCallback<Ctx['apply']>(
+    async (feature, tx, previous, next) => {
+      if (!(await confirmWrite(feature, tx.label))) return undefined;
+      dispatch({ type: 'APPLY' });
+      const result = await runTransaction(tx, previous, next);
+      const verifying = !!tx.readbackFromDevice && result.outcome !== 'FAILED' && result.outcome !== 'REJECTED' && result.outcome !== 'NO_CHANGES';
+      dispatch({ type: 'APPLY_SENT', verify: verifying });
+      if (verifying) dispatch({ type: 'VERIFY_DONE' });
+      const kind: Notice['kind'] =
+        result.outcome === 'VERIFIED' || result.outcome === 'NO_CHANGES' ? 'ok' : result.outcome === 'SENT_UNVERIFIED' ? 'info' : 'error';
+      notify({ kind, title: messages.txOutcome(tx.label, result.outcome), detail: result.outcome === 'FAILED' ? result.error?.detail : undefined });
+      if (result.outcome === 'FAILED' && result.error)
+        setRecentErrors((xs) => [...xs.slice(-19), { at: new Date().toISOString(), kind: 'WRITE_FAILED', title: result.error!.title }]);
+      return result;
+    },
+    [confirmWrite, messages, notify],
   );
 
   const value: Ctx = {
     support,
-    status,
     conn,
-    lastDetections,
+    session,
+    device: session?.kind === 'device' ? session : null,
     notices,
+    recentErrors,
     experimental,
-    setExperimental: (v) => {
-      setExp(v);
-      writePref('experimental', v ? '1' : '0');
-    },
+    setExperimental,
     connect,
+    inspect,
     connectDemo,
     disconnect,
-    run,
+    read,
+    gate,
+    apply,
+    confirmWrite,
+    writing,
+    notify,
     dismiss: (id) => setNotices((xs) => xs.filter((x) => x.id !== id)),
     store,
   };
-  return <KeyboardContext.Provider value={value}>{children}</KeyboardContext.Provider>;
+
+  return (
+    <KeyboardContext.Provider value={value}>
+      {children}
+      {pending && (
+        <SafetyDialog
+          label={pending.label}
+          decision={pending.decision}
+          safety={pending.safety}
+          experimental={experimental}
+          onEnableExperimental={() => setExperimental(true)}
+          onClose={(ok) => {
+            pending.resolve(ok);
+            setPending(null);
+          }}
+        />
+      )}
+    </KeyboardContext.Provider>
+  );
+}
+
+/** Translated strings the provider needs; injected so state code stays free of UI imports. */
+export interface ProviderMessages {
+  connectLabel: string;
+  connected(model: string): string;
+  demoDetail: string;
+  unknownDevice(name: string): string;
+  noDeviceSelected: string;
+  noDeviceSelectedHint: string;
+  disconnected: string;
+  disconnectedHint: string;
+  replugged: string;
+  noDevice: string;
+  blocked(label: string): string;
+  txOutcome(label: string, outcome: TxResult<unknown>['outcome']): string;
+  errorTitle(x: ErrorExplanation): string;
+  errorReason(x: ErrorExplanation): string | undefined;
+  errorHint(x: ErrorExplanation): string | undefined;
 }
