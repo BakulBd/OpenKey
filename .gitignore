@@ -10,3 +10,5 @@ vendor/*
 captures/*.pcapng
 re/tools/read_feature
 .env
+.vercel
+.env*

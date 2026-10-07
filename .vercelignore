@@ -1,0 +1,11 @@
+# Only what the static web build needs is uploaded to Vercel.
+vendor/
+re/
+fixtures/
+tests/
+docs/
+udev/
+coverage/
+**/dist/
+.github/
+.env*
