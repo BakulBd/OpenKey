@@ -120,9 +120,9 @@ class SonixDongleDriver extends BaseKeyboardDriver {
   }
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
-    c.deviceInfo = { status: FeatureStatus.SUPPORTED_READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
+    c.deviceInfo = { status: FeatureStatus.READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
     c.battery = {
-      status: FeatureStatus.SUPPORTED_READ_ONLY,
+      status: FeatureStatus.READ_ONLY,
       read: 'device',
       write: false,
       confidence: Evidence.OBSERVED,

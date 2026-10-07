@@ -1,5 +1,10 @@
 import { Evidence } from '../evidence.js';
+import type { SafetyLevel } from '../safety.js';
 
+/**
+ * Capability identifiers. Generic ids come first; device-specific ones (tftClock, winLock …) exist
+ * because the flagship exposes them as separate controls.
+ */
 export const FEATURES = [
   'deviceInfo',
   'keymap',
@@ -12,36 +17,57 @@ export const FEATURES = [
   'tftGif',
   'tftClock',
   'tftBuiltIn',
+  'profiles',
+  'encoder',
   'battery',
-  'knob',
   'pollingRate',
   'gameMode',
   'winLock',
   'altLocks',
   'sleep',
   'keyResponse',
+  'debounce',
+  'actuation',
+  'rapidTrigger',
+  'socd',
+  'dks',
+  'calibration',
+  'analog',
+  'firmware',
   'factoryDefaults',
 ] as const;
 
 export type FeatureId = (typeof FEATURES)[number];
 
 /**
- * What OpenKey knows about a feature. "Not implemented yet" is never reported as "not supported":
- * - CONFIGURABLE: read and/or write implemented.
- * - SUPPORTED_READ_ONLY: the value can be read, not changed.
- * - SUPPORTED_FIXED: exists with a fixed value (e.g. polling rate 1000 Hz, not adjustable).
- * - PHYSICALLY_PRESENT_NOT_PROGRAMMABLE: hardware exists, works through standard HID, no config protocol.
- * - NOT_YET_REVERSE_ENGINEERED: the hardware likely supports it; the protocol is unknown.
- * - NOT_SUPPORTED: evidence shows the device/link does not offer it.
- * - UNKNOWN: no evidence either way.
+ * What OpenKey knows about a feature. "Not implemented yet" is never reported as "not supported";
+ * a screen whose upload protocol is unknown is PHYSICALLY_PRESENT or NOT_YET_REVERSE_ENGINEERED,
+ * never NOT_SUPPORTED.
  */
 export const FeatureStatus = {
+  /** Read and write implemented and verified on hardware. */
+  SUPPORTED: 'SUPPORTED',
+  /** Read and/or write implemented; verification state is in `confidence`. */
   CONFIGURABLE: 'CONFIGURABLE',
-  SUPPORTED_READ_ONLY: 'SUPPORTED_READ_ONLY',
-  SUPPORTED_FIXED: 'SUPPORTED_FIXED',
-  PHYSICALLY_PRESENT_NOT_PROGRAMMABLE: 'PHYSICALLY_PRESENT_NOT_PROGRAMMABLE',
+  /** The value can be read, not changed. */
+  READ_ONLY: 'READ_ONLY',
+  /** The value can be written, never read back from the device. */
+  WRITE_ONLY: 'WRITE_ONLY',
+  /** Exists with a fixed value (e.g. a declared USB interval that has no setting). */
+  FIXED: 'FIXED',
+  /** Hardware exists and works through standard HID; no configuration protocol. */
+  PHYSICALLY_PRESENT: 'PHYSICALLY_PRESENT',
+  /** The hardware likely supports it; the protocol is unknown. */
   NOT_YET_REVERSE_ENGINEERED: 'NOT_YET_REVERSE_ENGINEERED',
+  /** Evidence shows the device does not offer it. */
   NOT_SUPPORTED: 'NOT_SUPPORTED',
+  /** Not available over the current link (e.g. Bluetooth has no settings channel). */
+  TRANSPORT_LIMITED: 'TRANSPORT_LIMITED',
+  /** Not available on this firmware revision. */
+  FIRMWARE_LIMITED: 'FIRMWARE_LIMITED',
+  /** Implemented from a source but never exercised on hardware. */
+  UNVERIFIED: 'UNVERIFIED',
+  /** No evidence either way. */
   UNKNOWN: 'UNKNOWN',
 } as const;
 export type FeatureStatus = (typeof FeatureStatus)[keyof typeof FeatureStatus];
@@ -58,8 +84,11 @@ export interface FeatureSupport {
   status: FeatureStatus;
   read: ReadSource;
   write: boolean;
+  /** Evidence for the implementation (the weakest of read and write when both exist). */
   confidence: Evidence;
-  /** Short human value for fixed/read-only features, e.g. "1000 Hz" or "Volume ±, Mute". */
+  /** Risk class of the write operation; READ_ONLY when nothing is written. */
+  safety?: SafetyLevel;
+  /** Short human value for fixed/read-only features, e.g. "Volume ±, Mute". */
   value?: string;
   note?: string;
   /** Where the information comes from (official driver function, hardware observation …). */
@@ -72,7 +101,7 @@ export function feature(
   status: FeatureStatus,
   init: Partial<Omit<FeatureSupport, 'status'>> = {},
 ): FeatureSupport {
-  return { status, read: 'none', write: false, confidence: Evidence.HYPOTHESIS, ...init };
+  return { status, read: 'none', write: false, confidence: Evidence.UNKNOWN, ...init };
 }
 
 export const configurable = (
@@ -80,7 +109,17 @@ export const configurable = (
   write: boolean,
   confidence: Evidence,
   extra: Partial<FeatureSupport> = {},
-): FeatureSupport => feature(FeatureStatus.CONFIGURABLE, { read, write, confidence, ...extra });
+): FeatureSupport => {
+  // A write that cannot be read back from the device is reported as WRITE_ONLY, so the UI never
+  // implies that the shown value came from the keyboard.
+  const status =
+    write && read !== 'device'
+      ? FeatureStatus.WRITE_ONLY
+      : write && confidence === Evidence.VERIFIED
+        ? FeatureStatus.SUPPORTED
+        : FeatureStatus.CONFIGURABLE;
+  return feature(status, { read, write, confidence, ...extra });
+};
 
 export function emptyCapabilities(): Capabilities {
   const caps = {} as Capabilities;
@@ -97,29 +136,55 @@ export function isAvailable(s: FeatureSupport): boolean {
 export function isPresent(s: FeatureSupport): boolean {
   return (
     isAvailable(s) ||
-    s.status === FeatureStatus.SUPPORTED_FIXED ||
-    s.status === FeatureStatus.PHYSICALLY_PRESENT_NOT_PROGRAMMABLE
+    s.status === FeatureStatus.FIXED ||
+    s.status === FeatureStatus.PHYSICALLY_PRESENT ||
+    s.status === FeatureStatus.NOT_YET_REVERSE_ENGINEERED
   );
 }
 
+/**
+ * How navigation treats a feature: `show` (controls), `research` (shown with "protocol research
+ * needed"), `hide` (irrelevant to this device).
+ */
+export function navigationMode(s: FeatureSupport): 'show' | 'research' | 'hide' {
+  if (isAvailable(s)) return 'show';
+  if (
+    s.status === FeatureStatus.NOT_YET_REVERSE_ENGINEERED ||
+    s.status === FeatureStatus.PHYSICALLY_PRESENT ||
+    s.status === FeatureStatus.TRANSPORT_LIMITED
+  )
+    return 'research';
+  return 'hide';
+}
+
 export const STATUS_LABEL: Record<FeatureStatus, string> = {
+  SUPPORTED: 'Supported',
   CONFIGURABLE: 'Configurable',
-  SUPPORTED_READ_ONLY: 'Read-only',
-  SUPPORTED_FIXED: 'Fixed',
-  PHYSICALLY_PRESENT_NOT_PROGRAMMABLE: 'Hardware only',
+  READ_ONLY: 'Read-only',
+  WRITE_ONLY: 'Write-only',
+  FIXED: 'Fixed',
+  PHYSICALLY_PRESENT: 'Hardware only',
   NOT_YET_REVERSE_ENGINEERED: 'Not yet reverse-engineered',
   NOT_SUPPORTED: 'Not supported',
+  TRANSPORT_LIMITED: 'Not on this connection',
+  FIRMWARE_LIMITED: 'Not on this firmware',
+  UNVERIFIED: 'Unverified',
   UNKNOWN: 'Unknown',
 };
 
 /** Text symbol per status; never the only signal (labels accompany it). */
 export const STATUS_SYMBOL: Record<FeatureStatus, string> = {
+  SUPPORTED: '✓',
   CONFIGURABLE: '✓',
-  SUPPORTED_READ_ONLY: '◉',
-  SUPPORTED_FIXED: '⚙',
-  PHYSICALLY_PRESENT_NOT_PROGRAMMABLE: '◆',
+  READ_ONLY: '◉',
+  WRITE_ONLY: '↦',
+  FIXED: '⚙',
+  PHYSICALLY_PRESENT: '◆',
   NOT_YET_REVERSE_ENGINEERED: '◌',
   NOT_SUPPORTED: '—',
+  TRANSPORT_LIMITED: '⇄',
+  FIRMWARE_LIMITED: '⌁',
+  UNVERIFIED: '△',
   UNKNOWN: '?',
 };
 

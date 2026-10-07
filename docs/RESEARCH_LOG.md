@@ -82,6 +82,12 @@ Test unit: AJAZZ AK820 MAX PLUS TFT, USB `0C45:8009` "AK820 MAX" (SONiX), bcdDev
 - **Interpretation:** detection must use descriptors, not names.
 - **Confidence:** OBSERVED · **Code:** `families/*/protocol.ts` match rules
 
+### 2026-10-08 — Acknowledgements must echo their command
+
+- **Evidence:** every acknowledgement captured on hardware echoes its command (`04 18 00 01`, `04 F5 … 01`, `04 02 00 01`); a passive read returns the echo of the *previous* command.
+- **Interpretation:** an answer with status `01` that does not echo the current command may be a stale echo, so it is not accepted as an acknowledgement. Found by fault-injection tests (`tests/transport/mock-faults.test.ts`): a corrupted command byte was previously accepted.
+- **Evidence status:** decision based on VERIFIED observations; fails safe (refuses) if a command acknowledges without echo.
+
 ## Open questions (need hardware with consent)
 
 | Question                                        | Proposed experiment                              | Status                 |

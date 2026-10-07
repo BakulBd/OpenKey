@@ -8,7 +8,7 @@ import type { Macro, MacroLimits } from './model/macros.js';
 import type { SettingsSchema, SystemSettings } from './model/settings.js';
 import type { ProgressCallback, TftFrame, TftInfo } from './model/tft.js';
 
-export interface KnobConfig {
+export interface EncoderConfig {
   clockwise: unknown;
   counterClockwise: unknown;
   press: unknown;
@@ -82,8 +82,8 @@ export interface KeyboardDriver {
   getWinLock(): Promise<boolean>;
   setWinLock(locked: boolean): Promise<void>;
 
-  getKnobConfig(): Promise<KnobConfig>;
-  setKnobConfig(cfg: KnobConfig): Promise<void>;
+  getEncoder(): Promise<EncoderConfig>;
+  setEncoder(cfg: EncoderConfig): Promise<void>;
 
   /** Writes the firmware defaults for keymaps/macros/lighting where the protocol has a verified way. */
   restoreDefaults(scope: 'keymap' | 'fnLayer' | 'macros' | 'lighting'): Promise<void>;
@@ -218,11 +218,11 @@ export abstract class BaseKeyboardDriver implements KeyboardDriver {
   async setWinLock(locked: boolean): Promise<void> {
     await this.setSystemSettings({ ...(await this.getSystemSettings()), disableWinKey: locked });
   }
-  async getKnobConfig(): Promise<KnobConfig> {
-    return unsupported('knob');
+  async getEncoder(): Promise<EncoderConfig> {
+    return unsupported('encoder');
   }
-  async setKnobConfig(_cfg: KnobConfig): Promise<void> {
-    unsupported('knob');
+  async setEncoder(_cfg: EncoderConfig): Promise<void> {
+    unsupported('encoder');
   }
   async restoreDefaults(scope: 'keymap' | 'fnLayer' | 'macros' | 'lighting'): Promise<void> {
     unsupported('factoryDefaults', `no verified default-restore path for ${scope}`);

@@ -48,10 +48,13 @@ export function parseAck(resp: Uint8Array, cmd: number): AckInfo {
     });
   }
   const status = resp[ACK_OFFSET]!;
+  const echoes = resp[0] === COMMAND_PREFIX && resp[1] === cmd;
   return {
-    ok: status === ACK_OK,
+    // Every acknowledgement seen on hardware echoes its command (START, F5, SAVE). A passive read
+    // returns the echo of the *previous* command, so a non-echoing "01" may be stale: not an ack.
+    ok: status === ACK_OK && echoes,
     busy: status === 0xff,
-    echoes: resp[0] === COMMAND_PREFIX && resp[1] === cmd,
+    echoes,
     status,
   };
 }

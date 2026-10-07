@@ -16,7 +16,7 @@ const LABELS: Record<string, string> = {
   tftGif: 'TFT animation',
   tftClock: 'TFT clock',
   battery: 'Battery',
-  knob: 'Knob',
+  encoder: 'Encoder (knob)',
   pollingRate: 'Polling rate',
   gameMode: 'Game mode',
   sleep: 'Sleep timer',

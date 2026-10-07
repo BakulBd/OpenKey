@@ -120,7 +120,7 @@ class CrsDriver extends BaseKeyboardDriver {
   }
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
-    c.deviceInfo = { status: FeatureStatus.SUPPORTED_READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
+    c.deviceInfo = { status: FeatureStatus.READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
     c.rgb = { status: FeatureStatus.CONFIGURABLE, read: 'none', write: true,
       confidence: Evidence.INFERRED,
       note: 'Experimental (community protocol).',

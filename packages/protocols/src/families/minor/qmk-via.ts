@@ -35,7 +35,7 @@ class QmkViaDriver extends BaseKeyboardDriver {
   }
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
-    c.deviceInfo = { status: FeatureStatus.SUPPORTED_READ_ONLY, read: 'device', write: false,
+    c.deviceInfo = { status: FeatureStatus.READ_ONLY, read: 'device', write: false,
       confidence: Evidence.VERIFIED,
       note: 'Custom QMK firmware: configure it with VIA/Vial.',
     };

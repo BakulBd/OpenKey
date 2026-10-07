@@ -12,14 +12,14 @@ const C = Evidence.VERIFIED;
 export function sonixFeatureCapabilities(variant: SonixFeatureVariant, transport: TransportMode): Capabilities {
   const caps = emptyCapabilities();
   const p = variant.profile;
-  caps.deviceInfo = feature(FeatureStatus.SUPPORTED_READ_ONLY, {
+  caps.deviceInfo = feature(FeatureStatus.READ_ONLY, {
     read: 'device',
     confidence: C,
     note: 'From USB/HID descriptors; this firmware has no device-information command.',
     source: 'descriptors; official driver has no info command',
   });
   // Knob: the OS receives standard Consumer Control usages; no remap exists in the official software.
-  caps.knob = feature(FeatureStatus.PHYSICALLY_PRESENT_NOT_PROGRAMMABLE, {
+  caps.encoder = feature(FeatureStatus.PHYSICALLY_PRESENT, {
     confidence: S,
     value: 'Volume up / down, mute (standard HID Consumer Control)',
     note: 'No knob or wheel mapping exists in the official AK820 MAX/PRO software; a vendor remap command is not known.',
@@ -70,7 +70,7 @@ export function sonixFeatureCapabilities(variant: SonixFeatureVariant, transport
     note: 'Shown on the keyboard screen. The PC can read it only through the 2.4 GHz receiver (ping 20 01, byte 3).',
     source: 'FUN_00435890 (mode 2 only); 8 s passive listen on all vendor pipes: no status reports',
   });
-  caps.pollingRate = feature(FeatureStatus.SUPPORTED_FIXED, {
+  caps.pollingRate = feature(FeatureStatus.FIXED, {
     confidence: C,
     value: transport === 'usb' ? '1000 Hz ceiling (bInterval 1 ms), fixed' : 'set by the receiver',
     note: 'Declared USB interrupt interval 1 ms on all interfaces. No polling-rate command exists in the official software. Actual report cadence: measure with `openkey polling`.',

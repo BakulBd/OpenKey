@@ -131,13 +131,13 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
     const S = Evidence.OBSERVED;
-    c.deviceInfo = feature(FeatureStatus.SUPPORTED_READ_ONLY, { read: 'device', confidence: S, source: 'GET_DEVICE_INFO (_n)' });
+    c.deviceInfo = feature(FeatureStatus.READ_ONLY, { read: 'device', confidence: S, source: 'GET_DEVICE_INFO (_n)' });
     c.keymap = configurable('device', true, S);
     c.fnLayer = configurable('device', true, S);
     c.macros = configurable('device', true, S);
     c.rgb = configurable('device', true, S);
     c.perKeyRgb = configurable('device', true, S);
-    c.battery = feature(FeatureStatus.SUPPORTED_READ_ONLY, { read: 'device', confidence: S, source: 'GET_DEVICE_INFO byte 17' });
+    c.battery = feature(FeatureStatus.READ_ONLY, { read: 'device', confidence: S, source: 'GET_DEVICE_INFO byte 17' });
     c.sleep = configurable('device', true, S);
     c.gameMode = configurable('device', true, S, { source: 'game-mode struct byte 1' });
     c.pollingRate = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
@@ -145,7 +145,7 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
       confidence: Evidence.INFERRED,
       note: 'reportRate byte is read; its value mapping is not known yet.',
     });
-    c.knob = feature(FeatureStatus.PHYSICALLY_PRESENT_NOT_PROGRAMMABLE, {
+    c.encoder = feature(FeatureStatus.PHYSICALLY_PRESENT, {
       confidence: S,
       value: 'Volume up / down, mute',
       note: 'wheelKeys is empty for the AK820 Pro in the online driver.',

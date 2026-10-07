@@ -50,7 +50,7 @@ describe('sonix-feature driver against the firmware simulator', () => {
     const caps = driver.getCapabilities();
     expect(caps.keymap).toMatchObject({ read: 'mirror', write: true });
     expect(caps.perKeyRgb.read).toBe('device');
-    expect(caps.knob.write).toBe(false);
+    expect(caps.encoder.write).toBe(false);
     expect((await driver.getTftInfo()).maxFrames).toBe(255);
   });
 
