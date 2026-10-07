@@ -2,7 +2,7 @@
   "name": "openkey",
   "version": "0.2.0",
   "private": true,
-  "description": "An open-source, cross-platform WebHID configurator for the AJAZZ AK820 keyboard family.",
+  "description": "OpenKey: open-source, local-first browser keyboard configurator with a modular protocol-adapter architecture.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.0.0",
@@ -24,7 +24,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @openkey/web typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "e2e": "node tools/e2e/smoke.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

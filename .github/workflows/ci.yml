@@ -2,6 +2,8 @@ name: CI
 on:
   push:
   pull_request:
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,10 +17,16 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
       - run: pnpm lint
+      - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # Real hardware is never required: the smoke test runs the demo (firmware simulator) in the
+      # runner's preinstalled Chrome, with the production security headers from vercel.json.
+      - name: Browser smoke test
+        run: node tools/e2e/smoke.mjs
+        env:
+          CHROME: /usr/bin/google-chrome
       - uses: actions/upload-artifact@v4
         with:
           name: web

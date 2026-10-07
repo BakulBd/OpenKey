@@ -16,6 +16,17 @@ import { chromium } from 'playwright-core';
 
 const ROOT = path.resolve(import.meta.dirname, '../../apps/web/dist');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.map': 'application/json' };
+/** Applies vercel.json headers locally so the CSP and Permissions-Policy are tested with the app. */
+const VERCEL = JSON.parse(await readFile(path.resolve(import.meta.dirname, '../../vercel.json'), 'utf8'));
+function vercelHeaders(pathname) {
+  const out = {};
+  for (const rule of VERCEL.headers ?? []) {
+    const re = new RegExp(`^${rule.source.replace(/\(\.\*\)/g, '.*')}$`);
+    if (re.test(pathname)) for (const h of rule.headers) out[h.key] = h.value;
+  }
+  return out;
+}
+
 const CHROME = process.env.CHROME ?? ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync);
 
 async function serve() {
@@ -25,7 +36,7 @@ async function serve() {
     if (url.pathname.endsWith('/')) file = path.join(file, 'index.html');
     try {
       const body = await readFile(file);
-      res.writeHead(200, { 'content-type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
+      res.writeHead(200, { ...vercelHeaders(url.pathname), 'content-type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
       res.end(body);
     } catch {
       res.writeHead(404).end('not found');
@@ -50,11 +61,22 @@ try {
     const page = await ctx.newPage();
     page.on('console', (m) => m.type() === 'error' && failures.push(`[${scheme}] console: ${m.text()}`));
     page.on('pageerror', (e) => failures.push(`[${scheme}] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      document.addEventListener('securitypolicyviolation', (e) => console.error(`CSP violation: ${e.violatedDirective} ${e.blockedURI}`));
+    });
     await page.goto(base, { waitUntil: 'networkidle' });
     await page.getByRole('heading', { level: 1 }).first().waitFor();
     results.push(`landing: ${await page.getByRole('heading', { level: 1 }).first().textContent()}`);
     if (shots) await page.screenshot({ path: `${shots}/landing-${scheme}.png`, fullPage: true });
     results.push(`webhid in browser: ${await page.evaluate(() => 'hid' in navigator)}`);
+    const served = await page.evaluate(async () => {
+      const r = await fetch(location.pathname, { cache: 'no-store' });
+      return ['content-security-policy', 'permissions-policy', 'x-content-type-options', 'referrer-policy', 'x-frame-options'].map((h) => `${h}=${r.headers.get(h) ? 'set' : 'MISSING'}`);
+    });
+    results.push(`headers: ${served.join(' ')}`);
+    if (served.some((h) => h.endsWith('MISSING'))) failures.push(`missing security headers: ${served.join(' ')}`);
+    // Permissions-Policy must still allow WebHID for this origin.
+    results.push(`hid allowed by policy: ${await page.evaluate(() => (document.featurePolicy ?? document.permissionsPolicy)?.allowsFeature?.('hid') ?? 'n/a')}`);
 
     await page.getByRole('button', { name: 'Try demo' }).first().click();
     await page.waitForURL(/#\/overview/);
