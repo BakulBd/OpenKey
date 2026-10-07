@@ -111,6 +111,48 @@ try {
     await ctx.close();
   }
 
+  // Unknown-device mode end to end: a stubbed WebHID device with an AULA-like descriptor. The app must
+  // show read-only inspection and send nothing at all to the device.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[unknown] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      const sent = (window.__hidSends = []);
+      const record = (op) => (...args) => {
+        sent.push(op);
+        return Promise.resolve(op === 'receiveFeatureReport' ? new DataView(new ArrayBuffer(64)) : undefined);
+      };
+      const coll = (usagePage, usage, feature) => ({
+        usagePage, usage, children: [], inputReports: [], outputReports: [],
+        featureReports: feature ? [{ reportId: 6, items: [{ reportSize: 8, reportCount: 519 }] }] : [],
+      });
+      const device = {
+        vendorId: 0x258a, productId: 0x010c, productName: 'USB-HID Keyboard', opened: false,
+        collections: [coll(0x01, 0x06, false), coll(0xff00, 0x01, true)],
+        open: () => Promise.resolve(), close: () => Promise.resolve(),
+        sendReport: record('sendReport'), sendFeatureReport: record('sendFeatureReport'),
+        receiveFeatureReport: record('receiveFeatureReport'),
+        addEventListener() {}, removeEventListener() {},
+      };
+      const hid = {
+        requestDevice: () => Promise.resolve([device]), getDevices: () => Promise.resolve([device]),
+        addEventListener() {}, removeEventListener() {},
+      };
+      Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
+    });
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Inspect any HID device' }).first().click();
+    await page.waitForURL(/#\/overview/);
+    await page.getByText('Read-only.').waitFor();
+    const families = await page.locator('.explain').textContent();
+    const sends = await page.evaluate(() => window.__hidSends.length);
+    results.push(`unknown device: read-only view shown; possible AULA family listed: ${/AULA/.test(families)}; reports sent: ${sends}`);
+    if (sends !== 0) failures.push(`unknown-device mode sent ${sends} report(s)`);
+    if (!/AULA/.test(families)) failures.push('unknown-device mode did not list the AULA signature');
+    await ctx.close();
+  }
+
   // Offline: after the service worker cached the app, the shell must load without the network.
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
