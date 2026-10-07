@@ -1,5 +1,8 @@
 # Compatibility matrix
 
+> The searchable, always-current version is the **Compatibility** page in the app; device states come
+> from `packages/devices/src/catalog.ts`. This page documents per-transport details.
+
 Only verified information. Legend: ✅ confirmed on hardware · 🟦 implemented from official code, not yet
 hardware-tested · 🟨 community-documented / experimental · ⬜ not available on this model/link · ❔ unknown.
 "Read" columns say whether the keyboard can report the setting (the Windows-protocol firmware is write-only

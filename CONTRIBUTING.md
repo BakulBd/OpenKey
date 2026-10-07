@@ -1,33 +1,44 @@
 # Contributing
 
-Thanks for helping. The most valuable contributions are **evidence**: descriptors, captures and
-observations from keyboards we have not seen.
+Thanks for helping. The most valuable contributions are **evidence** — descriptors, captures and
+hardware results from keyboards OpenKey has not seen — and careful code that keeps the evidence honest.
 
-## Report a keyboard
+- Add a keyboard: [docs/CONTRIBUTING_KEYBOARDS.md](docs/CONTRIBUTING_KEYBOARDS.md)
+- Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Protocol research: [docs/PROTOCOL_RESEARCH.md](docs/PROTOCOL_RESEARCH.md)
 
-Run `pnpm inspect` (Linux, no permissions needed) or open the web app's Diagnostics page and download the
-report. Open an issue with the output, the model name printed on the box and how the keyboard was
-connected (cable, receiver, Bluetooth).
+## Development
 
-## Protocol findings
+```sh
+pnpm install
+pnpm dev          # web app on http://localhost:5173 (WebHID works on localhost)
+pnpm test         # unit, protocol, fixture, mock-HID and integration tests
+pnpm lint && pnpm typecheck
+pnpm build        # CLI + static web build (apps/web/dist)
+pnpm e2e          # browser smoke test of the build with the production headers (needs Chrome)
+```
 
-1. Follow [docs/reverse-engineering/capture-methodology.md](docs/reverse-engineering/capture-methodology.md):
-   one change per capture, controlled assets, before/after state.
-2. Add the capture (converted to JSON, without unrelated traffic) under `fixtures/`, with device, firmware,
-   transport, interface, report ID, raw bytes and expected parsing.
-3. Add an entry to [docs/RESEARCH_LOG.md](docs/RESEARCH_LOG.md) with a confidence level. VERIFIED needs a
-   hardware observation; official-code findings are OBSERVED.
-4. Implement the encoder/decoder with named constants that cite their evidence, plus a test that uses the
-   fixture.
+Node 20+ and pnpm 10. No hardware is needed for any of these; the demo and tests use firmware
+simulators and `MockHidDevice`.
 
-## Code
+## Rules
 
-- TypeScript strict; `pnpm lint`, `pnpm typecheck` and `pnpm test` must pass.
-- Protocol code talks to `HidTransport` only — never `navigator.hid`, `fs` or `node-hid` (enforced by ESLint).
-- No guessed packets. A command with unknown side effects is documented and left unimplemented.
-- Keep families separate; move only genuinely shared encodings to `families/common`.
+- TypeScript strict. Prefer pure functions, small modules, named constants that cite their evidence.
+- Protocol code talks to `HidTransport` only — never `navigator.hid`, `fs` or `node-hid` (ESLint enforces it).
+- **No guessed packets.** A command with unknown effects is documented and left unimplemented. A feature
+  without evidence is `UNKNOWN` or `NOT_YET_REVERSE_ENGINEERED`, never "supported".
+- Never promote evidence without new evidence: OBSERVED → VERIFIED needs a hardware run.
+- Every write declares a safety level; firmware, bootloader and erase commands are out of scope.
+- User-facing text goes through i18n keys (`apps/web/src/i18n/locales/en.ts`); translations may be partial.
+- Keep commits small and logical; describe the evidence behind protocol changes.
+
+## Translations
+
+Add or improve `apps/web/src/i18n/locales/<code>.ts`. Any subset of keys is fine; missing keys fall back
+to English. Keep `{placeholders}` unchanged (a test checks them). Keycode names and protocol notes are
+data and stay in English.
 
 ## Legal
 
-Do not commit AJAZZ binaries, installers, bundles or firmware dumps. Describe what the official software
-does in your own words and reimplement it.
+Do not commit vendor binaries, installers, bundles or firmware dumps. Do not copy code from GPL or
+unlicensed projects; describe facts in your own words. See [docs/LICENSE_NOTES.md](docs/LICENSE_NOTES.md).

@@ -1,151 +1,104 @@
 # OpenKey
 
-**An open-source, cross-platform WebHID configurator for the AJAZZ AK820 keyboard family.**
+**An open-source, local-first keyboard configurator that runs in your browser.**
 
-OpenKey configures AJAZZ AK820 keyboards without the vendor software: keymap and Fn layer, lighting,
-per-key colours, macros, the TFT screen (images, GIFs, clock) and keyboard settings. It runs in a
-Chromium browser via WebHID, and as a command-line tool (`openkey`) on Linux.
+OpenKey talks to a keyboard directly over WebHID. There is no installer, no account, no server and no
+telemetry: the deployment is static files, and everything you create stays in your browser. Keyboards
+are supported through protocol adapters, and OpenKey says exactly what it has verified for each one.
 
-It is one application for the whole family. Connect a keyboard and OpenKey reads its HID
-descriptors, works out which of the several incompatible AK820 protocols it speaks, confirms that with a
-read-only probe, and shows only the features that keyboard actually has.
+**Live app:** https://openkey-lovat.vercel.app · **Try it without hardware:** open the app and click
+_Try demo_.
 
-> OpenKey does not distribute proprietary AJAZZ firmware or proprietary driver binaries.
+> OpenKey is not universal yet. Today it configures the AJAZZ AK820 family; any other keyboard can be
+> inspected read-only and reported so an adapter can be built. It never flashes firmware.
 
-## Supported keyboards
+## What works today
 
-| Keyboard                                                | Status                                                                                                                                    |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| AK820 MAX / MAX PLUS with TFT (`0C45:8009` "AK820 MAX") | Protocol confirmed on hardware; per-key colour read verified; writes implemented from the official driver, awaiting hardware confirmation |
-| AK820 Pro, Windows-driver firmware                      | Same protocol family; implemented                                                                                                         |
-| AK820 Pro, online-driver firmware; AK820 MAX HE         | Online-driver protocol; implemented, not hardware-tested                                                                                  |
-| AK820 2.4 GHz receivers                                 | Detected; lighting experimental                                                                                                           |
-| CRS-based "AK820 Max Plus" (`1A2C`)                     | Detected; lighting experimental                                                                                                           |
-| AK820 Pro with community QMK                            | Identified; use VIA                                                                                                                       |
+| Area                                                    | State                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flagship: AJAZZ AK820 MAX / MAX PLUS (TFT), `0C45:8009` | Detection, protocol handshake and per-key colour read **verified on hardware**. Keymap, Fn layer, lighting, per-key write, macros, screen upload, clock and settings are implemented from the official driver and are **experimental** (opt-in) until verified on hardware. |
+| Other AK820 variants                                    | Community or research status; see the Compatibility page.                                                                                                                                                                                                                   |
+| AULA, ROYUAN, Vial                                      | Planned adapters: their descriptor signatures are recognised in unknown-device mode; nothing is sent.                                                                                                                                                                       |
+| Any HID device                                          | Read-only inspection, sanitized diagnostic package, device-support request.                                                                                                                                                                                                 |
+| Demo                                                    | Full UI against a firmware simulator running the real protocol code.                                                                                                                                                                                                        |
 
-Details: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+Feature-level detail with evidence: [docs/HARDWARE_TEST_MATRIX.md](docs/HARDWARE_TEST_MATRIX.md),
+[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
-## How detection works
+## How it works
 
-1. **Enumerate.** All HID interfaces of the device are grouped (WebHID `HIDDevice.collections`, or Linux
-   sysfs report descriptors parsed by OpenKey).
-2. **Match.** Each protocol family checks the descriptors: usage pages, usages, report IDs and report
-   sizes. Example: the AK820 MAX has a 64-byte feature report on usage page FF13 and a 4096-byte output
-   report on FF68; an online-driver AK820 Pro has a 64-byte output report on FF68 instead.
-3. **Probe.** Matching families run one documented read-only command (for the AK820 MAX the official
-   START handshake, answered with `04 18 00 01`).
-4. **Select.** The best confirmed candidate wins; ties are reported, never guessed.
-
-`openkey detect --verbose` prints the whole reasoning:
-
-```
-Candidate protocol: AJAZZ Windows-driver protocol (feature reports on FF13 + 4096-byte data on FF68)
-  Descriptor match: yes, score 100
-  Probe: PASS – Firmware acknowledged the official START handshake on the FF13 control pipe.
-Candidate protocol: AJAZZ online-driver protocol (AA/55 output reports)
-  Descriptor match: NO (FF68 output report is 4096 bytes: a bulk data pipe, not an AA/55 command pipe)
-Selected: sonix-feature
-Confidence: VERIFIED
+```text
+transport (WebHID) → device discovery (HID collections) → protocol detection (descriptors + one
+read-only handshake) → adapter → capabilities → normalized model → UI
 ```
 
-## Using the web app
+- Detection never trusts VID/PID alone: `258A:010C` is used by two unrelated products.
+- Every feature has a status (supported, read-only, write-only, fixed, hardware-only, research needed,
+  not on this connection, unknown …) and an evidence level (VERIFIED, OBSERVED, INFERRED, HYPOTHESIS,
+  UNKNOWN, NOT_TESTED).
+- Every write has a safety level, goes through a diff and a confirmation, and is reported as _verified_
+  only after it was read back from the device.
 
-WebHID is available in Chromium-based browsers (Chrome, Edge, Opera, Brave, Vivaldi) on HTTPS or
-`http://localhost`. Firefox and Safari do not support it; the app says so instead of showing a connect
-button, and offers a simulated keyboard to explore the interface.
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-```
-pnpm install
-pnpm dev            # http://localhost:5173
-pnpm build:web      # static site in apps/web/dist, deploy behind HTTPS
-```
+## The app
 
-Connect the keyboard with a USB data cable in wired mode. Settings are not configurable over Bluetooth
-(the official software does not support it either); over 2.4 GHz only part of the configuration exists.
+Keymap studio (staged edits, undo/redo, searchable keycodes, diff before apply) · lighting and per-key
+colour · macro studio · screen studio (images, GIFs, rotate, dither, timeline) · backup and restore with
+read-back · local profiles · keyboard tester · latency lab (declared vs measured, never inferred) ·
+research lab (inspector, protocol trace, report monitor, diagnostics) · compatibility center · command
+palette (Ctrl/Cmd+K) · 11 languages · installable PWA that works offline.
 
-**Linux:** install the udev rule so Chrome (and the CLI) may open the keyboard:
+Browser requirements: Chrome, Edge, Opera or Brave on a desktop OS for hardware access; any modern
+browser for the demo and tools. See [docs/BROWSER_SUPPORT.md](docs/BROWSER_SUPPORT.md). On Linux, install
+the udev rule: [docs/PLATFORM_LINUX.md](docs/PLATFORM_LINUX.md).
 
-```
-sudo cp udev/99-openkey.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && sudo udevadm trigger   # then replug the keyboard
-```
+## Privacy
 
-## Using the CLI
+No account, analytics, tracking or cloud storage. Typing is never captured outside the tester while you
+run it. Diagnostic packages exclude typing, macros, keymaps and serial numbers. Read
+[PRIVACY.md](PRIVACY.md).
 
-```
-pnpm openkey list
+## CLI (Linux)
+
+```sh
 pnpm openkey detect --verbose
 pnpm openkey info [--read-lighting]
 pnpm openkey keymap set Caps=key:ctrl F12=consumer:mute [--layer fn]
 pnpm openkey rgb set --effect Static --color '#ff0000' --brightness 5
-pnpm openkey perkey set --all '#202040'
-pnpm openkey macro set 0 "down:a,wait:20,up:a"
-pnpm openkey tft upload picture.gif --fit cover --dither
-pnpm openkey clock sync
 pnpm openkey backup | restore backup.json --dry-run
-pnpm openkey diagnostics --json
+pnpm openkey polling        # measured report cadence
 ```
 
-`pnpm build:cli` produces a standalone `tools/cli/dist/openkey.mjs`. Every write asks for confirmation
-(or `--yes`); keymap, macro and restore operations save a backup first. `OPENKEY_DEBUG=1` prints every
-HID report with timing.
-
-## Current features (AK820 MAX / MAX PLUS)
-
-| Feature                                                     | Read                  | Write |
-| ----------------------------------------------------------- | --------------------- | ----- |
-| Device identity, protocol, capabilities                     | yes                   | —     |
-| Keymap and Fn layer, defaults restore                       | remembered*           | yes   |
-| Lighting effects (20), colour, brightness, speed, direction | remembered*           | yes   |
-| Per-key colours                                             | **yes (from device)** | yes   |
-| Macros (100 slots)                                          | remembered*           | yes   |
-| TFT image / GIF (128×128, up to 255 frames), clock          | —                     | yes   |
-| Sleep timer, key response, Win/Alt-Tab/Alt-F4 locks         | remembered*           | yes   |
-| Backup / restore with change preview                        | yes                   | yes   |
-
-\* The firmware is write-only for these settings (the official software never reads them either);
-OpenKey shows what it last wrote and labels it accordingly.
-
-## Known limitations
-
-- Writes for the AK820 MAX are reproduced byte-for-byte from the official driver; so far only reads and the
-  handshake have been exercised on the test unit. See the open questions in
-  [docs/RESEARCH_LOG.md](docs/RESEARCH_LOG.md).
-- No battery level over USB on the Windows-protocol firmware; the knob is not remappable on any Sonix AK820.
-- The 2.4 GHz receiver protocol is only partly known; Bluetooth has no configuration channel.
-- The MAX and MAX PLUS report the same USB identity; OpenKey cannot tell them apart.
-- WebHID merges two identical keyboards plugged in at the same time.
-
-## Safety
-
-OpenKey never flashes firmware, enters the bootloader, erases flash, runs factory resets or sends
-guessed commands; such commands are blocked in code. See [docs/security.md](docs/security.md).
-
-## Reverse-engineering methodology
-
-The official AJAZZ Windows driver for the AK820 MAX was analysed statically to recover the transfer layer
-and every command; findings were then verified on the hardware with read-only commands, and the captured
-bytes became regression fixtures. Public projects were surveyed and their conflicting claims resolved
-against the official code: [docs/reverse-engineering/](docs/reverse-engineering/),
-[docs/protocol/](docs/protocol/), [docs/RESEARCH_LOG.md](docs/RESEARCH_LOG.md).
+`openak820` remains an alias. Every write asks for confirmation (or `--yes`) and backs up first.
 
 ## Development
 
-```
+```sh
 pnpm install
-pnpm test          # unit, protocol, simulator and hardware-replay tests (no keyboard needed)
-pnpm typecheck
-pnpm lint
-pnpm inspect       # Linux device inspector (sysfs, no permissions needed)
-pnpm probe         # first-contact probe, saves a fixture
-pnpm packet-diff a.json b.json
-OPENKEY_HIL=1 pnpm test   # hardware-in-the-loop tests (opt-in)
+pnpm dev        # http://localhost:5173
+pnpm test       # no hardware needed: simulators, fixtures, mock HID with fault injection
+pnpm lint && pnpm typecheck
+pnpm build      # static site in apps/web/dist + CLI
+pnpm e2e        # browser smoke test of the build with production headers
 ```
 
-Layout: `packages/` (core, hid, hid-node, protocols, tft, profiles), `apps/web`, `tools/` (cli,
-device-inspector, probe-device, packet-diff, capture), `devices/`, `fixtures/`, `tests/`, `docs/`.
-Architecture: [docs/architecture.md](docs/architecture.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
+Deployment is static (Vercel Hobby): `vercel.json` builds `apps/web` and sets the security headers.
+
+Repository: `packages/` (core, hid, hid-node, protocols, devices, tft), `apps/web`, `tools/` (cli,
+inspector, probe, packet-diff, capture, e2e), `devices/`, `fixtures/`, `re/` (raw evidence), `tests/`,
+`docs/`.
+
+## Contributing
+
+Add a keyboard: [docs/CONTRIBUTING_KEYBOARDS.md](docs/CONTRIBUTING_KEYBOARDS.md) · code and translations:
+[CONTRIBUTING.md](CONTRIBUTING.md) · research: [docs/PROTOCOL_RESEARCH.md](docs/PROTOCOL_RESEARCH.md) ·
+plan: [docs/ROADMAP.md](docs/ROADMAP.md) · security: [SECURITY.md](SECURITY.md).
+
+If OpenKey is useful to you, a star on GitHub helps others find it.
 
 ## License
 
-MIT. Not affiliated with AJAZZ. AJAZZ and AK820 are trademarks of their owner.
+MIT ([LICENSE](LICENSE), [THIRD_PARTY.md](THIRD_PARTY.md), [docs/LICENSE_NOTES.md](docs/LICENSE_NOTES.md)).
+Not affiliated with AJAZZ, AULA or any keyboard brand; names are trademarks of their owners. OpenKey does
+not distribute proprietary firmware or driver binaries.

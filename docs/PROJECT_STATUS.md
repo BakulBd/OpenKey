@@ -1,5 +1,8 @@
 # Project status
 
+> Superseded for current status by [HARDWARE_TEST_MATRIX.md](HARDWARE_TEST_MATRIX.md) and
+> [ROADMAP.md](ROADMAP.md). Kept as the 2026-10-07 snapshot of the OpenAK820 phase.
+
 Snapshot of what is real, what is partial and what is still unverified. Updated 2026-10-07.
 Test hardware: one AJAZZ AK820 MAX PLUS TFT (`0C45:8009` "AK820 MAX", bcdDevice 1.07), wired, Linux.
 
@@ -12,7 +15,7 @@ Test hardware: one AJAZZ AK820 MAX PLUS TFT (`0C45:8009` "AK820 MAX", bcdDevice 
 | Per-key colour table read (`F5`) | `fixtures/rgb/ak820-max-plus-read-per-key-hw.json` |
 | Device identity (VID, PID, product, manufacturer, bcdDevice, interfaces, endpoints, report sizes) | `pnpm inspect` |
 | No unsolicited vendor reports over USB (8 s passive listen on FF13, FF68, FFFF) | research log |
-| USB endpoint interval: bInterval 1 on all four interfaces (1 ms declared, 1000 Hz ceiling) | `lsusb -v`, sysfs |
+| USB endpoint interval: bInterval 1 on all four interfaces (declared 1 ms; report cadence not measured) | `lsusb -v`, sysfs |
 
 ## Implemented from official code, waiting for hardware confirmation
 
