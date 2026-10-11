@@ -3,7 +3,19 @@ import type { EvidenceSource, KeyboardDriver, StateStore, TransportMode } from '
 import { LoggingTransport } from '@openkey/hid';
 import { lookupCatalog, lookupCatalogAll } from '@openkey/devices';
 import type { CatalogEntry } from '@openkey/devices';
-import type { HidCollection, HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
+import type {
+  HidCollection,
+  HidDeviceGroup,
+  HidDeviceGroupInfo,
+  HidInterfaceInfo,
+  HidTransport,
+} from '@openkey/hid';
+
+/**
+ * Version of the adapter contract (`ProtocolDefinition`, `AdapterManifest`, `ProbePlan`). Bumped on
+ * any breaking change; the registry refuses adapters written against another version.
+ */
+export const ADAPTER_API_VERSION = 1;
 
 /** How much I/O detection may perform. */
 export type ProbeLevel =
@@ -38,6 +50,62 @@ export interface ProbeResult {
   steps: ProbeStep[];
   /** Protocol-specific facts learned (device-info fields, variant id …). */
   facts: Record<string, unknown>;
+  /**
+   * True only when the device answered a protocol-specific request the way this family does. This
+   * is the family-identification step: without it no driver is created and nothing is written.
+   * A readable report, a descriptor match or an all-zero answer never sets it.
+   */
+  identified?: boolean;
+}
+
+/** One transport operation a probe may perform. Conformance tests check probes against this list. */
+export interface ProbeOperation {
+  /** Lowest detection level at which the operation runs. */
+  level: 'passive' | 'handshake';
+  op: 'feature-get' | 'feature-set' | 'output' | 'input-read';
+  /** Target collection as `PAGE:USAGE` hex, e.g. `FF13:0001`. */
+  collection: string;
+  reportId: number;
+  /**
+   * Hex of the leading payload bytes that identify the operation (empty for reads). Conformance
+   * checks every sent report against it; the remaining bytes are described in `purpose`.
+   */
+  payloadPrefix: string;
+  purpose: string;
+  /** Effect on the device. Probes never perform persistent writes. */
+  effect: 'none' | 'volatile';
+  /** Evidence that this exact operation is understood. */
+  evidence: Evidence;
+}
+
+export interface ProbeConsent {
+  /** Handshake-level operations may run without an explicit user action. */
+  auto: boolean;
+  reason: string;
+}
+
+/**
+ * What a probe sends, and when it may send it. Handshake-level operations run automatically only
+ * for identities where they are known to be harmless: identities verified on hardware, identities
+ * the vendor's own software sends the same command to, or a public-specification read on a
+ * collection reserved for that protocol. Every other device waits for the user's consent.
+ */
+export interface ProbePlan {
+  operations: ProbeOperation[];
+  autoConsent(group: HidDeviceGroupInfo): ProbeConsent;
+}
+
+/** A physical unit an adapter was verified on (detection and identification at least). */
+export interface VerifiedIdentity {
+  vendorId: number;
+  productId: number;
+  productName?: string;
+  /** bcdDevice where known. */
+  release?: number;
+  transport: TransportMode;
+  /** What was verified, and the fixture or log entry proving it. */
+  scope: string;
+  evidence: string;
 }
 
 export interface ProbeContext {
@@ -83,9 +151,20 @@ export interface AdapterManifest {
   /** Safety policy summary shown in Diagnostics. */
   safety: string;
   provenance: { source: EvidenceSource; reference: string; status: Evidence }[];
+  /** SPDX licence of the adapter's own code. Third-party facts are listed in `provenance`. */
+  license: string;
+  /** Known limitations, shown in the compatibility center. Never empty for unverified adapters. */
+  limitations: string[];
+  /** Repository-relative fixtures that back the adapter's tests. */
+  fixtures: string[];
+  /** Units the adapter was verified on. An empty list means nothing is hardware-verified. */
+  verifiedIdentities: VerifiedIdentity[];
 }
 
 export interface ProtocolDefinition {
+  /** Adapter contract version this definition implements (`ADAPTER_API_VERSION`). */
+  apiVersion: number;
+  /** Stable, kebab-case id. Never reused for a different protocol. */
   id: string;
   manifest: AdapterManifest;
   name: string;
@@ -98,8 +177,12 @@ export interface ProtocolDefinition {
   requiredReports: string[];
   /** Evidence sources, shown in Diagnostics and docs. */
   evidence: string[];
+  /** Descriptor-only matcher. Must be pure: no I/O, no randomness, no time. */
   match(group: HidDeviceGroup): CandidateMatch;
+  /** Every operation `probe` may perform, and the policy for running it without asking. */
+  probePlan: ProbePlan;
   probe(ctx: ProbeContext): Promise<ProbeResult>;
+  /** Called only after `probe` identified the family (`ProbeResult.identified`). */
   createDriver(group: HidDeviceGroup, opts: DriverOptions): Promise<KeyboardDriver>;
 }
 
@@ -131,7 +214,19 @@ export interface CandidateReport {
   protocol: { id: string; name: string; family: string };
   match: CandidateMatch;
   probe?: ProbeResult;
+  /** Level the probe actually ran at (lower than requested when consent was missing). */
+  probeLevel?: ProbeLevel;
+  /** Consent state for handshake-level operations. */
+  consent?: { required: boolean; granted: boolean; reason: string };
 }
+
+/**
+ * How firmly the selected adapter's family was established.
+ * - identified: the device answered a family-specific request (`ProbeResult.identified`).
+ * - passive: only a read without a preceding command succeeded.
+ * - descriptor: descriptors only; nothing was asked of the device.
+ */
+export type Identification = 'identified' | 'passive' | 'descriptor';
 
 export interface DetectionReport {
   device: {
@@ -147,7 +242,12 @@ export interface DetectionReport {
   interfaces: { interfaceNumber?: number; path?: string; collections: HidCollection[] }[];
   level: ProbeLevel;
   candidates: CandidateReport[];
-  selected: { protocolId: string; confidence: Evidence; reasons: string[] } | null;
+  selected: {
+    protocolId: string;
+    confidence: Evidence;
+    reasons: string[];
+    identification: Identification;
+  } | null;
   /** True when several protocols passed equally and the user must decide. */
   ambiguous: boolean;
   notes: string[];
@@ -174,7 +274,12 @@ export class ProtocolRegistry {
   }
 
   register(p: ProtocolDefinition): this {
-    if (this.protocols.some((x) => x.id === p.id))
+    if (p.apiVersion !== ADAPTER_API_VERSION)
+      throw new Error(
+        `Adapter ${p.id} implements contract v${p.apiVersion}; this OpenKey needs v${ADAPTER_API_VERSION}`,
+      );
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.id)) throw new Error(`Adapter id "${p.id}" must be kebab-case`);
+    if (this.protocols.some((x) => x.id === p.id) || this.plannedAdapters.some((x) => x.id === p.id))
       throw new Error(`Protocol ${p.id} already registered`);
     this.protocols.push(p);
     this.protocols.sort((a, b) => b.priority - a.priority);
@@ -189,9 +294,13 @@ export class ProtocolRegistry {
     return this.protocols.find((p) => p.id === id);
   }
 
+  /**
+   * Identifies the protocol of a device group. `level` caps the I/O; handshake-level operations
+   * additionally need the adapter's auto-consent or the adapter id in `consent`.
+   */
   async detect(
     group: HidDeviceGroup,
-    opts: { level?: ProbeLevel; log?: PacketLog } = {},
+    opts: { level?: ProbeLevel; log?: PacketLog; consent?: readonly string[] } = {},
   ): Promise<DetectionReport> {
     const level = opts.level ?? 'descriptor';
     const log = opts.log ?? new PacketLog();
@@ -245,7 +354,7 @@ export class ProtocolRegistry {
       };
       report.candidates.push(cand);
       if (!match.applicable) continue;
-      const confirmed = report.candidates.find((c) => c.probe?.status === 'pass' && c.probe.confidence === Evidence.VERIFIED);
+      const confirmed = report.candidates.find((c) => c.probe?.identified);
       if (confirmed && level !== 'descriptor') {
         // Never send another family's packets to a device whose protocol is already confirmed.
         cand.probe = {
@@ -267,10 +376,23 @@ export class ProtocolRegistry {
         };
         continue;
       }
+      let effective: ProbeLevel = level;
+      if (level === 'handshake') {
+        const policy = p.probePlan.autoConsent(group);
+        const granted = opts.consent?.includes(p.id) ?? false;
+        cand.consent = { required: !policy.auto, granted, reason: policy.reason };
+        if (!policy.auto && !granted) {
+          effective = 'passive';
+          report.notes.push(
+            `${p.id}: identification handshake not sent (${policy.reason}). It runs only after you allow it.`,
+          );
+        }
+      }
+      cand.probeLevel = effective;
       const opened: HidTransport[] = [];
       const ctx: ProbeContext = {
         group,
-        level,
+        level: effective,
         log,
         async open(iface) {
           const t = new LoggingTransport(await group.openInterface(iface), log);
@@ -327,7 +449,8 @@ export function selectCandidate(report: DetectionReport): void {
   const rank = (c: CandidateReport): number => {
     const conf = evidenceRank(c.probe!.confidence);
     const passBonus = c.probe!.status === 'pass' ? 1 : 0;
-    return conf * 1000 + passBonus * 500 + c.match.score;
+    const idBonus = c.probe!.identified ? 1 : 0;
+    return idBonus * 100_000 + conf * 1000 + passBonus * 500 + c.match.score;
   };
   passed.sort((a, b) => rank(b) - rank(a));
   const best = passed[0]!;
@@ -343,6 +466,11 @@ export function selectCandidate(report: DetectionReport): void {
     protocolId: best.protocol.id,
     confidence: best.probe!.confidence,
     reasons: [...best.match.reasons, best.probe!.summary],
+    identification: best.probe!.identified
+      ? 'identified'
+      : best.probe!.status === 'pass'
+        ? 'passive'
+        : 'descriptor',
   };
 }
 

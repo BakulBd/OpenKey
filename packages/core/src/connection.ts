@@ -28,6 +28,8 @@ export type ConnectionEvent =
   | { type: 'INSPECTED' }
   | { type: 'DETECTED'; mode: SessionMode }
   | { type: 'READ_DONE' }
+  /** Unknown-device mode: the user allowed an identification handshake; detection runs again. */
+  | { type: 'REIDENTIFY' }
   | { type: 'APPLY' }
   | { type: 'APPLY_SENT'; verify: boolean }
   | { type: 'VERIFY_DONE' }
@@ -80,7 +82,9 @@ const TABLE: Record<ConnectionStatus, Handler> = {
         : { ...s, status: 'APPLYING' }
       : e.type === 'READ_DONE'
         ? s
-        : undefined,
+        : e.type === 'REIDENTIFY' && s.mode === 'unknown'
+          ? { status: 'DETECTING' }
+          : undefined,
   APPLYING: (s, e) =>
     e.type === 'APPLY_SENT' ? { ...s, status: e.verify ? 'VERIFYING' : 'READY' } : undefined,
   VERIFYING: (s, e) => (e.type === 'VERIFY_DONE' ? { ...s, status: 'READY' } : undefined),

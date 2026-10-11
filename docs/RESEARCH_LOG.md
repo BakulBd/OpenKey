@@ -88,6 +88,26 @@ Test unit: AJAZZ AK820 MAX PLUS TFT, USB `0C45:8009` "AK820 MAX" (SONiX), bcdDev
 - **Interpretation:** an answer with status `01` that does not echo the current command may be a stale echo, so it is not accepted as an acknowledgement. Found by fault-injection tests (`tests/transport/mock-faults.test.ts`): a corrupted command byte was previously accepted.
 - **Evidence status:** decision based on VERIFIED observations; fails safe (refuses) if a command acknowledges without echo.
 
+### 2026-10-11 — Independent corroboration from the Epomaker × AULA F75 Max
+
+- **Action:** read `Sources/AulaCore/AulaCore.swift` and `AulaDevice.swift` of
+  [VitalyArt/Aula-F75-Max-Driver](https://github.com/VitalyArt/Aula-F75-Max-Driver) (MIT; no code copied)
+- **Raw evidence:** wired `0C45:800A`, command page FF13 (64-byte), raw page FF68 (4096-byte chunks),
+  receiver `05AC:024F` (FF59/FF60, 32-byte, checksum at byte 31); sequences `04 18` … `04 02`, time
+  packet `00 01 5A 1A mm dd hh mm ss 00 weekday … AA 55`, image `04 72`, macros `04 19`/`04 15`, keymap `04 11`
+- **Interpretation:** the AULA F75 Max speaks the same `sonix-feature` family as the AK820 MAX PLUS;
+  the clock layout (weekday at byte 10) matches the official-driver analysis. It labels `04 27` as a
+  lighting reset, while the AK820 driver uses `27` for the Fn-layer table: **conflict, unresolved**.
+- **Confidence:** INFERRED (third party) · **Code:** ledger `families/sonix-feature/ledger.ts`
+
+### 2026-10-11 — Probe consent and identification
+
+- **Action:** code review of detection (no hardware attached)
+- **Interpretation:** the START handshake was sent automatically to any FF13:0001 device, and AA/55
+  GET_DEVICE_INFO to any small vendor in/out collection, including numbered ones. Both now need an
+  identity the vendor software targets, or the user's consent; AA/55 requires unnumbered reports.
+- **Evidence status:** policy decision; regression tests in `tests/safety/invariants.test.ts`
+
 ## Open questions (need hardware with consent)
 
 | Question                                        | Proposed experiment                              | Status                 |
@@ -96,6 +116,8 @@ Test unit: AJAZZ AK820 MAX PLUS TFT, USB `0C45:8009` "AK820 MAX" (SONiX), bcdDev
 | Direction code mapping                          | Scrolling effect, each direction                 | waiting                |
 | Macro mode byte for "repeat"/"toggle"           | assign macro with each mode, observe             | waiting                |
 | Keymap write/reset                              | experiments 06–08                                | waiting                |
+| `04 27`: Fn-layer table or lighting reset?       | write an Fn-layer remap, observe Fn behaviour and lighting | waiting        |
+| Per-key write path                              | `openkey verify per-key --experimental`          | tool ready, waiting    |
 | TFT upload/animation timing                     | experiments 11–14                                | waiting                |
 | What the 2.4 GHz receiver exposes               | plug in receiver, `pnpm inspect`                 | receiver not connected |
 | Whether Bluetooth exposes any vendor collection | pair, `pnpm inspect --all`                       | not yet observed       |

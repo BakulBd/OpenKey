@@ -25,6 +25,7 @@ import type {
   ProbeResult,
   ProtocolDefinition,
 } from '../../registry.js';
+import { ADAPTER_API_VERSION } from '../../registry.js';
 
 /**
  * CRS-controller AK820 Max Plus (VID 1A2C). Community evidence only: armoredvortex/ajazz-ak820-max-plus
@@ -201,16 +202,25 @@ class CrsDriver extends BaseKeyboardDriver {
 }
 
 export const crsProtocol: ProtocolDefinition = {
+  apiVersion: ADAPTER_API_VERSION,
   id: 'crs-aa55cc33',
   manifest: {
     version: '0.1.0',
     status: 'research',
     transports: { input: ['usb', '2.4ghz'], configuration: ['usb', '2.4ghz'] },
     verification: 'Identification only; not tested on hardware by OpenKey.',
-    safety: 'Lighting writes from community documentation need the experimental opt-in.',
+    safety:
+      'Descriptor match only. No read-only identification command is documented, so OpenKey never creates a driver for it and nothing is written.',
     provenance: [
       { source: 'public-reverse-engineering', reference: 'armoredvortex/ajazz-ak820-max-plus', status: Evidence.INFERRED },
     ],
+    license: 'MIT',
+    limitations: [
+      'Without a documented read-only command the family cannot be confirmed from the device, so configuration stays locked.',
+      'Lighting packet layout comes from one community project.',
+    ],
+    fixtures: [],
+    verifiedIdentities: [],
   },
   name: 'CRS AK820 Max Plus protocol (AA 55 CC 33, community-documented)',
   family: 'crs-aa55cc33',
@@ -237,6 +247,10 @@ export const crsProtocol: ProtocolDefinition = {
           reasons: [],
           rejections: ['not a CRS (VID 1A2C, FF02) device'],
         };
+  },
+  probePlan: {
+    operations: [],
+    autoConsent: () => ({ auto: false, reason: 'no read-only identification command is documented for this family' }),
   },
   async probe(_ctx: ProbeContext): Promise<ProbeResult> {
     return {

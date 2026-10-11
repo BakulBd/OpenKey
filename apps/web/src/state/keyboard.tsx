@@ -2,10 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import type { ReactNode } from 'react';
 import {
   INITIAL_CONNECTION,
+  OperationLock,
   PacketLog,
   SafetyLevel,
+  SessionEpoch,
   canApply,
   explainError,
+  guardWrites,
   isOpenKeyError,
   mayWrite,
   runTransaction,
@@ -20,6 +23,7 @@ import type {
   ErrorExplanation,
   FeatureId,
   KeyboardDriver,
+  Operation,
   Transaction,
   TxResult,
   WriteDecision,
@@ -27,8 +31,12 @@ import type {
 import { CATALOG } from '@openkey/devices/catalog';
 import { WebHidBackend, webHidSupport } from '@openkey/hid';
 import type { HidDeviceGroup, WebHidSupport } from '@openkey/hid';
-import type { AdapterManifest, DetectionReport, DeviceFingerprint } from '@openkey/protocols';
+import type { AdapterManifest, DetectionReport, DetectionVerdict, DeviceFingerprint } from '@openkey/protocols';
 import { IdbStateStore } from './db.js';
+import { summarize } from './status.js';
+import { currentOs } from '../lib/platform.js';
+import type { OsName } from '../lib/platform.js';
+import type { StatusSummary } from './status.js';
 import { SafetyDialog } from '../components/SafetyDialog.js';
 
 /**
@@ -41,27 +49,39 @@ const CONNECT_FILTERS: HIDDeviceFilter[] = [
   { usagePage: 0xff60, usage: 0x61 },
 ];
 
-export interface DeviceSession {
-  kind: 'device';
-  driver: KeyboardDriver;
+interface SessionBase {
+  /**
+   * Session epoch. Changes on every connect, disconnect and unplug; device-specific views are keyed
+   * by it, and answers that arrive for an older epoch are discarded.
+   */
+  id: number;
   detection: DetectionReport;
   fingerprint: DeviceFingerprint;
+  verdict: DetectionVerdict;
+  group: HidDeviceGroup;
+  log: PacketLog;
+}
+
+export interface DeviceSession extends SessionBase {
+  kind: 'device';
+  driver: KeyboardDriver;
   manifest: AdapterManifest;
   info: DeviceInfo;
   caps: Capabilities;
-  log: PacketLog;
-  group: HidDeviceGroup;
   demo: boolean;
 }
 
-export interface UnknownSession {
+export interface UnknownSession extends SessionBase {
   kind: 'unknown';
-  detection: DetectionReport;
-  fingerprint: DeviceFingerprint;
-  group: HidDeviceGroup;
-  log: PacketLog;
-  /** Why no adapter took the device. */
-  reason: ErrorExplanation;
+  /** Reports OpenKey sent to the device in this session (identification handshakes only). */
+  sentReports: number;
+  /** Why no driver was opened, when an adapter refused. */
+  reason?: ErrorExplanation;
+}
+
+/** Reports sent to the device; reads and descriptor access are not counted. */
+function countSent(log: PacketLog): number {
+  return log.all().filter((p) => p.direction === 'host->device' && (p.kind === 'output' || p.kind === 'feature-set')).length;
 }
 
 export type Session = DeviceSession | UnknownSession;
@@ -69,7 +89,13 @@ export type Session = DeviceSession | UnknownSession;
 export interface Notice {
   id: number;
   kind: 'ok' | 'error' | 'info' | 'warn';
+  /** What happened. */
   title: string;
+  /** What it means (likely reason). */
+  reason?: string;
+  /** The safest next action. */
+  hint?: string;
+  /** Technical detail, shown collapsed. */
   detail?: string;
   action?: { label: string; run: () => void };
 }
@@ -86,6 +112,32 @@ export interface WriteGate {
   allowed: boolean;
 }
 
+/**
+ * The browser listed a device but could not open it. On Linux this almost always means the udev
+ * rule is missing; elsewhere another program usually holds the device.
+ */
+export interface AccessProblem {
+  os: OsName;
+  kind: 'permission' | 'busy';
+  device: { key: string; name: string };
+  detail: string;
+}
+
+/** Errors that mean "could not open the device", as opposed to a protocol answer. */
+const OPEN_FAILURE = /cannot open|failed to open|permission|denied|not ?allowed|EACCES/i;
+function isAccessFailure(code: unknown, message: string): boolean {
+  return (code === 'PERMISSION' || code === 'TRANSPORT') && OPEN_FAILURE.test(message);
+}
+
+/** A device the site already has permission for and that is plugged in now. */
+export interface AuthorizedDevice {
+  key: string;
+  vendorId: number;
+  productId: number;
+  productName: string;
+  interfaces: number;
+}
+
 interface PendingConfirm {
   feature: FeatureId;
   label: string;
@@ -100,27 +152,51 @@ interface Ctx {
   session: Session | null;
   /** The configurable device session, or null in unknown-device mode. */
   device: DeviceSession | null;
+  /** One derived description of the session for every surface (status bar, chip, overview). */
+  status: StatusSummary;
+  /** The device-changing operation in progress (confirming, writing, verifying), if any. */
+  operation: Operation | null;
+  /** Devices this site is already allowed to open that are plugged in now. */
+  authorized: AuthorizedDevice[];
+  /** The last device that was listed but could not be opened, with the OS-specific fix. */
+  accessProblem: AccessProblem | null;
+  /** After fixing access (udev rule, closing other apps, replugging): try that device again. */
+  retryAccess(): Promise<void>;
   notices: Notice[];
   recentErrors: RecentError[];
   experimental: boolean;
   setExperimental(v: boolean): void;
   connect(): Promise<void>;
   inspect(): Promise<void>;
+  /** Opens an already-authorised device without the browser chooser. */
+  openAuthorized(key: string): Promise<void>;
   connectDemo(): Promise<void>;
+  /** Unknown-device mode: run one adapter's identification handshake after the user allowed it. */
+  identify(adapterId: string): Promise<void>;
   disconnect(): Promise<void>;
-  /** Runs a read with error reporting. */
+  /** Runs a read with error reporting. Answers for a previous session are discarded (undefined). */
   read<T>(label: string, fn: (d: KeyboardDriver) => Promise<T>, opts?: { quiet?: boolean }): Promise<T | undefined>;
   /** Write gate for a feature: what the safety policy allows right now. */
   gate(feature: FeatureId): WriteGate;
   /**
-   * Runs a write through the safety policy and the transaction model. Returns the transaction
-   * result, or undefined when the user declined or the policy blocked it.
+   * Runs a write through the safety policy and the transaction model, one at a time. Returns the
+   * transaction result, or undefined when the user declined, the policy blocked it, another
+   * operation was running, or the device went away.
    */
   apply<T>(feature: FeatureId, tx: Transaction<T>, previous: T | undefined, next: T): Promise<TxResult<T> | undefined>;
   /** Safety gate only (policy + confirmation); for multi-section writes such as a restore. */
   confirmWrite(feature: FeatureId, label: string): Promise<boolean>;
   /** Runs a confirmed multi-step write while the connection is in the APPLYING state. */
   writing<T>(label: string, fn: (d: KeyboardDriver) => Promise<T>): Promise<T | undefined>;
+  /**
+   * Increments after every write that reached the device. Editors without local edits re-read when
+   * it changes, because one write can change another editor's state (per-key colours switch the
+   * lighting effect).
+   */
+  revision: number;
+  /** Editors report local, unapplied changes; navigation and unload warn while any exist. */
+  setUnsaved(owner: string, count: number): void;
+  unsavedCount: number;
   notify(n: Omit<Notice, 'id'>): void;
   dismiss(id: number): void;
   store: IdbStateStore;
@@ -149,53 +225,142 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
   const [session, setSession] = useState<Session | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [recentErrors, setRecentErrors] = useState<RecentError[]>([]);
+  const [authorized, setAuthorized] = useState<AuthorizedDevice[]>([]);
+  const [operation, setOperation] = useState<Operation | null>(null);
+  const [unsaved, setUnsavedMap] = useState<Record<string, number>>({});
+  const [revision, setRevision] = useState(0);
+  const [accessProblem, setAccessProblem] = useState<AccessProblem | null>(null);
   // Experimental writes are a per-session opt-in on purpose: it is never remembered.
   const [experimental, setExperimental] = useState(false);
+  const experimentalRef = useRef(experimental);
+  experimentalRef.current = experimental;
   const [pending, setPending] = useState<PendingConfirm | null>(null);
+  const pendingRef = useRef<PendingConfirm | null>(null);
+  pendingRef.current = pending;
   const confirmed = useRef(new Set<FeatureId>());
   const sessionRef = useRef<Session | null>(null);
   sessionRef.current = session;
   const connRef = useRef(conn);
   connRef.current = conn;
+  const epoch = useRef(new SessionEpoch());
+  const lock = useMemo(() => new OperationLock(setOperation), []);
 
   const notify = useCallback((n: Omit<Notice, 'id'>) => {
     const id = ++noticeId;
     setNotices((xs) => [...xs.slice(-3), { ...n, id }]);
-    if (n.kind === 'ok' || n.kind === 'info') setTimeout(() => setNotices((xs) => xs.filter((x) => x.id !== id)), 5000);
+    if (n.kind === 'ok' || n.kind === 'info') setTimeout(() => setNotices((xs) => xs.filter((x) => x.id !== id)), 6000);
   }, []);
+
+  const explainNotice = useCallback(
+    (label: string, x: ErrorExplanation): Omit<Notice, 'id'> => ({
+      kind: 'error',
+      title: `${label}: ${messages.errorTitle(x)}`,
+      reason: messages.errorReason(x),
+      hint: messages.errorHint(x),
+      detail: x.detail,
+    }),
+    [messages],
+  );
 
   const reportError = useCallback(
     (label: string, e: unknown): ErrorExplanation => {
       const x = explainError(e);
       setRecentErrors((xs) => [...xs.slice(-19), { at: new Date().toISOString(), kind: x.kind, title: x.title }]);
-      notify({
-        kind: 'error',
-        title: `${label}: ${messages.errorTitle(x)}`,
-        detail: [x.detail, messages.errorReason(x), messages.errorHint(x)].filter(Boolean).join(' — '),
-      });
+      notify(explainNotice(label, x));
       return x;
     },
-    [messages, notify],
+    [explainNotice, notify],
   );
 
+  /** Ends the current session everywhere: stale answers are dropped, the lock and any open confirmation released. */
+  const endSession = useCallback(() => {
+    epoch.current.next();
+    lock.abandon();
+    pendingRef.current?.resolve(false);
+    setPending(null);
+    setSession(null);
+    confirmed.current.clear();
+    setUnsavedMap({});
+  }, [lock]);
+
+  const refreshAuthorized = useCallback(async () => {
+    if (!support.available) return;
+    try {
+      const groups = await new WebHidBackend().granted();
+      setAuthorized(groups.map((g) => ({ key: g.key, ...g.identity, interfaces: g.interfaces.length })));
+    } catch {
+      setAuthorized([]);
+    }
+  }, [support.available]);
+  useEffect(() => void refreshAuthorized(), [refreshAuthorized]);
+
+  const noteAccess = useCallback((group: HidDeviceGroup, detail: string) => {
+    const os = currentOs();
+    setAccessProblem({ os, kind: os === 'linux' ? 'permission' : 'busy', device: { key: group.key, name: group.identity.productName }, detail });
+  }, []);
+
   const attach = useCallback(
-    async (group: HidDeviceGroup, demo: boolean): Promise<boolean> => {
-      const log = new PacketLog();
+    async (
+      group: HidDeviceGroup,
+      demo: boolean,
+      { consent = [], log = new PacketLog(), reidentify = false }: { consent?: string[]; log?: PacketLog; reidentify?: boolean } = {},
+    ): Promise<boolean> => {
+      const my = epoch.current.next();
+      const stale = () => !epoch.current.isCurrent(my);
       // The protocol stack is loaded on the first connection, not with the landing page.
-      const { buildFingerprint, connectKeyboard, createDefaultRegistry } = await import('@openkey/protocols');
+      const { buildFingerprint, createDefaultRegistry, detectionVerdict, openDriver } = await import('@openkey/protocols');
       const registry = createDefaultRegistry();
-      dispatch({ type: 'OPENED' });
-      dispatch({ type: 'INSPECTED' });
+      if (!reidentify) {
+        dispatch({ type: 'OPENED' });
+        dispatch({ type: 'INSPECTED' });
+      }
+      let detection: DetectionReport | undefined;
+      const unknown = (d: DetectionReport, verdict: DetectionVerdict, reason?: ErrorExplanation): boolean => {
+        if (stale()) return false;
+        // Unknown-device mode: no driver exists, so nothing can be written from here on.
+        setAccessProblem(null);
+        setSession({ id: my, kind: 'unknown', detection: d, fingerprint: buildFingerprint(d), verdict, group, log, sentReports: countSent(log), ...(reason ? { reason } : {}) });
+        dispatch({ type: 'DETECTED', mode: 'unknown' });
+        return true;
+      };
       try {
-        const res = await connectKeyboard(group, { registry, level: 'handshake', log, store, allowExperimental: experimental });
+        detection = await registry.detect(group, { level: 'handshake', log, consent });
+        // Disconnected (or another device picked) while identification ran: drop the result.
+        if (stale()) return false;
+        // Every matching adapter failed to *open* the device: that is a permission or busy problem,
+        // not a protocol answer. End the attempt and show the fix instead of a misleading verdict.
+        const probed = detection.candidates.filter((c) => c.match.applicable && c.probe && c.probe.status !== 'skipped');
+        if (!demo && probed.length && probed.every((c) => c.probe!.status === 'error' && isAccessFailure(c.probe!.facts.errorCode, c.probe!.summary))) {
+          noteAccess(group, probed[0]!.probe!.summary);
+          dispatch({ type: 'FAIL', message: probed[0]!.probe!.summary, recoverable: false });
+          dispatch({ type: 'RESET' });
+          return false;
+        }
+        const verdict = detectionVerdict(detection, registry);
+        // Only a verdict whose family was identified by the device may open a driver.
+        if (!verdict.writeEligible) return unknown(detection, verdict);
+        const opened = await openDriver(group, detection, { registry, log, store, allowExperimental: experimental });
+        // Defence in depth: the UI gates writes too, but the driver itself refuses anything the
+        // policy would not allow, with the opt-in read live from the current session state.
+        const res = { ...opened, driver: guardWrites(opened.driver, () => ({ simulated: demo, experimentalEnabled: experimentalRef.current })) };
+        if (stale()) {
+          await res.driver.disconnect().catch(() => undefined);
+          return false;
+        }
         dispatch({ type: 'DETECTED', mode: demo ? 'demo' : 'supported' });
         const info = await res.driver.getDeviceInfo();
+        if (stale()) {
+          await res.driver.disconnect().catch(() => undefined);
+          return false;
+        }
         const def = registry.get(res.detection.selected?.protocolId ?? '')!;
         setSession({
+          id: my,
           kind: 'device',
           driver: res.driver,
           detection: res.detection,
           fingerprint: buildFingerprint(res.detection),
+          verdict,
           manifest: def.manifest,
           info,
           caps: res.driver.getCapabilities(),
@@ -204,25 +369,34 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
           demo,
         });
         confirmed.current.clear();
+        setAccessProblem(null);
         dispatch({ type: 'READ_DONE' });
-        notify({ kind: 'ok', title: messages.connected(info.model), detail: demo ? messages.demoDetail : undefined });
         return true;
       } catch (e) {
-        if (isOpenKeyError(e) && (e.code === 'UNSUPPORTED_DEVICE' || e.code === 'UNSUPPORTED_PROTOCOL')) {
-          // Unknown-device mode: descriptors only from here on. Nothing is written.
-          const detection = await registry.detect(group, { level: 'descriptor', log });
-          setSession({ kind: 'unknown', detection, fingerprint: buildFingerprint(detection), group, log, reason: explainError(e) });
-          dispatch({ type: 'DETECTED', mode: 'unknown' });
-          notify({ kind: 'info', title: messages.unknownDevice(group.identity.productName) });
-          return true;
-        }
+        if (stale()) return false;
+        if (!demo && isOpenKeyError(e) && isAccessFailure(e.code, e.message)) noteAccess(group, e.message);
+        if (detection && isOpenKeyError(e) && (e.code === 'UNSUPPORTED_DEVICE' || e.code === 'UNSUPPORTED_PROTOCOL'))
+          return unknown(detection, detectionVerdict(detection, registry), explainError(e));
         reportError(messages.connectLabel, e);
         dispatch({ type: 'FAIL', message: explainError(e).title, recoverable: false });
         dispatch({ type: 'RESET' });
         return false;
+      } finally {
+        void refreshAuthorized();
       }
     },
-    [experimental, messages, notify, reportError, store],
+    [experimental, messages, noteAccess, refreshAuthorized, reportError, store],
+  );
+
+  const identify = useCallback(
+    async (adapterId: string) => {
+      const s = sessionRef.current;
+      if (s?.kind !== 'unknown' || lock.current) return;
+      dispatch({ type: 'REIDENTIFY' });
+      // Same log: the trace keeps the whole story, including what was sent with consent.
+      await attach(s.group, false, { consent: [adapterId], log: s.log, reidentify: true });
+    },
+    [attach, lock],
   );
 
   const request = useCallback(
@@ -233,7 +407,7 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
         const groups = await new WebHidBackend().request(filters);
         if (groups.length === 0) {
           dispatch({ type: 'PERMISSION_DENIED', message: 'no device selected' });
-          notify({ kind: 'info', title: messages.noDeviceSelected, detail: messages.noDeviceSelectedHint });
+          notify({ kind: 'info', title: messages.noDeviceSelected, hint: currentOs() === 'linux' ? messages.notListedLinux : messages.noDeviceSelectedHint });
           return;
         }
         dispatch({ type: 'PERMISSION_GRANTED' });
@@ -246,8 +420,42 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     [attach, messages, notify, reportError, support.available],
   );
 
+  const retryAccess = useCallback(async () => {
+    const key = accessProblem?.device.key;
+    await refreshAuthorized();
+    // The same device, without the chooser when the browser still lists it; otherwise ask again.
+    const granted = support.available ? await new WebHidBackend().granted().catch(() => []) : [];
+    if (key && granted.some((g) => g.key === key)) await openAuthorizedRef.current?.(key);
+    else await request(CONNECT_FILTERS);
+  }, [accessProblem, refreshAuthorized, request, support.available]);
+
   const connect = useCallback(() => request(CONNECT_FILTERS), [request]);
   const inspect = useCallback(() => request([]), [request]);
+
+  const openAuthorized = useCallback(
+    async (key: string) => {
+      if (!support.available || connRef.current.status !== 'DISCONNECTED') return;
+      dispatch({ type: 'REQUEST' });
+      try {
+        const g = (await new WebHidBackend().granted()).find((x) => x.key === key);
+        if (!g) {
+          dispatch({ type: 'PERMISSION_DENIED', message: 'device no longer present' });
+          notify({ kind: 'warn', title: messages.deviceGone, hint: messages.noDeviceSelectedHint });
+          void refreshAuthorized();
+          return;
+        }
+        dispatch({ type: 'PERMISSION_GRANTED' });
+        await attach(g, false);
+      } catch (e) {
+        dispatch({ type: 'PERMISSION_DENIED', message: explainError(e).title });
+        reportError(messages.connectLabel, e);
+      }
+    },
+    [attach, messages, notify, refreshAuthorized, reportError, support.available],
+  );
+
+  const openAuthorizedRef = useRef(openAuthorized);
+  openAuthorizedRef.current = openAuthorized;
 
   const connectDemo = useCallback(async () => {
     dispatch({ type: 'OPEN_DEMO' });
@@ -259,25 +467,32 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
   const disconnect = useCallback(async () => {
     dispatch({ type: 'DISCONNECT' });
     const s = sessionRef.current;
+    endSession();
     if (s?.kind === 'device') await s.driver.disconnect().catch(() => undefined);
-    setSession(null);
-    confirmed.current.clear();
     dispatch({ type: 'CLOSED' });
-  }, []);
+    void refreshAuthorized();
+  }, [endSession, refreshAuthorized]);
 
   // Unplug: drop the session. Re-plug: offer to reconnect; never reconnect or write on our own.
   useEffect(() => {
     if (!support.available) return;
     const backend = new WebHidBackend();
     const offUnplug = backend.onDisconnect((d) => {
+      void refreshAuthorized();
       const s = sessionRef.current;
       if (s && !(s.kind === 'device' && s.demo) && s.group.identity.vendorId === d.vendorId && s.group.identity.productId === d.productId) {
-        setSession(null);
+        const running = lock.current;
+        endSession();
         dispatch({ type: 'LOST', reason: 'unplugged' });
-        notify({ kind: 'warn', title: messages.disconnected, detail: messages.disconnectedHint });
+        notify(
+          running
+            ? { kind: 'error', title: messages.lostDuring(running.label), reason: messages.lostDuringReason, hint: messages.disconnectedHint }
+            : { kind: 'warn', title: messages.disconnected, hint: messages.disconnectedHint },
+        );
       }
     });
     const offPlug = backend.onConnect(() => {
+      void refreshAuthorized();
       if (sessionRef.current) return;
       notify({ kind: 'info', title: messages.replugged, action: { label: messages.connectLabel, run: () => void connect() } });
     });
@@ -285,24 +500,46 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
       offUnplug();
       offPlug();
     };
-  }, [connect, messages, notify, support.available]);
+  }, [connect, endSession, lock, messages, notify, refreshAuthorized, support.available]);
+
+  // Leaving the page with local edits: the browser asks first.
+  const unsavedCount = Object.values(unsaved).reduce((a, b) => a + b, 0);
+  useEffect(() => {
+    if (!unsavedCount) return;
+    const h = (e: BeforeUnloadEvent) => e.preventDefault();
+    addEventListener('beforeunload', h);
+    return () => removeEventListener('beforeunload', h);
+  }, [unsavedCount]);
+  const setUnsaved = useCallback((owner: string, count: number) => {
+    setUnsavedMap((m) => {
+      if ((m[owner] ?? 0) === count) return m;
+      const next = { ...m };
+      if (count) next[owner] = count;
+      else delete next[owner];
+      return next;
+    });
+  }, []);
 
   const read = useCallback<Ctx['read']>(
     async (label, fn, opts = {}) => {
       const s = sessionRef.current;
       if (s?.kind !== 'device') return undefined;
+      const my = epoch.current.current;
       try {
-        return await fn(s.driver);
+        const value = await fn(s.driver);
+        // An answer for a device that is no longer selected must not reach the current views.
+        return epoch.current.isCurrent(my) ? value : undefined;
       } catch (e) {
+        if (!epoch.current.isCurrent(my)) return undefined;
         if (!opts.quiet || !(isOpenKeyError(e) && e.code === 'UNSUPPORTED_FEATURE')) reportError(label, e);
         if (isOpenKeyError(e) && e.code === 'TRANSPORT') {
-          setSession(null);
+          endSession();
           dispatch({ type: 'LOST', reason: 'transport error' });
         }
         return undefined;
       }
     },
-    [reportError],
+    [endSession, reportError],
   );
 
   const safetyCtx = useCallback(
@@ -326,15 +563,16 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     [],
   );
 
-  const confirmWrite = useCallback<Ctx['confirmWrite']>(
-    async (feature, label) => {
+  /** Policy and confirmation for one feature; assumes the caller holds the operation lock. */
+  const confirmLocked = useCallback(
+    async (feature: FeatureId, label: string): Promise<boolean> => {
       const s = sessionRef.current;
       if (s?.kind !== 'device' || !canApply(connRef.current)) return false;
       const support = s.caps[feature];
       const ctx = safetyCtx();
       const decision = writeDecision(support, ctx);
       if (decision.kind === 'blocked') {
-        notify({ kind: 'error', title: messages.blocked(label), detail: decision.reason });
+        notify({ kind: 'error', title: messages.blocked(label), reason: decision.reason, hint: messages.blockedHint });
         return false;
       }
       const safety = support.safety ?? SafetyLevel.UNVERIFIED;
@@ -351,59 +589,123 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     [ask, messages, notify, safetyCtx],
   );
 
+  /** Takes the operation lock, or explains why not. */
+  const begin = useCallback(
+    (label: string, phase: Operation['phase'], feature?: FeatureId): Operation | null => {
+      const running = lock.current;
+      if (running) {
+        notify({ kind: 'info', title: messages.busy(running.label), reason: messages.busyReason });
+        return null;
+      }
+      return lock.begin(epoch.current.current, label, phase, feature);
+    },
+    [lock, messages, notify],
+  );
+
+  const confirmWrite = useCallback<Ctx['confirmWrite']>(
+    async (feature, label) => {
+      const op = begin(label, 'confirming', feature);
+      if (!op) return false;
+      try {
+        return await confirmLocked(feature, label);
+      } finally {
+        lock.end(op);
+      }
+    },
+    [begin, confirmLocked, lock],
+  );
+
   const writing = useCallback<Ctx['writing']>(
     async (label, fn) => {
       const s = sessionRef.current;
       if (s?.kind !== 'device' || !canApply(connRef.current)) return undefined;
+      const op = begin(label, 'writing');
+      if (!op) return undefined;
       dispatch({ type: 'APPLY' });
       try {
-        return await fn(s.driver);
+        const r = await fn(s.driver);
+        if (!epoch.current.isCurrent(op.epoch)) return undefined;
+        setRevision((n) => n + 1);
+        return r;
       } catch (e) {
-        reportError(label, e);
+        if (epoch.current.isCurrent(op.epoch)) reportError(label, e);
         return undefined;
       } finally {
-        dispatch({ type: 'APPLY_SENT', verify: false });
+        lock.end(op);
+        if (epoch.current.isCurrent(op.epoch)) dispatch({ type: 'APPLY_SENT', verify: false });
       }
     },
-    [reportError],
+    [begin, lock, reportError],
   );
 
   const apply = useCallback<Ctx['apply']>(
     async (feature, tx, previous, next) => {
-      if (!(await confirmWrite(feature, tx.label))) return undefined;
-      dispatch({ type: 'APPLY' });
-      const result = await runTransaction(tx, previous, next);
-      const verifying = !!tx.readbackFromDevice && result.outcome !== 'FAILED' && result.outcome !== 'REJECTED' && result.outcome !== 'NO_CHANGES';
-      dispatch({ type: 'APPLY_SENT', verify: verifying });
-      if (verifying) dispatch({ type: 'VERIFY_DONE' });
-      const kind: Notice['kind'] =
-        result.outcome === 'VERIFIED' || result.outcome === 'NO_CHANGES' ? 'ok' : result.outcome === 'SENT_UNVERIFIED' ? 'info' : 'error';
-      notify({ kind, title: messages.txOutcome(tx.label, result.outcome), detail: result.outcome === 'FAILED' ? result.error?.detail : undefined });
-      if (result.outcome === 'FAILED' && result.error)
-        setRecentErrors((xs) => [...xs.slice(-19), { at: new Date().toISOString(), kind: 'WRITE_FAILED', title: result.error!.title }]);
-      return result;
+      const op = begin(tx.label, 'confirming', feature);
+      if (!op) return undefined;
+      try {
+        if (!(await confirmLocked(feature, tx.label))) return undefined;
+        lock.phase(op, 'writing');
+        dispatch({ type: 'APPLY' });
+        const result = await runTransaction(tx, previous, next, (step) => {
+          if (step.phase === 'ack' && tx.readbackFromDevice) lock.phase(op, 'verifying');
+        });
+        // The device went away mid-write: the result belongs to a session that no longer exists.
+        if (!epoch.current.isCurrent(op.epoch)) return undefined;
+        const verifying = !!tx.readbackFromDevice && result.outcome !== 'FAILED' && result.outcome !== 'REJECTED' && result.outcome !== 'NO_CHANGES';
+        dispatch({ type: 'APPLY_SENT', verify: verifying });
+        if (verifying) dispatch({ type: 'VERIFY_DONE' });
+        if (result.outcome === 'FAILED') {
+          notify({
+            kind: 'error',
+            title: messages.txOutcome(tx.label, result.outcome),
+            reason: messages.failedReason,
+            hint: messages.failedHint,
+            ...(result.error ? { detail: `${result.error.title}: ${result.error.detail}` } : {}),
+          });
+          if (result.error) setRecentErrors((xs) => [...xs.slice(-19), { at: new Date().toISOString(), kind: 'WRITE_FAILED', title: result.error!.title }]);
+        } else if (result.outcome === 'MISMATCH') {
+          notify({ kind: 'error', title: messages.txOutcome(tx.label, result.outcome), hint: messages.mismatchHint });
+        }
+        if (result.outcome === 'VERIFIED' || result.outcome === 'SENT_UNVERIFIED' || result.outcome === 'MISMATCH') setRevision((n) => n + 1);
+        // Successful outcomes are shown persistently by the editor's change bar, not only as a toast.
+        return result;
+      } finally {
+        lock.end(op);
+      }
     },
-    [confirmWrite, messages, notify],
+    [begin, confirmLocked, lock, messages, notify],
   );
+
+  const status = useMemo(() => summarize(conn, session, operation), [conn, session, operation]);
 
   const value: Ctx = {
     support,
     conn,
     session,
     device: session?.kind === 'device' ? session : null,
+    status,
+    operation,
+    authorized,
+    accessProblem,
+    retryAccess,
     notices,
     recentErrors,
     experimental,
     setExperimental,
     connect,
     inspect,
+    openAuthorized,
     connectDemo,
+    identify,
     disconnect,
     read,
     gate,
     apply,
     confirmWrite,
     writing,
+    setUnsaved,
+    unsavedCount,
+    revision,
     notify,
     dismiss: (id) => setNotices((xs) => xs.filter((x) => x.id !== id)),
     store,
@@ -432,16 +734,23 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
 /** Translated strings the provider needs; injected so state code stays free of UI imports. */
 export interface ProviderMessages {
   connectLabel: string;
-  connected(model: string): string;
-  demoDetail: string;
-  unknownDevice(name: string): string;
   noDeviceSelected: string;
   noDeviceSelectedHint: string;
+  notListedLinux: string;
+  deviceGone: string;
   disconnected: string;
   disconnectedHint: string;
+  lostDuring(label: string): string;
+  lostDuringReason: string;
   replugged: string;
   noDevice: string;
   blocked(label: string): string;
+  blockedHint: string;
+  busy(label: string): string;
+  busyReason: string;
+  failedReason: string;
+  failedHint: string;
+  mismatchHint: string;
   txOutcome(label: string, outcome: TxResult<unknown>['outcome']): string;
   errorTitle(x: ErrorExplanation): string;
   errorReason(x: ErrorExplanation): string | undefined;

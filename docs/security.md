@@ -21,16 +21,22 @@ offered normally. OBSERVED or INFERRED writes need **experimental writes**, a pe
 never remembered and is confirmed in a dialog that names the risk. HYPOTHESIS and UNKNOWN commands are
 never sent. On the demo simulator every non-UNSAFE write is allowed, because nothing physical is involved.
 
-Today, no AK820 write has been verified on hardware, so every AK820 write is experimental.
+Today, no AK820 write has been verified on hardware, so every AK820 write is experimental. The rules
+and the tests that enforce them are listed in [SAFETY_INVARIANTS.md](SAFETY_INVARIANTS.md).
 
 ## What OpenKey sends
 
 - Only commands whose packet layout was traced in official software or documented by a community
   source **and** listed in the protocol specifications under `docs/protocol/`.
 - Detection sends nothing for unknown devices. For a device whose descriptors match a registered adapter,
-  at most one documented read-only command per adapter (START for `sonix-feature`, GET_DEVICE_INFO for
-  `sonix-aa55`, a VIA version query, a receiver ping), and never another family's packets once one is
-  confirmed. The CRS family and planned adapters are never probed.
+  only the operations in that adapter's declared probe plan (START for `sonix-feature`, GET_DEVICE_INFO
+  for `sonix-aa55`, the VIA version query, a receiver ping), and **only automatically for identities
+  where they are known to be harmless** — the identities the vendor's own software sends them to, or a
+  public-specification read on a reserved collection. Any other device is shown as a strong candidate
+  and gets nothing until the user allows that one handshake, after seeing its exact bytes. Once one
+  family is identified, no other family's packets are sent. The CRS family and planned adapters are
+  never probed.
+- A driver (and so any write) exists only after the device answered a family-specific request.
 - Acknowledgements must echo the command; a stale echo is not accepted as success.
 - Writes are transactions: validated, diffed, sent, and read back from the device where the firmware can
   report the value. Results are labelled _verified_ only after a read-back.
@@ -48,8 +54,10 @@ family only contains encoders for documented commands. There is no raw-write con
   the table lives in flash.
 - Backup/restore and profiles go through the same gate, one confirmation per section; a backup of the
   current state is kept locally before a restore.
-- The CLI asks for confirmation (or `--yes`) and writes an automatic backup before keymap, macro and
-  restore operations.
+- The CLI enforces the same policy as the web app (`guardWrites`): unverified writes need
+  `--experimental`, then confirmation (or `--yes`); it writes an automatic backup before keymap, macro
+  and restore operations. Handshakes for unlisted identities need `--allow-probe <adapter>`.
+- Restoring a backup from a different model skips keymaps and per-key colours unless explicitly allowed.
 - Unplugging during a write ends the session; a reconnect never resumes or repeats a write.
 
 ## Recovery

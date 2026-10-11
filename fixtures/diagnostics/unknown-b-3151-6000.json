@@ -1,0 +1,66 @@
+{
+  "format": "openkey-support-bundle",
+  "version": 2,
+  "createdAt": "2026-10-11T00:00:00.000Z",
+  "fixture": {
+    "name": "Diagnostic fixture B",
+    "description": "Fantech Atom Pro keyboard: one vendor collection with 31-byte input/output reports under report ID 186.",
+    "source": "Sanitized diagnostic record supplied with the OpenKey upgrade brief (2026-10-11). Descriptor summary only; no packets, no typing.",
+    "historicalConfidence": "UNKNOWN",
+    "notRecorded": [
+      "interface numbers",
+      "other collections of the device",
+      "manufacturer",
+      "bcdDevice"
+    ],
+    "expectation": "UNKNOWN or weak family hints only. In a live session no adapter may send anything automatically: the AA/55 command-pipe signature matches this shape but the identity is not in the online driver configuration."
+  },
+  "device": {
+    "vendorId": "0x3151",
+    "productId": "0x6000",
+    "productName": "Fantech Atom Pro Keyboard",
+    "interfaces": [
+      {
+        "collections": [
+          {
+            "usagePage": "0xFF00",
+            "usage": "0x000E",
+            "inputReports": [
+              {
+                "reportId": 186,
+                "size": 31
+              }
+            ],
+            "outputReports": [
+              {
+                "reportId": 186,
+                "size": 31
+              }
+            ],
+            "featureReports": []
+          }
+        ]
+      }
+    ]
+  },
+  "environment": {
+    "appVersion": "fixture",
+    "userAgent": "",
+    "platform": "unknown",
+    "webHid": true,
+    "secureContext": true
+  },
+  "adapter": null,
+  "detection": null,
+  "capabilities": {},
+  "connectionState": "FIXTURE",
+  "recentErrors": [],
+  "excluded": [
+    "typing data",
+    "macro contents",
+    "keymaps",
+    "packet payloads",
+    "file names",
+    "serial number"
+  ]
+}

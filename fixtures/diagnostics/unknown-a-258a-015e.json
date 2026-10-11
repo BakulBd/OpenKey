@@ -1,0 +1,82 @@
+{
+  "format": "openkey-support-bundle",
+  "version": 2,
+  "createdAt": "2026-10-11T00:00:00.000Z",
+  "fixture": {
+    "name": "Diagnostic fixture A",
+    "description": "Unidentified SinoWealth-VID keyboard whose report layout resembles the AULA F75 wired signature.",
+    "source": "Sanitized diagnostic record supplied with the OpenKey upgrade brief (2026-10-11). Descriptor summary only; no packets, no typing.",
+    "historicalConfidence": "LOW",
+    "notRecorded": [
+      "collection usages (null)",
+      "interface numbers and grouping",
+      "manufacturer",
+      "bcdDevice"
+    ],
+    "expectation": "No adapter is selected and nothing is write-eligible. A resemblance to the AULA signature (feature report 6, 519 bytes) is reported only as a possible family."
+  },
+  "device": {
+    "vendorId": "0x258A",
+    "productId": "0x015E",
+    "productName": "Gaming Keyboard",
+    "interfaces": [
+      {
+        "collections": [
+          {
+            "usagePage": "0x000C",
+            "usage": null,
+            "inputReports": [
+              {
+                "reportId": 2,
+                "size": 2
+              }
+            ],
+            "outputReports": [],
+            "featureReports": []
+          },
+          {
+            "usagePage": "0xFF00",
+            "usage": null,
+            "inputReports": [
+              {
+                "reportId": 3,
+                "size": 3
+              }
+            ],
+            "outputReports": [],
+            "featureReports": [
+              {
+                "reportId": 5,
+                "size": 5
+              },
+              {
+                "reportId": 6,
+                "size": 519
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "environment": {
+    "appVersion": "fixture",
+    "userAgent": "",
+    "platform": "unknown",
+    "webHid": true,
+    "secureContext": true
+  },
+  "adapter": null,
+  "detection": null,
+  "capabilities": {},
+  "connectionState": "FIXTURE",
+  "recentErrors": [],
+  "excluded": [
+    "typing data",
+    "macro contents",
+    "keymaps",
+    "packet payloads",
+    "file names",
+    "serial number"
+  ]
+}

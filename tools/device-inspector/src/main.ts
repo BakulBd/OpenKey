@@ -3,6 +3,11 @@ import { formatBcd, hex16 } from '@openkey/core';
 import { describeCollections, parseReportDescriptor } from '@openkey/hid';
 import { scanHidraw } from '@openkey/hid-node';
 
+if (process.platform !== 'linux') {
+  console.error('This tool reads Linux sysfs. On macOS and Windows use "pnpm openkey list" / "pnpm openkey detect" instead.');
+  process.exit(1);
+}
+
 /**
  * Linux hardware inspector: sysfs + hidraw descriptors (+ `lsusb -v` when available). Read-only and
  * needs no permissions. The browser equivalent is the Diagnostics page of the web app.

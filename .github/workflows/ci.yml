@@ -5,8 +5,13 @@ on:
 permissions:
   contents: read
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  # Unit and integration tests on every desktop OS OpenKey supports (no hardware needed).
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -21,8 +26,23 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
-      # Real hardware is never required: the smoke test runs the demo (firmware simulator) in the
-      # runner's preinstalled Chrome, with the production security headers from vercel.json.
+
+  # Browser smoke test of the production build with the production headers.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:web
+      # Real hardware is never required: the smoke test runs the demo (firmware simulator) and stubbed
+      # WebHID devices in the runner's preinstalled Chrome, with the production security headers.
       - name: Browser smoke test
         run: node tools/e2e/smoke.mjs
         env:
@@ -31,3 +51,23 @@ jobs:
         with:
           name: web
           path: apps/web/dist
+
+  # The self-hosting image: builds, serves, sends the same headers as vercel.json, offers the Linux files.
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t openkey:ci .
+      - run: docker run -d --name openkey -p 8080:8080 openkey:ci
+      - name: Check headers and files
+        run: |
+          for i in $(seq 1 20); do curl -fsS http://localhost:8080/ >/dev/null && break; sleep 1; done
+          curl -fsSI http://localhost:8080/ | tee headers.txt
+          grep -qi '^content-security-policy:' headers.txt
+          grep -qi '^permissions-policy: hid=(self)' headers.txt
+          grep -qi '^x-content-type-options: nosniff' headers.txt
+          curl -fsSI http://localhost:8080/linux/install-openkey-udev.sh | grep -qi 'content-disposition: attachment'
+          curl -fsS http://localhost:8080/linux/99-openkey.rules | grep -q 'SUBSYSTEM=="hidraw"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/_headers)" = 404
+      - if: always()
+        run: docker logs openkey; docker rm -f openkey

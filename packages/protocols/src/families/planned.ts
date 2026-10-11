@@ -38,6 +38,10 @@ export const aulaPlanned: PlannedAdapter = {
       { source: 'public-reverse-engineering', reference: 'github.com/cloudglides/aula-f75-linux-drivers docs/PROTOCOL.md (no license)', status: Evidence.INFERRED },
       { source: 'public-reverse-engineering', reference: 'github.com/not-ayan/openaula README (no license)', status: Evidence.INFERRED },
     ],
+    license: 'MIT',
+    limitations: ['Descriptor signature only: names a possible family, never selects it.'],
+    fixtures: [],
+    verifiedIdentities: [],
   },
   blockers: [
     'No AULA hardware available to OpenKey.',
@@ -80,6 +84,10 @@ export const royuanPlanned: PlannedAdapter = {
     provenance: [
       { source: 'public-reverse-engineering', reference: 'github.com/dniminenn/sharkfin docs/PROTOCOL.md (GPL-3.0-or-later; facts only)', status: Evidence.INFERRED },
     ],
+    license: 'MIT',
+    limitations: ['Descriptor signature only: names a possible family, never selects it.'],
+    fixtures: [],
+    verifiedIdentities: [],
   },
   blockers: [
     'No ROYUAN hardware available to OpenKey.',
@@ -116,6 +124,10 @@ export const vialPlanned: PlannedAdapter = {
     provenance: [
       { source: 'public-specification', reference: 'QMK raw HID documentation; vial-kb/vial-gui (GPL-2.0; facts only)', status: Evidence.OBSERVED },
     ],
+    license: 'MIT',
+    limitations: ['Descriptor signature only: names a possible family, never selects it.'],
+    fixtures: [],
+    verifiedIdentities: [],
   },
   blockers: ['No Vial keyboard available to OpenKey for verification.'],
   signature(g) {

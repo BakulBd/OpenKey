@@ -1,17 +1,35 @@
 # Linux
 
-## Permissions
+## Permissions (one-time setup)
 
-`/dev/hidraw*` nodes belong to root by default, so both Chromium (WebHID) and the CLI need a udev rule:
+`/dev/hidraw*` nodes belong to root by default, so both Chromium (WebHID) and the CLI need a udev rule.
+The web app detects this: when the browser lists the keyboard but cannot open it, OpenKey shows
+**Linux setup required** with these steps.
+
+1. Download the installer from the app (or use `udev/install-openkey-udev.sh` from the repository).
+2. Read it, then run it yourself with administrator rights:
+
+   ```sh
+   sudo sh ~/Downloads/install-openkey-udev.sh
+   ```
+
+   It copies one rule file (`99-openkey.rules`, embedded in the script, identical to the repository
+   file) to `/etc/udev/rules.d/`, keeps a `.bak` of a different existing file, and reloads udev for
+   hidraw devices. `--dry-run` shows what it would do, `--uninstall` removes the rule. It never talks
+   to a keyboard and never runs automatically.
+3. Unplug the keyboard (or its receiver) and plug it back in.
+4. Press **Retry connecting** in the app.
+
+By hand instead:
 
 ```sh
 sudo cp udev/99-openkey.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && sudo udevadm trigger
+sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=hidraw
 ```
 
-Then unplug and replug the keyboard. The rule grants access to the logged-in user (`uaccess`) and the
-`plugdev` group for the specific VID:PIDs OpenKey has adapters for (AK820-family keyboards and
-receivers). It does not change the keyboard; it only allows a program you run to open it.
+The rule grants access to the logged-in user (`uaccess`) and the `plugdev` group, mode `0660`, only
+for the VID:PIDs OpenKey has adapters for (AK820-family keyboards and receivers). Nothing becomes
+world-writable, and the rule does not change any keyboard.
 
 Inspecting an **unknown** keyboard reads only the descriptors the browser already has, but some
 Chromium builds list a device only when its hidraw node is readable. If yours does not appear, add a

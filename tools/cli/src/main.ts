@@ -8,10 +8,12 @@ import {
   diffBackups,
   explainError,
   FEATURES,
+  hex16,
   hexToRgb,
   macroToText,
   planRestore,
   rgbToHex,
+  parseSupportBundle,
   validateBackup,
 } from '@openkey/core';
 import type {
@@ -24,7 +26,13 @@ import type {
   PerKeyRgb,
   RgbConfig,
 } from '@openkey/core';
-import { createDefaultRegistry, formatDetectionReport } from '@openkey/protocols';
+import {
+  analyzeDiagnostic,
+  createDefaultRegistry,
+  detectionVerdict,
+  formatDetectionReport,
+  formatVerdict,
+} from '@openkey/protocols';
 import type { ProbeLevel } from '@openkey/protocols';
 import { fromRgb565le, prepareAnimation } from '@openkey/tft';
 import { findKey, formatAction, parseActionSpec, parseKeyName } from './action-spec.js';
@@ -48,8 +56,11 @@ Usage: openkey <command> [options]
 Discovery
   list                         List AK820-family HID devices (no I/O, no permissions needed)
   detect [--verbose]           Detect the protocol (--level descriptor|passive|handshake, default handshake)
+                               Handshakes run automatically only for identities where they are known
+                               to be harmless; allow one for another device with --allow-probe <adapter>
   info                         Device information, protocol, capabilities
   diagnostics                  Everything above plus descriptors and the packet log (--json)
+  analyze <diagnostic.json>    Offline analysis of an exported diagnostic package (no device, no I/O)
 
 Configuration (writes ask for confirmation unless --yes)
   keymap get [--layer base|fn]
@@ -67,8 +78,13 @@ Configuration (writes ask for confirmation unless --yes)
         patterns: red green blue white black checkerboard gradient quadrants red-blue
   backup [file.json] | restore <file.json> [--dry-run]
 
+Hardware verification (owner-run, one operation at a time; see docs/AK820_INVESTIGATION.md)
+  verify per-key --experimental  Read the per-key table, write the same table back, read it again
+                                 and compare. Saves a local evidence record; changes no statuses.
+
 Global options
-  --device <index|key>  --protocol <id>  --json  --verbose  --yes  --experimental  --debug
+  --device <index|key>  --protocol <id>  --allow-probe <adapter-id>  --json  --verbose  --yes
+  --experimental  --debug
   OPENKEY_DEBUG=1 prints every HID report.
 `;
 
@@ -82,6 +98,7 @@ function parse(argv: string[]) {
       device: { type: 'string' },
       protocol: { type: 'string' },
       level: { type: 'string' },
+      'allow-probe': { type: 'string', multiple: true, default: [] },
       json: { type: 'boolean', default: false },
       verbose: { type: 'boolean', short: 'v', default: false },
       yes: { type: 'boolean', short: 'y', default: false },
@@ -117,6 +134,7 @@ function flagsOf(p: Parsed): GlobalFlags {
     ...(v.device ? { device: v.device } : {}),
     ...(v.protocol ? { protocol: v.protocol } : {}),
     ...(v.level ? { level: v.level as ProbeLevel } : {}),
+    consent: v['allow-probe'] ?? [],
     json: !!v.json,
     verbose: !!v.verbose,
     yes: !!v.yes,
@@ -148,6 +166,21 @@ async function withDriver<T>(
   }
 }
 
+async function cmdAnalyze(flags: GlobalFlags, file: string | undefined): Promise<void> {
+  if (!file) throw new Error('Usage: openkey analyze <diagnostic.json>');
+  const bundle = parseSupportBundle(await fs.readFile(file, 'utf8'));
+  const registry = createDefaultRegistry();
+  const a = await analyzeDiagnostic(bundle, registry);
+  out(flags, { detection: a.detection, verdict: a.verdict, fingerprint: a.fingerprint }, () =>
+    [
+      formatDetectionReport(a.detection, flags.verbose),
+      '',
+      formatVerdict(a.verdict),
+      ...(a.missingUsages ? [`(${a.missingUsages} collection usage(s) not recorded in the file)`] : []),
+    ].join('\n'),
+  );
+}
+
 async function cmdList(flags: GlobalFlags): Promise<void> {
   const groups = await listGroups();
   out(
@@ -174,11 +207,16 @@ async function cmdList(flags: GlobalFlags): Promise<void> {
 async function cmdDetect(flags: GlobalFlags): Promise<void> {
   const group = await pickGroup(flags);
   const log = makeLog(flags);
-  const report = await createDefaultRegistry().detect(group, {
+  const registry = createDefaultRegistry();
+  const report = await registry.detect(group, {
     level: flags.level ?? 'handshake',
     log,
+    consent: flags.consent,
   });
-  out(flags, { report, packets: log.toJSON() }, () => formatDetectionReport(report, flags.verbose));
+  const verdict = detectionVerdict(report, registry);
+  out(flags, { report, verdict, packets: log.toJSON() }, () =>
+    [formatDetectionReport(report, flags.verbose), '', formatVerdict(verdict)].join('\n'),
+  );
 }
 
 async function cmdInfo(flags: GlobalFlags, p: Parsed): Promise<void> {
@@ -242,6 +280,7 @@ async function cmdDiagnostics(flags: GlobalFlags): Promise<void> {
   const report = await createDefaultRegistry().detect(group, {
     level: flags.level ?? 'handshake',
     log,
+    consent: flags.consent,
   });
   out(flags, { inspect, detection: report, packets: log.toJSON() }, () =>
     [
@@ -529,6 +568,70 @@ async function cmdTft(
   });
 }
 
+/**
+ * Per-key round trip: the lowest-risk way to verify a write on firmware that can read it back.
+ * Writing the colours the keyboard already has changes no key colour, but the official write
+ * sequence first switches the lighting effect to the per-key table (0x80), and the previous effect
+ * cannot be read back. The user is told before anything is sent.
+ */
+async function cmdVerify(flags: GlobalFlags, sub: string | undefined): Promise<void> {
+  if (sub !== 'per-key') throw new Error('Usage: openkey verify per-key --experimental');
+  if (!flags.experimental) throw new Error('This writes to the keyboard with a not-yet-verified command; pass --experimental to confirm you want to verify it.');
+  const { driver, detection, log, group } = await connect(flags);
+  try {
+    const caps = driver.getCapabilities();
+    if (caps.perKeyRgb.read !== 'device' || !caps.perKeyRgb.write)
+      throw new Error(`${detection.selected?.protocolId ?? 'this adapter'} cannot read per-key colours back; nothing to verify.`);
+    const ok = await confirm(
+      flags,
+      [
+        'This will:',
+        '  1. read the per-key colour table (verified command; the official sequence ends with SAVE),',
+        '  2. write the SAME table back (switches the lighting effect to per-key mode; note your current',
+        '     effect now: it cannot be read back and you may need to re-select it on the keyboard),',
+        '  3. read it again and compare.',
+        'Key colours do not change. Continue?',
+      ].join('\n'),
+    );
+    if (!ok) return;
+    const before = await driver.getPerKeyRgb();
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFile = path.join(backupDir(), `per-key-before-verify-${stamp}.json`);
+    await writeJsonFile(backupFile, before);
+    console.log(`Current colours saved to ${backupFile}`);
+    let writeError: string | null = null;
+    try {
+      await driver.setPerKeyRgb(before);
+    } catch (e) {
+      writeError = explainError(e).title;
+    }
+    const after = writeError ? null : await driver.getPerKeyRgb();
+    const differences = after
+      ? Object.keys(before).filter((k) => JSON.stringify(before[Number(k)]) !== JSON.stringify(after[Number(k)]))
+      : [];
+    const outcome = writeError ? 'FAILED' : differences.length ? 'MISMATCH' : 'VERIFIED';
+    const evidence = {
+      description: 'Per-key colour write verified by read-back (openkey verify per-key)',
+      date: new Date().toISOString().slice(0, 10),
+      device: `${group.identity.productName} (${hex16(group.identity.vendorId)}:${hex16(group.identity.productId)})`,
+      firmware: group.identity.release !== undefined ? `bcdDevice ${hex16(group.identity.release)}` : 'unknown',
+      transport: group.transportHint,
+      adapter: detection.selected?.protocolId,
+      outcome,
+      ...(writeError ? { error: writeError } : {}),
+      differences,
+      note: 'Contains your per-key colour values. Review before sharing. Promote evidence only after review (docs/HARDWARE_TEST_MATRIX.md).',
+      packets: log.toJSON(),
+    };
+    const evidenceFile = path.join(backupDir(), `evidence-per-key-${stamp}.json`);
+    await writeJsonFile(evidenceFile, evidence);
+    console.log(`Outcome: ${outcome}${writeError ? ` (${writeError})` : differences.length ? ` (${differences.length} LEDs differ)` : ''}`);
+    console.log(`Evidence record: ${evidenceFile}`);
+  } finally {
+    await driver.disconnect();
+  }
+}
+
 async function cmdBackup(flags: GlobalFlags, args: string[]): Promise<void> {
   await withDriver(flags, async (d) => {
     const b = await collectBackup(d, 'openkey-cli');
@@ -590,6 +693,8 @@ async function main(): Promise<void> {
       return cmdList(flags);
     case 'detect':
       return cmdDetect(flags);
+    case 'analyze':
+      return cmdAnalyze(flags, sub);
     case 'info':
       return cmdInfo(flags, p);
     case 'diagnostics':
@@ -600,6 +705,8 @@ async function main(): Promise<void> {
       return cmdRgb(flags, p, sub);
     case 'perkey':
       return cmdPerKey(flags, p, sub, rest);
+    case 'verify':
+      return cmdVerify(flags, sub);
     case 'macro':
       return cmdMacro(flags, sub, rest);
     case 'settings':

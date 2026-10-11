@@ -3,7 +3,8 @@ import { deepEqual, domCodeToUsage, usageName, validateMacro } from '@openkey/co
 import type { Macro, MacroEvent, MacroLimits, Transaction } from '@openkey/core';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
-import { Card, Empty, Loading, MirrorNote, PageHeader } from '../../components/ui.js';
+import { Card, Empty, Loading, PageHeader, SourceNote } from '../../components/ui.js';
+import { ChangeBar, useChangeTracking } from '../../components/ChangeBar.js';
 import { WriteGateNote } from '../shared/WriteGateNote.js';
 import { listRecords, newId, saveRecord } from '../../state/db.js';
 
@@ -24,6 +25,12 @@ function move<T>(xs: T[], i: number, delta: number): T[] {
   return out;
 }
 
+/** Slots whose event list differs between the draft and what was last written. */
+function countChanged(draft: Macro[], applied: Macro[]): number {
+  const eventsOf = (list: Macro[], i: number) => list.find((m) => m.index === i)?.events ?? [];
+  return [...new Set([...draft, ...applied].map((m) => m.index))].filter((i) => !deepEqual(eventsOf(draft, i), eventsOf(applied, i))).length;
+}
+
 /**
  * Macro editor. Recording happens only while the user has pressed Record *and* the recorder box has
  * focus; nothing is captured silently or outside this box.
@@ -37,6 +44,8 @@ export default function MacroStudio() {
   const [recording, setRecording] = useState(false);
   const last = useRef(0);
   const box = useRef<HTMLDivElement>(null);
+  const changedSlots = applied ? countChanged(macros, applied) : 0;
+  const track = useChangeTracking('macros', ['macros'], changedSlots);
 
   useEffect(() => {
     void read(t('macros.read'), (d) => d.getMacros()).then((m) => {
@@ -60,7 +69,6 @@ export default function MacroStudio() {
   const setEvents = (events: MacroEvent[]) => update({ ...current, events });
   const problems = validateMacro(current, limits);
   const allProblems = macros.flatMap((m) => validateMacro(m, limits));
-  const dirty = !deepEqual(macros.filter((m) => m.events.length), applied.filter((m) => m.events.length));
 
   const onKey = (e: React.KeyboardEvent, down: boolean) => {
     if (!recording) return;
@@ -86,6 +94,7 @@ export default function MacroStudio() {
       ...(device.caps.macros.read === 'device' ? { readbackFromDevice: () => device.driver.getMacros() } : {}),
     };
     const r = await apply('macros', tx, applied.filter((m) => m.events.length), next);
+    track.record(r);
     if (r && (r.outcome === 'VERIFIED' || r.outcome === 'SENT_UNVERIFIED')) setApplied(macros);
   };
 
@@ -112,9 +121,6 @@ export default function MacroStudio() {
             <button type="button" className="btn ghost" onClick={() => void saveProject()}>
               {t('macros.saveProject')}
             </button>
-            <button type="button" className="btn primary" disabled={!dirty || allProblems.length > 0 || !device.caps.macros.write} onClick={() => void upload()}>
-              {t('macros.upload')}
-            </button>
           </>
         }
       />
@@ -123,7 +129,9 @@ export default function MacroStudio() {
       ) : (
         <WriteGateNote gate={gate('macros')} />
       )}
-      {device.caps.macros.read === 'mirror' && <MirrorNote />}
+      <p className="small muted">
+        <SourceNote source={device.caps.macros.read === 'device' ? 'device' : 'mirror'} /> {t('macros.localNote')}
+      </p>
       <div className="grid-side">
         <Card title={t('macros.slots')}>
           <ul className="slot-list">
@@ -226,6 +234,20 @@ export default function MacroStudio() {
           <p className="small muted">{t('macros.bindHelp')}</p>
         </Card>
       </div>
+      <ChangeBar
+        status={track.status}
+        count={changedSlots}
+        verifies={device.caps.macros.read === 'device'}
+        canApply={device.caps.macros.write && allProblems.length === 0 && gate('macros').decision.kind !== 'blocked'}
+        busy={track.busy}
+        blockedReason={allProblems.length ? allProblems.join(' · ') : gate('macros').decision.kind === 'blocked' ? (gate('macros').decision as { reason: string }).reason : undefined}
+        onDiscard={() => {
+          setMacros(applied);
+          track.discarded();
+        }}
+        onApply={() => void upload()}
+        applyLabel={t('macros.uploadN', { n: changedSlots })}
+      />
     </div>
   );
 }

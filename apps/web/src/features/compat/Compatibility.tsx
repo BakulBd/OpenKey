@@ -109,6 +109,19 @@ export default function Compatibility() {
             <li key={f.id}>
               <span className={`pill cs-${f.m.status}`}>{t(`compat.status.${f.m.status}`)}</span> <strong>{f.name}</strong>
               <div className="small muted">{f.m.verification}</div>
+              <div className="small muted">
+                {t('compat.familyMeta', { units: f.m.verifiedIdentities.length, license: f.m.license, version: f.m.version })}
+              </div>
+              {f.m.limitations.length > 0 && (
+                <details className="small">
+                  <summary>{t('compat.limitations', { n: f.m.limitations.length })}</summary>
+                  <ul>
+                    {f.m.limitations.map((l) => (
+                      <li key={l}>{l}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </li>
           ))}
         </ul>

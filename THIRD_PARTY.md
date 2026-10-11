@@ -30,3 +30,7 @@ re-implemented independently and credited in [docs/PROTOCOL_SOURCES.md](docs/PRO
 [docs/RESEARCH_MATRIX.md](docs/RESEARCH_MATRIX.md). See [docs/LICENSE_NOTES.md](docs/LICENSE_NOTES.md).
 
 Vendor software (AJAZZ drivers) was analysed locally for interoperability and is never redistributed.
+
+Full provenance, per-adapter licensing and the GPL analysis: [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md).
+The CLI bundle includes jpeg-js (BSD-3-Clause, Copyright (c) 2014, Eugene Ware);
+its licence notice must accompany any redistribution of `tools/cli/dist/`.

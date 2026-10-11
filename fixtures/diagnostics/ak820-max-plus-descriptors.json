@@ -1,0 +1,177 @@
+{
+  "format": "openkey-support-bundle",
+  "version": 2,
+  "createdAt": "2026-10-07T00:00:00.000Z",
+  "fixture": {
+    "description": "AJAZZ AK820 MAX PLUS TFT, descriptors only (no packets).",
+    "source": "Generated from fixtures/device-info/ak820-max-plus-usb-1.07.json (lsusb -v and sysfs report descriptors of the test unit) with parseReportDescriptor().",
+    "evidence": "VERIFIED (descriptors read from the physical unit)",
+    "expectation": "Offline: STRONG_CANDIDATE for sonix-feature, never write-eligible without the live identification handshake."
+  },
+  "environment": {
+    "appVersion": "fixture",
+    "userAgent": "",
+    "platform": "Linux (hidraw)",
+    "webHid": false,
+    "secureContext": false
+  },
+  "device": {
+    "vendorId": "0x0C45",
+    "productId": "0x8009",
+    "productName": "AK820 MAX",
+    "manufacturer": "SONiX",
+    "release": "0x0107",
+    "transport": "usb",
+    "interfaces": [
+      {
+        "interfaceNumber": 0,
+        "collections": [
+          {
+            "usagePage": "0x0001",
+            "usage": "0x0006",
+            "inputReports": [
+              {
+                "reportId": 0,
+                "size": 8
+              }
+            ],
+            "outputReports": [
+              {
+                "reportId": 0,
+                "size": 1
+              }
+            ],
+            "featureReports": []
+          }
+        ]
+      },
+      {
+        "interfaceNumber": 1,
+        "collections": [
+          {
+            "usagePage": "0x000C",
+            "usage": "0x0001",
+            "inputReports": [
+              {
+                "reportId": 3,
+                "size": 2
+              }
+            ],
+            "outputReports": [],
+            "featureReports": []
+          },
+          {
+            "usagePage": "0x0001",
+            "usage": "0x0080",
+            "inputReports": [
+              {
+                "reportId": 2,
+                "size": 1
+              }
+            ],
+            "outputReports": [],
+            "featureReports": []
+          },
+          {
+            "usagePage": "0x0001",
+            "usage": "0x0006",
+            "inputReports": [
+              {
+                "reportId": 1,
+                "size": 15
+              }
+            ],
+            "outputReports": [],
+            "featureReports": []
+          },
+          {
+            "usagePage": "0x0001",
+            "usage": "0x0002",
+            "inputReports": [
+              {
+                "reportId": 6,
+                "size": 4
+              }
+            ],
+            "outputReports": [],
+            "featureReports": []
+          },
+          {
+            "usagePage": "0xFFFF",
+            "usage": "0x0001",
+            "inputReports": [
+              {
+                "reportId": 5,
+                "size": 3
+              }
+            ],
+            "outputReports": [],
+            "featureReports": []
+          }
+        ]
+      },
+      {
+        "interfaceNumber": 2,
+        "collections": [
+          {
+            "usagePage": "0xFF68",
+            "usage": "0x0061",
+            "inputReports": [
+              {
+                "reportId": 0,
+                "size": 64
+              }
+            ],
+            "outputReports": [
+              {
+                "reportId": 0,
+                "size": 4096
+              }
+            ],
+            "featureReports": []
+          }
+        ]
+      },
+      {
+        "interfaceNumber": 3,
+        "collections": [
+          {
+            "usagePage": "0xFF13",
+            "usage": "0x0001",
+            "inputReports": [
+              {
+                "reportId": 0,
+                "size": 64
+              }
+            ],
+            "outputReports": [
+              {
+                "reportId": 0,
+                "size": 64
+              }
+            ],
+            "featureReports": [
+              {
+                "reportId": 0,
+                "size": 64
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "adapter": null,
+  "detection": null,
+  "capabilities": {},
+  "connectionState": "FIXTURE",
+  "recentErrors": [],
+  "excluded": [
+    "typing data",
+    "macro contents",
+    "keymaps",
+    "packet payloads",
+    "file names",
+    "serial number"
+  ]
+}

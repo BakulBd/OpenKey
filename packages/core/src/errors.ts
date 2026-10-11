@@ -18,7 +18,8 @@ export type OpenKeyErrorCode =
   | 'TFT_UPLOAD'
   | 'SAFETY_BLOCKED'
   | 'READBACK_MISMATCH'
-  | 'WEBHID_UNAVAILABLE';
+  | 'WEBHID_UNAVAILABLE'
+  | 'BUSY';
 
 export class OpenKeyError extends Error {
   readonly code: OpenKeyErrorCode;
@@ -127,6 +128,13 @@ export class WebHidUnavailableError extends OpenKeyError {
   }
 }
 
+/** Raised when a device operation is requested while another one is still running. */
+export class BusyError extends OpenKeyError {
+  constructor(running: string) {
+    super('BUSY', `Another operation is still running: ${running}`, { running });
+  }
+}
+
 export function isOpenKeyError(e: unknown): e is OpenKeyError {
   return e instanceof OpenKeyError;
 }
@@ -214,7 +222,16 @@ const EXPLAIN: Partial<Record<ErrorKind, { title: string; reason?: string; hint?
     reason: 'The device does not speak the protocol its identity suggests.',
     hint: 'Export a diagnostic package to request support.',
   },
-  SAFETY_BLOCKED: { title: 'Blocked by safety policy', reason: 'The operation is unverified or high risk.' },
+  SAFETY_BLOCKED: {
+    title: 'Blocked by safety policy',
+    reason: 'The operation is unverified or high risk.',
+    hint: 'Nothing was sent. Enable experimental writes only if you accept the risk, or keep the change local.',
+  },
+  BUSY: {
+    title: 'Another operation is running',
+    reason: 'OpenKey sends one operation to the keyboard at a time, so writes never interleave.',
+    hint: 'Wait for the current operation to finish; nothing was sent for this request.',
+  },
   WEBHID_UNAVAILABLE: {
     title: 'WebHID unavailable',
     reason: 'This browser does not implement WebHID, or the page is not in a secure context.',

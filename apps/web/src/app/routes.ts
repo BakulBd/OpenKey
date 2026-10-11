@@ -14,6 +14,8 @@ export interface RouteDef {
   features?: FeatureId[];
   /** Needs a configurable (non-unknown) device session. */
   needsDevice?: boolean;
+  /** Reachable by URL (old links, deep links) but not listed in the navigation. */
+  hidden?: boolean;
   component: LazyExoticComponent<ComponentType>;
 }
 
@@ -21,8 +23,9 @@ export interface RouteDef {
 export const ROUTES: RouteDef[] = [
   { id: 'overview', section: 'device', label: 'nav.overview', icon: 'overview', component: lazy(() => import('../features/overview/Overview.js')) },
   { id: 'keymap', section: 'device', label: 'nav.keymap', icon: 'keymap', features: ['keymap', 'fnLayer'], needsDevice: true, component: lazy(() => import('../features/keymap/KeymapStudio.js')) },
-  { id: 'rgb', section: 'device', label: 'nav.rgb', icon: 'rgb', features: ['rgb'], needsDevice: true, component: lazy(() => import('../features/rgb/RgbStudio.js')) },
-  { id: 'perkey', section: 'device', label: 'nav.perkey', icon: 'paint', features: ['perKeyRgb'], needsDevice: true, component: lazy(() => import('../features/rgb/PerKeyStudio.js')) },
+  // Effects and per-key colour are one workspace: applying per-key colours switches the effect.
+  { id: 'rgb', section: 'device', label: 'nav.rgb', icon: 'rgb', features: ['rgb', 'perKeyRgb'], needsDevice: true, component: lazy(() => import('../features/rgb/Lighting.js')) },
+  { id: 'perkey', section: 'device', label: 'nav.perkey', icon: 'paint', features: ['perKeyRgb'], needsDevice: true, hidden: true, component: lazy(() => import('../features/rgb/Lighting.js')) },
   { id: 'macros', section: 'device', label: 'nav.macros', icon: 'macros', features: ['macros'], needsDevice: true, component: lazy(() => import('../features/macros/MacroStudio.js')) },
   { id: 'screen', section: 'device', label: 'nav.screen', icon: 'screen', features: ['tft', 'tftGif', 'tftClock', 'tftBuiltIn'], needsDevice: true, component: lazy(() => import('../features/tft/TftStudio.js')) },
   { id: 'settings-device', section: 'device', label: 'nav.deviceSettings', icon: 'device', needsDevice: true, component: lazy(() => import('../features/device/DeviceSettings.js')) },

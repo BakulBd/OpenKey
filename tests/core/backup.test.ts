@@ -91,3 +91,18 @@ describe('restore with read-back', () => {
     expect(by.keymap).toBe('SENT_UNVERIFIED');
   });
 });
+
+describe('restore across models', () => {
+  it('skips slot-indexed sections when the backup comes from another model, unless explicitly allowed', async () => {
+    const { driver } = await setup();
+    const backup = await collectBackup(driver);
+    const otherModel = { ...backup, device: { ...backup.device, profileId: 'ak820-pro', model: 'AK820 Pro (TFT)' } };
+    const info = await driver.getDeviceInfo();
+    const plan = planRestore(otherModel, info, driver.getCapabilities());
+    expect(plan.sections).not.toContain('keymap');
+    expect(plan.sections).not.toContain('perKeyRgb');
+    expect(plan.warnings.join(' ')).toMatch(/key positions differ between models/);
+    const forced = planRestore(otherModel, info, driver.getCapabilities(), { allowOtherModel: true });
+    expect(forced.sections).toContain('perKeyRgb');
+  });
+});

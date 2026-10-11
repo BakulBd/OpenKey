@@ -206,6 +206,15 @@ describe('connection state machine', () => {
     expect(back.status).toBe('READY');
   });
 
+  it('only an unknown-device session can re-run identification, and it cannot jump to APPLYING', () => {
+    const unknown = run([...connectSupported.slice(0, 4), { type: 'DETECTED', mode: 'unknown' }]);
+    const again = transition(unknown, { type: 'REIDENTIFY' });
+    expect(again.status).toBe('DETECTING');
+    expect(transition(again, { type: 'APPLY' }).status).toBe('DETECTING');
+    const supported = run(connectSupported);
+    expect(transition(supported, { type: 'REIDENTIFY' })).toBe(supported);
+  });
+
   it('ignores stray events', () => {
     const ignored: string[] = [];
     const s = transition(INITIAL_CONNECTION, { type: 'APPLY' }, (_s, e) => ignored.push(e.type));

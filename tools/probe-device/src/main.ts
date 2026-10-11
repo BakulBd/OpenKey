@@ -10,6 +10,11 @@ import {
 } from '@openkey/protocols';
 import type { ProbeLevel } from '@openkey/protocols';
 
+if (process.platform !== 'linux') {
+  console.error('This tool reads Linux sysfs. On macOS and Windows use "pnpm openkey list" / "pnpm openkey detect" instead.');
+  process.exit(1);
+}
+
 /**
  * First-contact probe: detect → device info → save a fixture with every raw packet.
  *   pnpm probe [--level passive|handshake] [--fixture fixtures/device-info/x.json]

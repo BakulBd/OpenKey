@@ -5,9 +5,25 @@ import { Icon } from '../components/Icon.js';
 /** Community footer: one quiet call to action, no pop-ups. */
 export function Footer({ compact = false }: { compact?: boolean }) {
   const t = useT();
+  // Inside the workspace the footer stays out of the way: one line, no call to action.
+  if (compact)
+    return (
+      <footer className="footer compact">
+        <p className="muted small">
+          OpenKey v{APP_VERSION} · {t('footer.privacy')} ·{' '}
+          <a href={`${ISSUES_URL}?labels=bug`} target="_blank" rel="noopener noreferrer">
+            {t('footer.bug')}
+          </a>{' '}
+          ·{' '}
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            {t('footer.source')}
+          </a>
+        </p>
+      </footer>
+    );
   return (
     <footer className={`footer ${compact ? 'compact' : ''}`}>
-      {!compact && <p className="footer-cta">{t('footer.cta')}</p>}
+      <p className="footer-cta">{t('footer.cta')}</p>
       <div className="footer-links">
         <a className="btn small" href={REPO_URL} target="_blank" rel="noopener noreferrer">
           <Icon name="github" /> {t('footer.star')}

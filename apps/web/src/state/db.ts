@@ -12,7 +12,7 @@ const DB_VERSION = 1;
 const MIRROR = 'mirror';
 const RECORDS = 'records';
 
-export type RecordKind = 'profile' | 'backup' | 'macro-project' | 'rgb-project' | 'tft-project' | 'trace' | 'definition';
+export type RecordKind = 'profile' | 'backup' | 'macro-project' | 'rgb-project' | 'tft-project' | 'trace' | 'definition' | 'research-note';
 
 export interface StoredRecord<T = unknown> {
   id: string;

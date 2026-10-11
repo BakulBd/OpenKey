@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { collectBackup, planRestore, restoreBackup, validateBackup } from '@openkey/core';
-import type { Backup, BackupSection, TxResult } from '@openkey/core';
+import { collectBackup, diffBackups, formatDiffValue, planRestore, restoreBackup, validateBackup } from '@openkey/core';
+import type { Backup, BackupChange, BackupSection, RestorePlan, TxResult } from '@openkey/core';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
 import { Card, Empty, PageHeader, download } from '../../components/ui.js';
+import { Dialog } from '../../components/Dialog.js';
 import { deleteRecord, listRecords, newId, saveRecord } from '../../state/db.js';
 import type { StoredRecord } from '../../state/db.js';
 import { APP_VERSION } from '../../config.js';
@@ -52,14 +53,26 @@ export default function Profiles() {
     notify({ kind: 'ok', title: t('profiles.saved') });
   };
 
-  const activate = async (r: StoredRecord<ProfileData>) => {
+  const [review, setReview] = useState<{ r: StoredRecord<ProfileData>; backup: Backup; plan: RestorePlan; changes: BackupChange[] } | null>(null);
+
+  /** Step 1: validate, check compatibility and compute what would change. Nothing is written. */
+  const prepare = async (r: StoredRecord<ProfileData>) => {
     if (!device) return;
     const v = validateBackup(r.data.backup);
-    if (!v.backup) return notify({ kind: 'error', title: t('profiles.invalid'), detail: v.errors.join('; ') });
+    if (!v.backup) return notify({ kind: 'error', title: t('profiles.invalid'), reason: v.errors.join('; ') });
     const plan = planRestore(v.backup, device.info, device.caps);
-    if (!plan.compatible) return notify({ kind: 'error', title: t('profiles.incompatible'), detail: plan.blocked.join(' ') });
+    if (!plan.compatible) return notify({ kind: 'error', title: t('profiles.incompatible'), reason: plan.blocked.join(' ') });
+    const current = await read(t('backup.readCurrent'), (d) => collectBackup(d, { createdBy: 'OpenKey profiles', appVersion: APP_VERSION }));
+    setReview({ r, backup: v.backup, plan, changes: current ? diffBackups(current, v.backup) : [] });
+  };
+
+  /** Step 2: after the review, each section passes the safety gate, then is written and verified where possible. */
+  const activate = async () => {
+    if (!review) return;
+    const { r, backup, plan } = review;
+    setReview(null);
     for (const s of plan.sections) if (s !== 'tft' && !(await confirmWrite(SECTION_FEATURE[s], t('profiles.activate', { name: r.name })))) return;
-    const res = await writing(t('profiles.activate', { name: r.name }), (d) => restoreBackup(d, v.backup!, plan));
+    const res = await writing(t('profiles.activate', { name: r.name }), (d) => restoreBackup(d, backup, plan));
     if (res) setResults(res);
   };
 
@@ -107,7 +120,7 @@ export default function Profiles() {
                 <span>
                   <strong>{r.name}</strong> <span className="muted small">{t(`profiles.template.${r.data.template}`)} · {r.data.model} · {new Date(r.updatedAt).toLocaleString()}</span>
                 </span>
-                <button type="button" className="btn small" disabled={!device || device.info.profileId !== r.data.profileId} onClick={() => void activate(r)} title={device && device.info.profileId !== r.data.profileId ? t('profiles.otherModel') : undefined}>
+                <button type="button" className="btn small" disabled={!device || device.info.profileId !== r.data.profileId} onClick={() => void prepare(r)} title={device && device.info.profileId !== r.data.profileId ? t('profiles.otherModel') : undefined}>
                   {t('profiles.apply')}
                 </button>
                 <button type="button" className="btn ghost tiny" onClick={() => download(`openkey-profile-${r.name}.json`, r.data.backup)}>
@@ -121,6 +134,57 @@ export default function Profiles() {
           </ul>
         )}
       </Card>
+      {review && device && (
+        <Dialog
+          title={t('profiles.reviewTitle', { name: review.r.name })}
+          onClose={() => setReview(null)}
+          actions={
+            <>
+              <button type="button" className="btn ghost" onClick={() => setReview(null)}>
+                {t('common.cancel')}
+              </button>
+              <button type="button" className="btn primary" disabled={!review.plan.sections.length || !review.changes.length} onClick={() => void activate()}>
+                {t('profiles.applyN', { n: review.changes.length })}
+              </button>
+            </>
+          }
+        >
+          <ul className="plan">
+            <li>
+              <span className="muted">{t('plan.target')}</span> {device.info.model}
+              {device.demo ? ` (${t('mode.simulated')})` : ''}
+            </li>
+            <li>
+              <span className="muted">{t('profiles.sections')}</span> {review.plan.sections.join(', ') || t('common.none')}
+            </li>
+          </ul>
+          {review.plan.warnings.map((w) => (
+            <p key={w} className="callout warn small">
+              {w}
+            </p>
+          ))}
+          {review.changes.length === 0 ? (
+            <p className="muted">{t('profiles.noDifferences')}</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="tbl diff small">
+                <caption className="small muted">{t('backup.changes', { n: review.changes.length })}</caption>
+                <tbody>
+                  {review.changes.slice(0, 100).map((c, i) => (
+                    <tr key={i}>
+                      <th scope="row" className="mono">
+                        {c.path}
+                      </th>
+                      <td className="del">{formatDiffValue(c.before)}</td>
+                      <td className="ins">{formatDiffValue(c.after)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Dialog>
+      )}
       {results.length > 0 && (
         <Card title={t('backup.results')}>
           <ul className="results">

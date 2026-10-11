@@ -3,8 +3,11 @@ import { deepEqual } from '@openkey/core';
 import type { FeatureId, SystemSettings, Transaction } from '@openkey/core';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
-import { Card, Field, KV, MirrorNote, PageHeader } from '../../components/ui.js';
+import { Card, Field, KV, PageHeader, SourceNote } from '../../components/ui.js';
+import { ChangeBar, useChangeTracking } from '../../components/ChangeBar.js';
 import { WriteGateNote } from '../shared/WriteGateNote.js';
+
+const KEYS: (keyof SystemSettings)[] = ['sleepTime', 'keyResponseTime', 'disableWinKey', 'disableAltTab', 'disableAltF4', 'gameMode'];
 
 /** The capability whose policy governs a settings write: the first writable one, in risk order. */
 const SETTINGS_FEATURES: FeatureId[] = ['sleep', 'keyResponse', 'winLock', 'altLocks', 'gameMode'];
@@ -15,6 +18,8 @@ export default function DeviceSettings() {
   const [applied, setApplied] = useState<SystemSettings | null>(null);
   const [s, setS] = useState<SystemSettings | null>(null);
   const writable = device ? SETTINGS_FEATURES.filter((f) => device.caps[f].write) : [];
+  const changed = s && applied ? KEYS.filter((k) => !deepEqual(s[k], applied[k])).length : 0;
+  const track = useChangeTracking('settings', writable, changed);
   useEffect(() => {
     if (!writable.length) return;
     void read(t('device.read'), (d) => d.getSystemSettings()).then((x) => {
@@ -37,6 +42,7 @@ export default function DeviceSettings() {
       ...(caps[governing].read === 'device' ? { readbackFromDevice: () => device.driver.getSystemSettings() } : {}),
     };
     const r = await apply(governing, tx, applied, s);
+    track.record(r);
     if (r && (r.outcome === 'VERIFIED' || r.outcome === 'SENT_UNVERIFIED')) setApplied(s);
   };
 
@@ -47,21 +53,11 @@ export default function DeviceSettings() {
         <KV rows={device.info.fields.map((f) => [f.label, <span key={f.key}>{String(f.value)} <span className="muted small">({f.source})</span></span>])} />
       </Card>
       {governing && s && applied && (
-        <Card
-          title={t('device.settings')}
-          actions={
-            <>
-              <button type="button" className="btn ghost" disabled={deepEqual(s, applied)} onClick={() => setS(applied)}>
-                {t('common.discard')}
-              </button>
-              <button type="button" className="btn primary" disabled={deepEqual(s, applied)} onClick={() => void doApply()}>
-                {t('common.apply')}
-              </button>
-            </>
-          }
-        >
-          <WriteGateNote gate={gate(governing)} />
-          {caps[governing].read === 'mirror' && <MirrorNote />}
+        <Card title={t('device.settings')}>
+          <div className="row wrap between">
+            <SourceNote source={caps[governing].read === 'device' ? 'device' : 'mirror'} />
+            <WriteGateNote gate={gate(governing)} />
+          </div>
           <div className="form-grid">
             {schema.sleepTime && caps.sleep.write && (
               <Field label={t('device.sleep')}>
@@ -107,6 +103,21 @@ export default function DeviceSettings() {
             )}
           </div>
         </Card>
+      )}
+      {governing && s && applied && (
+        <ChangeBar
+          status={track.status}
+          count={changed}
+          verifies={caps[governing].read === 'device'}
+          canApply={gate(governing).decision.kind !== 'blocked'}
+          busy={track.busy}
+          onDiscard={() => {
+            setS(applied);
+            track.discarded();
+          }}
+          onApply={() => void doApply()}
+          applyLabel={t('common.apply')}
+        />
       )}
       <Card title={t('device.fixed')}>
         <KV

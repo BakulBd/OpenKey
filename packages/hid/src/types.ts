@@ -39,7 +39,8 @@ export interface HidDeviceGroupInfo {
   key: string;
   identity: DeviceIdentity;
   interfaces: HidInterfaceInfo[];
-  backend: 'webhid' | 'linux-hidraw' | 'mock';
+  /** `offline`: rebuilt from a diagnostic file; it can never open a transport. */
+  backend: 'webhid' | 'linux-hidraw' | 'node-hid' | 'mock' | 'offline';
   /** Best guess of the link type from identity alone; protocols may refine it. */
   transportHint: TransportMode;
   /** Extra platform facts for diagnostics (endpoints, bus, …). */

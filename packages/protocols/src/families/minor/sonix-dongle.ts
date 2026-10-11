@@ -26,6 +26,7 @@ import type {
   ProbeResult,
   ProtocolDefinition,
 } from '../../registry.js';
+import { ADAPTER_API_VERSION } from '../../registry.js';
 import { DIRECTION_CODES, effectCatalog } from '../sonix-feature/codecs/lighting.js';
 
 /**
@@ -172,7 +173,14 @@ class SonixDongleDriver extends BaseKeyboardDriver {
   }
 }
 
+/** Receiver identities listed in the official AK820 drivers' config.xml. */
+const OFFICIAL_RECEIVERS: readonly [number, number][] = [
+  [0x0c45, 0xfdfd],
+  [0x05ac, 0x024f],
+];
+
 export const sonixDongleProtocol: ProtocolDefinition = {
+  apiVersion: ADAPTER_API_VERSION,
   id: 'sonix-dongle',
   manifest: {
     version: '0.1.0',
@@ -182,7 +190,15 @@ export const sonixDongleProtocol: ProtocolDefinition = {
     safety: 'Only the ping and battery read are offered; lighting writes need the experimental opt-in.',
     provenance: [
       { source: 'official-driver', reference: 'AK820 MAX driver FUN_0044f5f0 / FUN_0042b2a0', status: Evidence.OBSERVED },
+      { source: 'public-reverse-engineering', reference: 'VitalyArt/Aula-F75-Max-Driver (MIT): same ping and checksum on 05AC:024F', status: Evidence.INFERRED },
     ],
+    license: 'MIT',
+    limitations: [
+      'No receiver was available to OpenKey; nothing is hardware-verified.',
+      'The ping fails while the keyboard is asleep or unlinked.',
+    ],
+    fixtures: [],
+    verifiedIdentities: [],
   },
   name: 'AJAZZ 2.4 GHz receiver protocol (32-byte output reports + checksum)',
   family: 'sonix-dongle',
@@ -215,6 +231,36 @@ export const sonixDongleProtocol: ProtocolDefinition = {
           rejections: ['receiver without a 32-byte vendor command collection'],
         };
   },
+  probePlan: {
+    operations: [
+      {
+        level: 'handshake',
+        op: 'output',
+        collection: '32-byte vendor command collection',
+        reportId: 0,
+        payloadPrefix: '20 01',
+        purpose: 'Ping (official driver FUN_00435890); the answer carries link state and battery. Byte 31 is a checksum.',
+        effect: 'none',
+        evidence: Evidence.OBSERVED,
+      },
+      {
+        level: 'handshake',
+        op: 'input-read',
+        collection: '32-byte vendor command collection',
+        reportId: 0,
+        payloadPrefix: '',
+        purpose: 'Pong echoes 20 01.',
+        effect: 'none',
+        evidence: Evidence.OBSERVED,
+      },
+    ],
+    autoConsent(group) {
+      const { vendorId, productId } = group.identity;
+      return OFFICIAL_RECEIVERS.some(([v, p]) => v === vendorId && p === productId)
+        ? { auto: true, reason: 'the official AJAZZ driver pings this receiver identity' }
+        : { auto: false, reason: 'matched by product name only; not an identity from the official driver' };
+    },
+  },
   async probe(ctx: ProbeContext): Promise<ProbeResult> {
     if (ctx.level !== 'handshake')
       return {
@@ -244,6 +290,7 @@ export const sonixDongleProtocol: ProtocolDefinition = {
         },
       ],
       facts: {},
+      identified: ok,
     };
   },
   async createDriver(group, opts) {

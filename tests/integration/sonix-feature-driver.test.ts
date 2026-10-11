@@ -13,12 +13,14 @@ import { noSleep } from '../helpers.js';
 
 async function setup(
   identity?: ConstructorParameters<typeof sonixFeature.SonixFeatureSimulator>[0],
+  consent?: string[],
 ) {
   const sim = new sonixFeature.SonixFeatureSimulator(identity);
   const store = new MemoryStateStore();
   const kb = await connectKeyboard(sim.device.group(), {
     registry: createDefaultRegistry(),
     level: 'handshake',
+    ...(consent ? { consent } : {}),
     store,
     cmdDelayMs: 0,
     sleep: noSleep,
@@ -154,12 +156,19 @@ describe('sonix-feature driver against the firmware simulator', () => {
     expect(Array.from(sim.state.keymapBase!.subarray(55 * 4, 55 * 4 + 2))).toEqual([5, 3]);
   });
 
+  it('does not send START to an unrecognised product string without consent', async () => {
+    const sim = new sonixFeature.SonixFeatureSimulator({ vendorId: 0x0c45, productId: 0x8009, productName: 'AK980 PRO' });
+    await expect(
+      connectKeyboard(sim.device.group(), { registry: createDefaultRegistry(), level: 'handshake', cmdDelayMs: 0, sleep: noSleep }),
+    ).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'UNSUPPORTED_PROTOCOL' && e.details.awaitingConsent === true);
+    expect(featureSets(sim)).toEqual([]);
+  });
+
   it('blocks keymap writes on unrecognised product strings unless experimental', async () => {
-    const { driver } = await setup({
-      vendorId: 0x0c45,
-      productId: 0x8009,
-      productName: 'AK980 PRO',
-    });
+    const { driver } = await setup(
+      { vendorId: 0x0c45, productId: 0x8009, productName: 'AK980 PRO' },
+      ['sonix-feature'],
+    );
     await expect(
       driver.setKeymap({ layer: 'base', provenance: 'mirror', slots: {} }),
     ).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED');

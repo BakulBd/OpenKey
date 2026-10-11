@@ -28,6 +28,8 @@ export type KeyAction =
 
 export type LayerId = 'base' | 'fn';
 
+export type KeyActionKind = KeyAction['kind'];
+
 /** A keymap is a sparse mapping of firmware slot index → action. Missing slots mean `default`. */
 export interface KeymapState {
   layer: LayerId;

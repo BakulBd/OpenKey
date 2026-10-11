@@ -14,7 +14,7 @@ type HidAsyncDevice = {
   close(): Promise<void>;
 };
 
-async function loadNodeHid(): Promise<{
+export async function loadNodeHid(): Promise<{
   HIDAsync: { open(path: string): Promise<HidAsyncDevice> };
 }> {
   try {
@@ -32,18 +32,22 @@ async function loadNodeHid(): Promise<{
 }
 
 export const UDEV_HINT =
-  'Install the udev rule: sudo cp udev/99-openkey.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger, then replug the keyboard.';
+  'Install the udev rule once: sudo sh udev/install-openkey-udev.sh (or download it from the OpenKey website), then unplug and replug the keyboard.';
 
 /**
- * HID transport over a Linux hidraw node. Uses hidapi's hidraw backend (via node-hid) because
- * feature reports need the HIDIOCSFEATURE/HIDIOCGFEATURE ioctls.
+ * HID transport over hidapi (node-hid), opened by platform path: a hidraw node on Linux, an IOKit
+ * path on macOS, a device interface path on Windows. Feature and output reports carry the report ID
+ * as their first byte on every platform hidapi supports.
  */
-export class LinuxHidRawTransport implements HidTransport {
+export class NodeHidTransport implements HidTransport {
   readonly label: string;
   private dev: HidAsyncDevice | null = null;
   private readonly pending = new InputQueue();
 
-  constructor(readonly info: HidInterfaceInfo) {
+  constructor(
+    readonly info: HidInterfaceInfo,
+    private readonly checkLinuxAccess = false,
+  ) {
     this.label = `${interfaceLabel(info)} ${info.path ?? ''}`.trim();
   }
 
@@ -54,11 +58,13 @@ export class LinuxHidRawTransport implements HidTransport {
   async open(): Promise<void> {
     if (this.dev) return;
     const p = this.info.path;
-    if (!p) throw new TransportError('Interface has no hidraw path');
-    try {
-      await fs.access(p, fsConstants.R_OK | fsConstants.W_OK);
-    } catch {
-      throw new PermissionError(`No read/write permission for ${p}. ${UDEV_HINT}`, { path: p });
+    if (!p) throw new TransportError('Interface has no device path');
+    if (this.checkLinuxAccess) {
+      try {
+        await fs.access(p, fsConstants.R_OK | fsConstants.W_OK);
+      } catch {
+        throw new PermissionError(`No read/write permission for ${p}. ${UDEV_HINT}`, { path: p });
+      }
     }
     const hid = await loadNodeHid();
     try {
@@ -144,6 +150,13 @@ export class LinuxHidRawTransport implements HidTransport {
 
   drainInput(): void {
     // node-hid buffers in the kernel; reads with timeout 0 are done by callers that need draining.
+  }
+}
+
+/** Linux hidraw: checks node permissions first so the error can name the udev fix. */
+export class LinuxHidRawTransport extends NodeHidTransport {
+  constructor(info: HidInterfaceInfo) {
+    super(info, true);
   }
 }
 

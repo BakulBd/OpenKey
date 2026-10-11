@@ -13,8 +13,13 @@ export interface ConnectOptions {
   level?: ProbeLevel;
   log?: PacketLog;
   store?: StateStore;
-  /** Force a protocol id (bypasses ranking but still requires a descriptor match). */
+  /**
+   * Force a protocol id (bypasses ranking but still requires a descriptor match and a passing
+   * identification probe). Forcing an adapter counts as consent to its handshake.
+   */
   protocolId?: string;
+  /** Adapter ids whose handshake the user explicitly allowed for this device. */
+  consent?: readonly string[];
   allowExperimental?: boolean;
   cmdDelayMs?: number;
   sleep?: (ms: number) => Promise<void>;
@@ -32,7 +37,21 @@ export async function connectKeyboard(
   opts: ConnectOptions,
 ): Promise<ConnectedKeyboard> {
   const log = opts.log ?? new PacketLog();
-  const detection = await opts.registry.detect(group, { level: opts.level ?? 'handshake', log });
+  const consent = [...(opts.consent ?? []), ...(opts.protocolId ? [opts.protocolId] : [])];
+  const detection = await opts.registry.detect(group, { level: opts.level ?? 'handshake', log, consent });
+  return openDriver(group, detection, { ...opts, log });
+}
+
+/**
+ * Creates and connects the driver for an existing detection report. Refuses unless the selected
+ * (or forced) adapter's probe identified the family on this device.
+ */
+export async function openDriver(
+  group: HidDeviceGroup,
+  detection: DetectionReport,
+  opts: ConnectOptions & { log: PacketLog },
+): Promise<ConnectedKeyboard> {
+  const log = opts.log;
   let protocolId = detection.selected?.protocolId;
   if (opts.protocolId) {
     const cand = detection.candidates.find((c) => c.protocol.id === opts.protocolId);
@@ -70,6 +89,22 @@ export async function connectKeyboard(
     throw new UnsupportedProtocolError('Matching protocols were found but none passed its probe.', {
       probes: applicable.map((c) => ({ id: c.protocol.id, probe: c.probe?.summary })),
     });
+  }
+  // Family identification is mandatory: a descriptor match, a readable report or a similar
+  // device is never enough to create a driver, because a driver can write.
+  const chosen = detection.candidates.find((c) => c.protocol.id === protocolId);
+  if (!chosen?.probe?.identified) {
+    throw new UnsupportedProtocolError(
+      chosen?.consent?.required && !chosen.consent.granted
+        ? `${protocolId} matches this device, but its identification handshake needs your permission first.`
+        : `${protocolId} matches this device's descriptors, but the device did not confirm the protocol.`,
+      {
+        unconfirmed: true,
+        protocolId,
+        awaitingConsent: !!chosen?.consent?.required && !chosen.consent.granted,
+        probe: chosen?.probe?.summary,
+      },
+    );
   }
   const def = opts.registry.get(protocolId)!;
   const driverOpts: DriverOptions = {

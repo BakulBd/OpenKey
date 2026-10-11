@@ -1,7 +1,7 @@
 import { UnsupportedFeatureError } from './errors.js';
 import type { Capabilities, FeatureId } from './model/capabilities.js';
 import type { DeviceInfo, TransportMode } from './model/device.js';
-import type { KeymapState, LayerId } from './model/keymap.js';
+import type { KeyActionKind, KeymapState, LayerId } from './model/keymap.js';
 import type { KeyboardLayout } from './model/layout.js';
 import type { EffectCatalog, PerKeyRgb, RgbConfig } from './model/lighting.js';
 import type { Macro, MacroLimits } from './model/macros.js';
@@ -41,6 +41,11 @@ export interface KeyboardDriver {
   getCapabilities(): Capabilities;
   getLayout(): KeyboardLayout;
 
+  /**
+   * Key action kinds this adapter can encode. The keymap editor offers only these; anything else
+   * would fail at write time. `raw` is never offered: it only preserves encodings read from the device.
+   */
+  getKeyActionKinds(): readonly KeyActionKind[];
   getKeymap(layer?: LayerId): Promise<KeymapState>;
   setKeymap(state: KeymapState): Promise<void>;
   getFnLayer(): Promise<KeymapState>;
@@ -109,6 +114,10 @@ export abstract class BaseKeyboardDriver implements KeyboardDriver {
   abstract getCapabilities(): Capabilities;
   abstract getLayout(): KeyboardLayout;
 
+  getKeyActionKinds(): readonly KeyActionKind[] {
+    // Conservative default: an adapter must declare anything beyond plain keys.
+    return ['default', 'keyboard'];
+  }
   async getKeymap(_layer?: LayerId): Promise<KeymapState> {
     return unsupported('keymap');
   }

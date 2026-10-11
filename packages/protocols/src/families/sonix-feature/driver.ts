@@ -8,6 +8,7 @@ import {
   formatBcd,
   toHex,
 } from '@openkey/core';
+import type { KeyActionKind } from '@openkey/core';
 import type {
   Capabilities,
   DeviceInfo,
@@ -162,6 +163,11 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
         `${what} is disabled for unrecognised product "${this.group.identity.productName}". The protocol matches, but key positions and limits are not verified for this model. Enable experimental mode to proceed.`,
       );
     }
+  }
+
+  /** Slot encodings of FUN_00418070 (codecs/keymap.ts encodeSlot). */
+  override getKeyActionKinds(): readonly KeyActionKind[] {
+    return ['default', 'disabled', 'keyboard', 'consumer', 'mouse', 'macro', 'special'];
   }
 
   getLayout(): KeyboardLayout {

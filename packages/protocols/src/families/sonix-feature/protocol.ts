@@ -4,11 +4,12 @@ import type { HidCollection, HidDeviceGroup, HidInterfaceInfo } from '@openkey/h
 import type {
   CandidateMatch,
   ProbeContext,
+  ProbePlan,
   ProbeResult,
   ProbeStep,
   ProtocolDefinition,
 } from '../../registry.js';
-import { reportSize } from '../../registry.js';
+import { ADAPTER_API_VERSION, reportSize } from '../../registry.js';
 import {
   CONTROL_USAGE,
   CONTROL_USAGE_PAGE,
@@ -72,6 +73,63 @@ function match(group: HidDeviceGroup): CandidateMatch {
   // The control pipe alone is enough to configure; the data pipe is only needed for TFT uploads.
   return { applicable: !!ctrl, score, reasons, rejections };
 }
+
+/**
+ * Identities the official AK820 MAX / AK820 PRO Windows drivers send START to (config.xml
+ * `<mode vid pid product_name>`). Only these get the handshake without asking: the vendor's own
+ * software does the same. Any other device with this topology must be confirmed by the user first.
+ */
+const OFFICIAL_IDENTITIES: readonly { productId: number; productName: string }[] = [
+  { productId: 0x8009, productName: 'AK820 MAX' },
+  { productId: 0x800a, productName: 'AK820 MAX' },
+  { productId: 0x8009, productName: 'AK820' },
+  { productId: 0x800a, productName: 'AK820' },
+];
+const SONIX_VID = 0x0c45;
+
+export const sonixFeatureProbePlan: ProbePlan = {
+  operations: [
+    {
+      level: 'passive',
+      op: 'feature-get',
+      collection: 'FF13:0001',
+      reportId: 0,
+      payloadPrefix: '',
+      purpose: 'Read the feature report without sending anything (returns the echo of the last command).',
+      effect: 'none',
+      evidence: Evidence.VERIFIED,
+    },
+    {
+      level: 'handshake',
+      op: 'feature-set',
+      collection: 'FF13:0001',
+      reportId: 0,
+      payloadPrefix: '04 18',
+      purpose: 'START: opens a session; the official driver sends it before every transaction. Writes nothing to flash.',
+      effect: 'volatile',
+      evidence: Evidence.VERIFIED,
+    },
+    {
+      level: 'handshake',
+      op: 'feature-get',
+      collection: 'FF13:0001',
+      reportId: 0,
+      payloadPrefix: '',
+      purpose: 'Read the acknowledgement (04 18 00 01).',
+      effect: 'none',
+      evidence: Evidence.VERIFIED,
+    },
+  ],
+  autoConsent(group) {
+    const id = group.identity;
+    const official =
+      id.vendorId === SONIX_VID &&
+      OFFICIAL_IDENTITIES.some((o) => o.productId === id.productId && o.productName === id.productName.trim());
+    return official
+      ? { auto: true, reason: 'the official AJAZZ driver sends START to this exact identity; verified on an AK820 MAX PLUS' }
+      : { auto: false, reason: 'this identity is not in the official driver configuration' };
+  },
+};
 
 async function probe(ctx: ProbeContext): Promise<ProbeResult> {
   const steps: ProbeStep[] = [];
@@ -150,6 +208,8 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
         summary: 'Firmware acknowledged the official START handshake on the FF13 control pipe.',
         steps,
         facts,
+        // The acknowledgement must echo START (parseAck checks it), which a different family would not do.
+        identified: !!ack?.echoes,
       }
     : {
         status: 'fail',
@@ -161,6 +221,7 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
 }
 
 export const sonixFeatureProtocol: ProtocolDefinition = {
+  apiVersion: ADAPTER_API_VERSION,
   id: SONIX_FEATURE_PROTOCOL_ID,
   manifest: {
     version: '1.0.0',
@@ -174,6 +235,30 @@ export const sonixFeatureProtocol: ProtocolDefinition = {
       { source: 'hardware-verification', reference: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json', status: Evidence.VERIFIED },
       { source: 'hardware-verification', reference: 'fixtures/rgb/ak820-max-plus-read-per-key-hw.json', status: Evidence.VERIFIED },
       { source: 'official-driver', reference: 'AJAZZ AK820 MAX&MAX PLUS driver V1.0.0.5 (docs/reverse-engineering/official-driver-analysis.md)', status: Evidence.OBSERVED },
+      { source: 'public-reverse-engineering', reference: 'VitalyArt/Aula-F75-Max-Driver (MIT): same command set on 0C45:800A, independent cross-check', status: Evidence.INFERRED },
+    ],
+    license: 'MIT',
+    limitations: [
+      'Keymap, macros, lighting and settings cannot be read back; OpenKey shows what it last wrote.',
+      'Writes are reproduced from the official driver and not yet verified on hardware.',
+      'No configuration over Bluetooth; the 2.4 GHz receiver is a separate adapter.',
+      'The firmware version is not reported; bcdDevice is only a hint.',
+    ],
+    fixtures: [
+      'fixtures/device-info/ak820-max-plus-start-handshake-hw.json',
+      'fixtures/rgb/ak820-max-plus-read-per-key-hw.json',
+      'fixtures/diagnostics/ak820-max-plus-descriptors.json',
+    ],
+    verifiedIdentities: [
+      {
+        vendorId: SONIX_VID,
+        productId: 0x8009,
+        productName: 'AK820 MAX',
+        release: 0x0107,
+        transport: 'usb',
+        scope: 'descriptors, START handshake, per-key colour read',
+        evidence: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json',
+      },
     ],
   },
   name: 'AJAZZ Windows-driver protocol (feature reports on FF13 + 4096-byte data on FF68)',
@@ -189,6 +274,7 @@ export const sonixFeatureProtocol: ProtocolDefinition = {
     'aar-rafi/aks075-linux (Ghidra + USB capture of the sibling AKS075)',
   ],
   match,
+  probePlan: sonixFeatureProbePlan,
   probe,
   async createDriver(group, opts) {
     return new SonixFeatureDriver(group, resolveVariant(group.identity.productName), opts);

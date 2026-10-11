@@ -13,7 +13,22 @@ export function Notices() {
           <Icon name={n.kind === 'ok' ? 'check' : n.kind === 'error' || n.kind === 'warn' ? 'warn' : 'info'} />
           <div className="notice-body">
             <strong>{n.title}</strong>
-            {n.detail && <div className="small">{n.detail}</div>}
+            {n.reason && (
+              <div className="small">
+                <span className="ep-label">{t('error.means')}</span> {n.reason}
+              </div>
+            )}
+            {n.hint && (
+              <div className="small">
+                <span className="ep-label">{t('error.next')}</span> {n.hint}
+              </div>
+            )}
+            {n.detail && (
+              <details className="small">
+                <summary>{t('error.technical')}</summary>
+                <code className="wrap-any">{n.detail}</code>
+              </details>
+            )}
             {n.action && (
               <button
                 type="button"

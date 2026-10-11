@@ -5,6 +5,8 @@ import { FAMILY_VENDOR_IDS } from './context.js';
 
 /** Text dump of every AK820-family hidraw node (shared by `diagnostics` and the device inspector). */
 export async function inspectText(all = false): Promise<string> {
+  if (process.platform !== 'linux')
+    return `USB-level inspection (interface numbers, endpoints, bInterval, bcdDevice) reads Linux sysfs and is not available on ${process.platform}. Use "openkey list --json" or the web app's Device Lab.`;
   const nodes = (await scanHidraw()).filter((n) => all || FAMILY_VENDOR_IDS.includes(n.vendorId));
   if (!nodes.length) return 'No matching hidraw nodes.';
   const L: string[] = [];

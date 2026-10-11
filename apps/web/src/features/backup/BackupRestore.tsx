@@ -3,7 +3,7 @@ import { collectBackup, diffBackups, formatDiffValue, planRestore, restoreBackup
 import type { Backup, BackupChange, BackupSection, RestorePlan, TxResult } from '@openkey/core';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
-import { Card, PageHeader, download } from '../../components/ui.js';
+import { Card, FileButton, PageHeader, download } from '../../components/ui.js';
 import { Dialog } from '../../components/Dialog.js';
 import { APP_VERSION } from '../../config.js';
 import { deleteRecord, listRecords, newId, saveRecord } from '../../state/db.js';
@@ -98,13 +98,10 @@ export default function BackupRestore() {
           </div>
         </Card>
         <Card title={t('backup.import')}>
-          <input
-            type="file"
+          <FileButton
+            label={t('backup.chooseFile')}
             accept="application/json,.json"
-            aria-label={t('backup.import')}
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
+            onFile={async (f) => {
               try {
                 await load(JSON.parse(await f.text()));
               } catch {
@@ -112,6 +109,7 @@ export default function BackupRestore() {
               }
             }}
           />
+          <p className="small muted">{t('backup.importHelp')}</p>
           {stored.length > 0 && (
             <ul className="record-list">
               {stored.map((r) => (

@@ -13,8 +13,12 @@ Browser ── WebHID ──► keyboard
    │    state/keyboard.tsx  connection state machine · safety gate · transactions
    │    features/*          one lazy-loaded chunk per page
    │
-   ├─ @openkey/protocols    AdapterRegistry (ProtocolRegistry)
-   │    detect: descriptors → match → read-only probe → select → fingerprint
+   ├─ @openkey/protocols    AdapterRegistry (ProtocolRegistry), adapter contract v1
+   │    detect: descriptors → match → probe plan (auto-consent or user consent) → probe
+   │            → identified? → select → fingerprint → verdict
+   │    openDriver: only for an identified family · conformance kit · evidence ledgers
+   │    diagnostics: offline analysis of exported packages (no I/O possible)
+   │    template:  families/example (fictional, never registered)
    │    adapters: sonix-feature · sonix-aa55 · sonix-dongle · qmk-via · crs-aa55cc33
    │    planned:  aula-sinowealth · royuan · vial   (descriptor signature only, no I/O)
    │
@@ -51,6 +55,19 @@ tools/cli (Node) uses the same packages with @openkey/hid-node (Linux hidraw).
   "BY edition").
 - **Explainable detection.** `buildFingerprint()` records every signal and produces a confidence
   (UNKNOWN / LOW / MEDIUM / HIGH / VERIFIED) and the "Detected because…" text shown in the UI.
+- **A verdict, not a score.** `detectionVerdict()` classifies every device as VERIFIED_MATCH,
+  FIRMWARE_UNVERIFIED, TRANSPORT_UNSUPPORTED, STRONG_CANDIDATE, AMBIGUOUS, FAMILY_CANDIDATE,
+  INSPECT_ONLY, SIMULATED or UNKNOWN, with reasons, conflicting evidence, signals that were not
+  observed, and the next safe action. A similarity score never becomes compatibility.
+- **Consent before contact.** Each adapter declares its probe operations (`ProbePlan`). Handshakes
+  run automatically only for identities where they are known to be harmless; otherwise the user sees
+  the exact bytes and decides.
+- **Identification before drivers.** `openDriver()` refuses unless the probe set `identified` (the
+  device answered a family-specific request). Descriptor similarity never creates a write path.
+- **One write policy everywhere.** `guardWrites()` wraps the driver in the web app and the CLI, so a
+  front end cannot skip `writeDecision()`.
+- **Evidence in code.** Each verified family has a ledger (`families/*/ledger.ts`) that tests keep in
+  step with its command constants and capability evidence.
 - **One evidence vocabulary.** VERIFIED, OBSERVED, INFERRED, HYPOTHESIS, UNKNOWN, NOT_TESTED — in code,
   fixtures and docs. Only hardware evidence yields VERIFIED (`statusFromSource`).
 - **Capabilities are not booleans.** SUPPORTED, CONFIGURABLE, READ_ONLY, WRITE_ONLY, FIXED,
@@ -65,7 +82,9 @@ tools/cli (Node) uses the same packages with @openkey/hid-node (Linux hidraw).
 - **Protocol code never touches a platform API.** ESLint forbids `navigator`, `node:*` and `node-hid` in
   `core`, `protocols` and `tft`.
 - **Unknown devices are read-only.** Planned adapters have no probe and no driver; unknown-device mode
-  sends nothing beyond the browser's own descriptor access.
+  sends nothing beyond the browser's own descriptor access unless the user allows one listed
+  handshake. Diagnostic files are analysed offline by the same detection code, on a device group that
+  cannot open a transport.
 - **Every magic number is a named constant with its evidence** (`families/*/constants.ts`).
 
 ## Connection state machine
@@ -73,7 +92,28 @@ tools/cli (Node) uses the same packages with @openkey/hid-node (Linux hidraw).
 `core/connection.ts`: DISCONNECTED → REQUESTING_PERMISSION → CONNECTING → INSPECTING → DETECTING →
 READING → READY ⇄ APPLYING → VERIFYING, plus ERROR and DISCONNECTING. Unknown devices go from DETECTING
 straight to READY in `unknown` mode, where APPLY is not a valid transition. Unplug (`LOST`) always lands in
-DISCONNECTED; a reconnect starts from scratch and can never resume a write.
+DISCONNECTED; a reconnect starts from scratch and can never resume a write. `REIDENTIFY` (unknown mode only)
+returns to DETECTING after the user allowed a handshake; it can never reach APPLYING.
+
+## Application state (web)
+
+One provider (`apps/web/src/state/keyboard.tsx`) owns device state; pages never combine booleans
+themselves.
+
+- **Connection state machine** (`core/connection.ts`) for transport lifecycle.
+- **Session epoch** (`SessionEpoch`): increments on connect, disconnect and unplug. Device pages are keyed
+  by it, `read()` discards answers for an older epoch, and detection results for an abandoned attempt
+  are dropped.
+- **Operation lock** (`OperationLock`): one device-changing operation at a time (confirming → writing →
+  verifying). A second request is refused with an explanation instead of queued; disconnect releases it.
+- **Status summary** (`state/status.ts`): mode (none, connecting, hardware, simulated, inspect, error),
+  identity (verified, identified, candidate, ambiguous, unknown, simulated) and a headline, derived from
+  the state machine, the session's verdict and the running operation. Unit-tested.
+- **Configuration status** (`configStatus`): clean, modified, saving, verifying, verified,
+  saved-unverified, mismatch, failed, reverted — what every change bar shows.
+- **Capability presentation** (`state/capability-ui.ts`): maps evidence and the write policy to Ready,
+  Experimental, Read-only, Hardware only, Protocol unknown, Not on this connection … for the device home.
+- **Unsaved edits** are registered by editors; navigation, disconnect and page unload ask first.
 
 ## Storage
 

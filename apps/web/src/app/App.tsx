@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TxOutcome } from '@openkey/core';
 import { I18nProvider, useT } from '../i18n/i18n.js';
 import type { MessageKey } from '../i18n/i18n.js';
@@ -16,6 +16,8 @@ import { Icon } from '../components/Icon.js';
 import { Loading } from '../components/ui.js';
 import { applyTheme } from '../state/theme.js';
 import { UpdateBanner } from './UpdateBanner.js';
+import { StatusBar } from './StatusBar.js';
+import { Dialog } from '../components/Dialog.js';
 
 export function Root() {
   useEffect(() => applyTheme(), []);
@@ -31,16 +33,23 @@ function ProvidersWithMessages() {
   const messages = useMemo<ProviderMessages>(
     () => ({
       connectLabel: t('action.connect'),
-      connected: (model) => t('notice.connected', { model }),
-      demoDetail: t('notice.demoDetail'),
-      unknownDevice: (name) => t('notice.unknownDevice', { name }),
       noDeviceSelected: t('notice.noDeviceSelected'),
       noDeviceSelectedHint: t('notice.noDeviceSelectedHint'),
+      notListedLinux: t('notice.notListedLinux'),
+      deviceGone: t('notice.deviceGone'),
       disconnected: t('notice.disconnected'),
       disconnectedHint: t('notice.disconnectedHint'),
+      lostDuring: (label) => t('notice.lostDuring', { label }),
+      lostDuringReason: t('notice.lostDuringReason'),
       replugged: t('notice.replugged'),
       noDevice: t('notice.noDevice'),
       blocked: (label) => t('notice.blocked', { label }),
+      blockedHint: t('notice.blockedHint'),
+      busy: (label) => t('notice.busy', { label }),
+      busyReason: t('notice.busyReason'),
+      failedReason: t('notice.failedReason'),
+      failedHint: t('notice.failedHint'),
+      mismatchHint: t('notice.mismatchHint'),
       txOutcome: (label, outcome: TxOutcome) => t(`tx.${outcome}`, { label }),
       errorTitle: (x) => t(`error.${x.kind}.title` as MessageKey) || x.title,
       errorReason: (x) => x.reason && (t(`error.${x.kind}.reason` as MessageKey) || x.reason),
@@ -55,12 +64,40 @@ function ProvidersWithMessages() {
   );
 }
 
+/** True while the viewport uses the off-canvas navigation (keep in sync with the CSS breakpoint). */
+function useNarrow(): boolean {
+  const q = '(max-width: 860px)';
+  const [narrow, setNarrow] = useState(() => matchMedia(q).matches);
+  useEffect(() => {
+    const m = matchMedia(q);
+    const h = () => setNarrow(m.matches);
+    m.addEventListener('change', h);
+    return () => m.removeEventListener('change', h);
+  }, []);
+  return narrow;
+}
+
 function App() {
   const t = useT();
-  const [route, go] = useRoute();
-  const { session, device, disconnect, conn } = useKeyboard();
+  const [route, goRaw] = useRoute();
+  const { session, device, disconnect, unsavedCount } = useKeyboard();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [leaving, setLeaving] = useState<(() => void) | null>(null);
+  const narrow = useNarrow();
+  const navRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+
+  // Local edits are lost when their page closes: ask before navigating away or disconnecting.
+  const guarded = useCallback(
+    (action: () => void) => {
+      if (unsavedCount > 0) setLeaving(() => action);
+      else action();
+    },
+    [unsavedCount],
+  );
+  const go = useCallback((r: string) => (r === route ? undefined : guarded(() => goRaw(r))), [goRaw, guarded, route]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -68,6 +105,7 @@ function App() {
         e.preventDefault();
         setPaletteOpen((o) => !o);
       }
+      if (e.key === 'Escape') setNavOpen(false);
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
@@ -76,19 +114,53 @@ function App() {
   // A fresh connection lands on the overview (once per session); losing it leaves tool pages alone.
   const lastSession = useRef<unknown>(null);
   useEffect(() => {
-    if (session && session !== lastSession.current && route === 'home')
-      go('overview');
+    if (session && session !== lastSession.current && route === 'home') goRaw('overview');
     lastSession.current = session;
-  }, [session, route, go]);
+  }, [session, route, goRaw]);
 
   useEffect(() => setNavOpen(false), [route]);
+  // Moving focus into the opened navigation, and back to its toggle when it closes.
+  useEffect(() => {
+    if (navOpen) navRef.current?.querySelector<HTMLElement>('a, button')?.focus();
+    else if (wasOpen.current && narrow) toggleRef.current?.focus();
+    wasOpen.current = navOpen;
+  }, [navOpen, narrow]);
 
   const caps = device?.caps ?? null;
-  const visible = ROUTES.map((r) => ({ r, v: routeVisibility(r, caps, !!device, !!session) })).filter((x) => x.v !== 'hide');
+  const visible = ROUTES.filter((r) => !r.hidden)
+    .map((r) => ({ r, v: routeVisibility(r, caps, !!device, !!session) }))
+    .filter((x) => x.v !== 'hide');
   const active = ROUTES.find((r) => r.id === route);
   const activeVis = active ? routeVisibility(active, caps, !!device, !!session) : 'hide';
 
   const palette = paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} go={go} />;
+  const leaveDialog = leaving && (
+    <Dialog
+      title={t('leave.title', { n: unsavedCount })}
+      tone="warn"
+      onClose={() => setLeaving(null)}
+      actions={
+        <>
+          <button type="button" className="btn ghost" autoFocus onClick={() => setLeaving(null)}>
+            {t('leave.stay')}
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            onClick={() => {
+              const a = leaving;
+              setLeaving(null);
+              a();
+            }}
+          >
+            {t('leave.discard')}
+          </button>
+        </>
+      }
+    >
+      <p>{t('leave.body')}</p>
+    </Dialog>
+  );
 
   if (route === 'home' || !active) {
     return (
@@ -112,14 +184,18 @@ function App() {
   ];
   const Page = active.component;
   const needsConnect = active.section === 'device' && activeVis === 'hide';
+  // Device pages hold device-specific state: a new session (another device, or a reconnect) remounts them.
+  const pageKey = active.section === 'device' ? `${active.id}:${session?.id ?? 0}` : active.id;
+  const navHidden = narrow && !navOpen;
 
   return (
     <div className={`shell ${navOpen ? 'nav-open' : ''}`}>
       <a className="skip" href="#main">
         {t('a11y.skip')}
       </a>
-      <aside className="side" aria-label={t('nav.label')}>
-        <a className="brand" href={href('home')}>
+      {narrow && navOpen && <div className="nav-scrim" aria-hidden="true" onClick={() => setNavOpen(false)} />}
+      <aside ref={navRef} className="side" aria-label={t('nav.label')} id="side-nav" inert={navHidden || undefined} aria-hidden={navHidden || undefined}>
+        <a className="brand" href={href('home')} onClick={(e) => (e.preventDefault(), go('home'))}>
           <Logo /> OpenKey
         </a>
         <DeviceChip />
@@ -131,7 +207,16 @@ function App() {
               <div key={s.id} className="nav-section">
                 <div className="nav-heading">{t(s.label)}</div>
                 {items.map(({ r, v }) => (
-                  <a key={r.id} href={href(r.id)} className={`nav-item ${route === r.id ? 'on' : ''}`} aria-current={route === r.id ? 'page' : undefined}>
+                  <a
+                    key={r.id}
+                    href={href(r.id)}
+                    className={`nav-item ${route === r.id || (r.id === 'rgb' && route === 'perkey') ? 'on' : ''}`}
+                    aria-current={route === r.id ? 'page' : undefined}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      go(r.id);
+                    }}
+                  >
                     <Icon name={r.icon} />
                     <span>{t(r.label)}</span>
                     {v === 'research' && <span className="pill tiny st-not_yet_reverse_engineered">{t('nav.research')}</span>}
@@ -146,7 +231,7 @@ function App() {
             <Icon name="search" /> {t('palette.open')} <kbd>Ctrl K</kbd>
           </button>
           {session && (
-            <button type="button" className="btn ghost small" onClick={() => void disconnect()}>
+            <button type="button" className="btn ghost small" onClick={() => guarded(() => void disconnect())}>
               {t('action.disconnect')}
             </button>
           )}
@@ -154,12 +239,18 @@ function App() {
       </aside>
       <div className="content">
         <header className="topbar">
-          <button type="button" className="btn ghost icon-only nav-toggle" aria-expanded={navOpen} aria-label={t('nav.toggle')} onClick={() => setNavOpen((o) => !o)}>
+          <button
+            ref={toggleRef}
+            type="button"
+            className="btn ghost icon-only nav-toggle"
+            aria-expanded={navOpen}
+            aria-controls="side-nav"
+            aria-label={t('nav.toggle')}
+            onClick={() => setNavOpen((o) => !o)}
+          >
             <Icon name="menu" />
           </button>
-          <span className={`conn-state cs-${conn.status.toLowerCase()}`} role="status">
-            <span className="dot" aria-hidden="true" /> {t(`conn.${conn.status}`)}
-          </span>
+          <StatusBar />
         </header>
         <main id="main" tabIndex={-1}>
           {needsConnect ? (
@@ -168,7 +259,7 @@ function App() {
             <ResearchNeeded route={active} />
           ) : (
             <Suspense fallback={<Loading />}>
-              <Page />
+              <Page key={pageKey} />
             </Suspense>
           )}
         </main>
@@ -176,6 +267,7 @@ function App() {
       </div>
       <Notices />
       {palette}
+      {leaveDialog}
       <UpdateBanner />
     </div>
   );
@@ -195,21 +287,18 @@ export function Logo() {
 
 function DeviceChip() {
   const t = useT();
-  const { session, device } = useKeyboard();
+  const { session, device, status } = useKeyboard();
   if (!session) return <div className="dev-chip muted small">{t('dev.none')}</div>;
-  if (session.kind === 'unknown')
-    return (
-      <div className="dev-chip">
-        <div className="dev-name">{session.group.identity.productName || t('dev.unnamed')}</div>
-        <div className="muted small">{t('dev.unknownMode')}</div>
-      </div>
-    );
+  const name = device?.info.model ?? (session.group.identity.productName || t('dev.unnamed'));
+  const link = device?.demo ? t('mode.simulated') : (device?.info.transport ?? session.group.transportHint).toUpperCase();
   return (
-    <div className="dev-chip">
-      <div className="dev-name">{device!.info.model}</div>
+    <a className="dev-chip" href={href('overview')}>
+      <div className="dev-name">{name}</div>
       <div className="muted small">
-        {device!.demo ? t('dev.demo') : device!.info.transport.toUpperCase()} · {t('dev.fw', { v: device!.info.firmware.version ?? '?' })}
+        {link}
+        {status.identity && status.identity !== 'simulated' ? ` · ${t(`identity.${status.identity}`)}` : ''}
+        {device && device.info.firmware.version ? ` · ${t('dev.fw', { v: device.info.firmware.version })}` : ''}
       </div>
-    </div>
+    </a>
   );
 }

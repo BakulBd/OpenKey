@@ -1,10 +1,12 @@
 # Only what the static web build needs is uploaded to Vercel.
 vendor/
 re/
-fixtures/
+fixtures/*
+# Sanitized diagnostic samples are bundled into the research lab (offline analysis).
+!fixtures/diagnostics/
 tests/
 docs/
-udev/
+# udev/ is needed: the app serves the Linux rule and its installer from it.
 coverage/
 **/dist/
 .github/

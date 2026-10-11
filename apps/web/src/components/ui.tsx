@@ -65,11 +65,95 @@ export function SupportSummary({ s }: { s: FeatureSupport }) {
   return <span className="muted small">{parts.join(' · ') || t('support.none')}</span>;
 }
 
-export function MirrorNote() {
+/**
+ * Where a value on screen comes from, in one compact line. For write-only firmware the values are
+ * OpenKey's own record of its last write, and the details say so; nothing is implied about changes
+ * made on the keyboard or with other software.
+ */
+export function SourceNote({ source }: { source: 'device' | 'mirror' | 'local' }) {
   const t = useT();
   return (
-    <div className="callout info" role="note">
-      {t('mirror.note')}
+    <details className={`source-note src-${source}`}>
+      <summary>
+        <span className="source-dot" aria-hidden="true" />
+        {t(`source.${source}`)}
+      </summary>
+      <p className="small">{t(`source.${source}.more`)}</p>
+    </details>
+  );
+}
+
+/** @deprecated kept for pages not yet migrated; renders the compact source note. */
+export function MirrorNote() {
+  return <SourceNote source="mirror" />;
+}
+
+export function Spinner({ label }: { label?: string }) {
+  return <span className="spinner" role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} />;
+}
+
+/** A styled file picker: a real <input type=file> inside a label, reachable by keyboard. */
+export function FileButton({
+  label,
+  accept,
+  onFile,
+  variant = 'default',
+}: {
+  label: ReactNode;
+  accept: string;
+  onFile: (file: File) => void;
+  variant?: 'default' | 'primary';
+}) {
+  return (
+    <label className={`btn ${variant === 'primary' ? 'primary' : ''} file-btn`}>
+      {label}
+      <input
+        type="file"
+        accept={accept}
+        className="visually-hidden"
+        onChange={(e) => {
+          const f = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          if (f) onFile(f);
+        }}
+      />
+    </label>
+  );
+}
+
+/** An empty state that says why the area is empty and what to do next. */
+export function EmptyState({ title, children, actions }: { title: ReactNode; children?: ReactNode; actions?: ReactNode }) {
+  return (
+    <div className="empty-state">
+      <strong>{title}</strong>
+      {children && <div className="muted">{children}</div>}
+      {actions && <div className="row wrap">{actions}</div>}
+    </div>
+  );
+}
+
+/** What happened, what it means, and the safest next step; technical detail stays collapsed. */
+export function ErrorPanel({ title, reason, hint, detail, tone = 'danger' }: { title: ReactNode; reason?: ReactNode; hint?: ReactNode; detail?: string; tone?: 'danger' | 'warn' }) {
+  const t = useT();
+  return (
+    <div className={`error-panel callout ${tone}`} role="alert">
+      <strong>{title}</strong>
+      {reason && (
+        <p>
+          <span className="ep-label">{t('error.means')}</span> {reason}
+        </p>
+      )}
+      {hint && (
+        <p>
+          <span className="ep-label">{t('error.next')}</span> {hint}
+        </p>
+      )}
+      {detail && (
+        <details className="small">
+          <summary>{t('error.technical')}</summary>
+          <code className="wrap-any">{detail}</code>
+        </details>
+      )}
     </div>
   );
 }

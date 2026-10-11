@@ -9,6 +9,7 @@ import type {
   ProbeResult,
   ProtocolDefinition,
 } from '../../registry.js';
+import { ADAPTER_API_VERSION } from '../../registry.js';
 
 /** QMK raw HID defaults (docs/features/rawhid.md): usage page FF60, usage 61, 32-byte reports. */
 const RAW_USAGE_PAGE = 0xff60;
@@ -61,6 +62,7 @@ class QmkViaDriver extends BaseKeyboardDriver {
 }
 
 export const qmkViaProtocol: ProtocolDefinition = {
+  apiVersion: ADAPTER_API_VERSION,
   id: 'qmk-via',
   manifest: {
     version: '0.1.0',
@@ -71,6 +73,10 @@ export const qmkViaProtocol: ProtocolDefinition = {
     provenance: [
       { source: 'public-specification', reference: 'QMK raw HID / VIA documentation', status: Evidence.OBSERVED },
     ],
+    license: 'MIT',
+    limitations: ['Identification only: use VIA or Vial to configure QMK boards.'],
+    fixtures: [],
+    verifiedIdentities: [],
   },
   name: 'QMK / VIA raw HID (custom firmware)',
   family: 'qmk-via',
@@ -80,6 +86,34 @@ export const qmkViaProtocol: ProtocolDefinition = {
   requiredUsagePages: [RAW_USAGE_PAGE],
   requiredReports: ['FF60:0061 output 32B'],
   evidence: ['QMK raw HID documentation', 'fpb/time-util-ak820pro ak820ctl.c (FF60/0x61)'],
+  probePlan: {
+    operations: [
+      {
+        level: 'handshake',
+        op: 'output',
+        collection: 'FF60:0061',
+        reportId: 0,
+        payloadPrefix: '01',
+        purpose: 'VIA id_get_protocol_version: read-only, the first command every VIA client sends.',
+        effect: 'none',
+        evidence: Evidence.OBSERVED,
+      },
+      {
+        level: 'handshake',
+        op: 'input-read',
+        collection: 'FF60:0061',
+        reportId: 0,
+        payloadPrefix: '',
+        purpose: 'Answer echoes 01 followed by the 16-bit protocol version.',
+        effect: 'none',
+        evidence: Evidence.OBSERVED,
+      },
+    ],
+    autoConsent: () => ({
+      auto: true,
+      reason: 'public specification: FF60:0061 is QMK raw HID and the query is read-only',
+    }),
+  },
   match(group): CandidateMatch {
     const i = findInterface(group, isRaw);
     // The AK820 2.4 GHz receiver also exposes FF60 (afonsusousa/mrworldwide); leave it to sonix-dongle.
@@ -131,6 +165,7 @@ export const qmkViaProtocol: ProtocolDefinition = {
         },
       ],
       facts: { viaVersion: version },
+      identified: ok,
     };
   },
   async createDriver(group, opts) {

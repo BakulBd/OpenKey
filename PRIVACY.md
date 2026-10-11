@@ -21,6 +21,9 @@ input reports, so OpenKey cannot read your typing over WebHID.
 - For a keyboard with a verified adapter: the configuration its firmware reports (for example the
   per-key colour table of the AK820 MAX PLUS), after a documented read-only handshake.
 - For an unknown keyboard: descriptors only. Nothing is sent to it.
+- For a keyboard that resembles a supported family but is not an identity known to accept its
+  handshake: nothing, until you click **Allow … identification**, which sends exactly the reports
+  listed next to the button. The page then tells you how many reports were sent.
 
 ## What stays in your browser
 
@@ -38,6 +41,10 @@ your keyboard.
 - The **keyboard tester** and the **latency lab** record key events only between your Start and Stop,
   only while their page is focused, and keep them in memory on that page. Leaving the tab stops them.
 - The **macro recorder** records only while you press Record _and_ its box has focus.
+- The **report monitor** (Research lab) captures vendor-collection input reports only while you run
+  it, keeps at most 1000 in memory on that page, clears them when the device disconnects, and writes a
+  file only when you click **Export capture**. Vendor reports can still contain key or configuration
+  data, so review an export before sharing it.
 - Nothing typed is stored or sent.
 
 ## Diagnostic packages
@@ -47,7 +54,11 @@ and OS name, whether WebHID is available, the device descriptors, the detected a
 the connection state and the titles of recent errors.
 
 It excludes typing data, macro contents, keymaps, packet payloads, file names and — unless you opt in —
-the serial number. Review the file before attaching it to an issue. Opening an issue happens on
+the serial number.
+
+**Research lab → Offline analysis** opens a diagnostic file *in your browser* and analyses it with the
+same detection code. The file is not uploaded; serial numbers in it are ignored; the analysed device
+cannot be contacted. Review the file before attaching it to an issue. Opening an issue happens on
 GitHub, under GitHub's privacy terms, and only when you choose to.
 
 ## External links

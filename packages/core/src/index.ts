@@ -16,6 +16,8 @@ export * from './model/settings.js';
 export * from './model/tft.js';
 export * from './backup-ops.js';
 export * from './safety.js';
+export * from './write-guard.js';
+export * from './operations.js';
 export * from './diff.js';
 export * from './transaction.js';
 export * from './history.js';

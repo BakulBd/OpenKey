@@ -15,8 +15,12 @@ export interface KeyboardViewProps {
   highlight?: (key: PhysicalKey) => boolean;
   /** Marks keys currently held (tester). */
   pressed?: (key: PhysicalKey) => boolean;
+  /** Keys that cannot be edited here (shown dimmed, still focusable so they can be explained). */
+  locked?: (key: PhysicalKey) => boolean;
   onKey?: (key: PhysicalKey) => void;
   onKeyDrag?: (key: PhysicalKey) => void;
+  /** Shown on narrow screens, where the board scrolls sideways to keep keys touch-sized. */
+  scrollHint?: string;
 }
 
 const UNIT = 54;
@@ -47,7 +51,7 @@ function neighbour(keys: PhysicalKey[], from: PhysicalKey, dx: number, dy: numbe
  * Renders any layout from key-unit geometry; no board-specific code lives here. One key is in the
  * tab order at a time (roving tabindex); arrow keys move between keys, Enter/Space selects.
  */
-export function KeyboardView({ layout, label, selected, legend, fill, highlight, pressed, onKey, onKeyDrag }: KeyboardViewProps) {
+export function KeyboardView({ layout, label, selected, legend, fill, highlight, pressed, locked, onKey, onKeyDrag, scrollHint }: KeyboardViewProps) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const refs = useRef(new Map<string, SVGGElement>());
   const w = layout.width * UNIT;
@@ -80,6 +84,14 @@ export function KeyboardView({ layout, label, selected, legend, fill, highlight,
     <div className="kb-wrap">
       <svg className="kb" viewBox={`-8 -8 ${w + 16} ${h + 16}`} role={interactive ? 'grid' : 'img'} aria-label={label}>
         <rect x={-8} y={-8} width={w + 16} height={h + 16} rx={16} className="kb-case" />
+        {/* Only controls the layout declares are drawn; positions are never guessed. */}
+        {layout.extras?.map((x) =>
+          x.kind === 'knob' ? (
+            <circle key={x.id} cx={(x.x + x.w / 2) * UNIT} cy={(x.y + x.h / 2) * UNIT} r={(Math.min(x.w, x.h) * UNIT) / 2 - 3} className="kb-knob" />
+          ) : (
+            <rect key={x.id} x={x.x * UNIT + 2} y={x.y * UNIT + 2} width={x.w * UNIT - 4} height={x.h * UNIT - 4} rx={4} className="kb-screen" />
+          ),
+        )}
         {layout.keys.map((k) => {
           const x = k.x * UNIT + 2;
           const y = k.y * UNIT + 2;
@@ -87,12 +99,18 @@ export function KeyboardView({ layout, label, selected, legend, fill, highlight,
           const kh = k.h * UNIT - 4;
           const color = fill?.(k);
           const sub = legend?.(k);
+          const isLocked = locked?.(k) ?? false;
           const cls = [
             'kb-key',
             selected === k.slot ? 'is-selected' : '',
             highlight?.(k) ? 'is-staged' : '',
             pressed?.(k) ? 'is-pressed' : '',
+            sub ? 'is-mapped' : '',
+            isLocked ? 'is-locked' : '',
           ].join(' ');
+          // Long action names are shortened on the cap; the full text is in the accessible name and tooltip.
+          const maxChars = Math.max(4, Math.floor(kw / 7));
+          const shown = sub && sub.length > maxChars ? `${sub.slice(0, maxChars - 1)}…` : sub;
           return (
             <g
               key={k.id}
@@ -104,6 +122,7 @@ export function KeyboardView({ layout, label, selected, legend, fill, highlight,
               tabIndex={interactive ? (k.id === tabKey ? 0 : -1) : undefined}
               role={interactive ? 'gridcell' : undefined}
               aria-selected={interactive ? selected === k.slot : undefined}
+              aria-disabled={interactive && isLocked ? true : undefined}
               aria-label={interactive ? `${k.label}${sub ? `: ${sub}` : ''}` : undefined}
               onFocus={() => setFocusId(k.id)}
               onPointerDown={(e: PointerEvent) => {
@@ -115,20 +134,24 @@ export function KeyboardView({ layout, label, selected, legend, fill, highlight,
               }}
               onKeyDown={(e) => onKeyDown(k, e)}
             >
+              {sub && <title>{`${k.label} → ${sub}`}</title>}
               <rect x={x} y={y} width={kw} height={kh} rx={7} className="kb-cap" style={color ? { fill: color } : undefined} />
               <rect x={x + 4} y={y + 3} width={kw - 8} height={kh - 10} rx={5} className="kb-top" />
-              <text x={x + 9} y={y + 19} className="kb-label">
+              <text x={x + 9} y={y + 19} className={sub ? 'kb-label kb-label-small' : 'kb-label'}>
                 {k.label}
               </text>
-              {sub && (
-                <text x={x + kw / 2} y={y + kh - 10} className="kb-sub" textAnchor="middle">
-                  {sub.length > 10 ? `${sub.slice(0, 9)}…` : sub}
+              {shown && (
+                <text x={x + kw / 2} y={y + kh - 11} className="kb-sub" textAnchor="middle">
+                  {shown}
                 </text>
               )}
             </g>
           );
         })}
       </svg>
+      <p className="kb-scroll-hint small muted" aria-hidden="true">
+        {scrollHint}
+      </p>
     </div>
   );
 }

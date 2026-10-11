@@ -40,13 +40,17 @@ Automated browser runs: `tools/e2e/smoke.mjs` (CI and against the live deploymen
 
 ## Other devices
 
-No other keyboard has been run by OpenKey. Every other catalogue entry is community, research or
+No other keyboard has been run by OpenKey. The 2026-10-11 session had no hardware attached
+(`openkey list`: no AK820-family device), so nothing in this file changed status. Every other catalogue entry is community, research or
 unsupported — see the Compatibility page.
 
 ## Next hardware runs (need the owner's consent; one at a time, backup first)
 
 1. Real keyboard in the deployed web app over WebHID: connect, detection, per-key read.
-2. Per-key write + read-back (verifiable): first candidate to become VERIFIED.
+2. Per-key write + read-back (verifiable): first candidate to become VERIFIED. Guided command:
+   `pnpm openkey verify per-key --experimental` (reads, writes the same colours back, reads again,
+   saves an evidence record; switches the lighting effect to per-key mode). Plan and risks:
+   [AK820_INVESTIGATION.md](AK820_INVESTIGATION.md#7-safe-experiments-in-order).
 3. Lighting effect → clock → settings → keymap → macros → TFT upload (each changes state the firmware
    cannot report; record what is visible on the keyboard).
 4. 2.4 GHz receiver: detection and battery.

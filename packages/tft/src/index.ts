@@ -57,3 +57,4 @@ export function prepareAnimation(
   });
   return { frames: out, dropped: frames.length - kept.length, clampedDelays: clamped };
 }
+export * from './gallery.js';

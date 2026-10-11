@@ -158,17 +158,31 @@ export interface RestorePlan {
 }
 
 /** Decides which sections of a backup can be written to the connected keyboard. */
-export function planRestore(backup: Backup, device: DeviceInfo, caps: Capabilities): RestorePlan {
+/** Sections indexed by firmware key slot or LED index: meaningless on a different model. */
+const SLOT_SECTIONS: readonly BackupSection[] = ['keymap', 'fnLayers', 'perKeyRgb'];
+
+export function planRestore(
+  backup: Backup,
+  device: DeviceInfo,
+  caps: Capabilities,
+  opts: {
+    /** Restore slot-indexed sections onto a different model anyway (explicit user choice only). */
+    allowOtherModel?: boolean;
+  } = {},
+): RestorePlan {
   const blocked: string[] = [];
   const warnings: string[] = [];
+  const otherModel = backup.device.profileId !== device.profileId;
   if (backup.protocol.id !== device.protocol.id) {
     blocked.push(
       `Backup was taken with protocol "${backup.protocol.id}" but the keyboard uses "${device.protocol.id}".`,
     );
   }
-  if (backup.device.profileId !== device.profileId) {
+  if (otherModel) {
     warnings.push(
-      `Backup model "${backup.device.model}" differs from connected "${device.model}"; key positions may not match.`,
+      opts.allowOtherModel
+        ? `Backup model "${backup.device.model}" differs from connected "${device.model}"; key positions may not match.`
+        : `Backup model "${backup.device.model}" differs from connected "${device.model}": keymaps and per-key colours are skipped because key positions differ between models.`,
     );
   }
   if (
@@ -183,6 +197,7 @@ export function planRestore(backup: Backup, device: DeviceInfo, caps: Capabiliti
   const sections: BackupSection[] = [];
   for (const s of ['keymap', 'fnLayers', 'rgb', 'perKeyRgb', 'macros', 'settings'] as const) {
     if (backup[s] === undefined) continue;
+    if (otherModel && !opts.allowOtherModel && SLOT_SECTIONS.includes(s)) continue;
     const feature = SECTION_FEATURE[s];
     const support = caps[feature];
     if (!isAvailable(support) || !support.write) {

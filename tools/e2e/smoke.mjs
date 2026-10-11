@@ -53,6 +53,37 @@ const shots = process.env.SCREENSHOTS;
 if (shots) await mkdir(shots, { recursive: true });
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
+
+/**
+ * Lightweight accessibility audit of the rendered page (no extra dependency): every interactive
+ * control has an accessible name, labelled images, one h1, unique ids, no positive tabindex.
+ */
+async function a11yAudit(page) {
+  return page.evaluate(() => {
+    const problems = [];
+    const visible = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length) && window.getComputedStyle(el).visibility !== 'hidden';
+    const name = (el) => {
+      const by = el.getAttribute('aria-labelledby');
+      if (by) return by.split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ').trim();
+      const aria = el.getAttribute('aria-label');
+      if (aria) return aria.trim();
+      if (el.labels && el.labels.length) return [...el.labels].map((l) => l.textContent).join(' ').trim();
+      return (el.textContent ?? '').trim() || el.getAttribute('title') || el.getAttribute('placeholder') || '';
+    };
+    for (const el of document.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [role=tab], [role=gridcell]')) {
+      if (!visible(el) && !el.classList.contains('visually-hidden')) continue;
+      if (!name(el)) problems.push(`unnamed ${el.tagName.toLowerCase()}${el.className ? '.' + String(el.className).split(' ')[0] : ''}`);
+    }
+    for (const el of document.querySelectorAll('[role=img]')) if (!el.getAttribute('aria-label')) problems.push('role=img without label');
+    const h1 = [...document.querySelectorAll('h1')].filter(visible).length;
+    if (h1 !== 1) problems.push(`${h1} visible h1`);
+    const ids = [...document.querySelectorAll('[id]')].map((e) => e.id);
+    const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
+    if (dup.length) problems.push(`duplicate ids: ${[...new Set(dup)].join(', ')}`);
+    if (document.querySelector('[tabindex]:not([tabindex="0"]):not([tabindex="-1"])')) problems.push('positive tabindex');
+    return problems;
+  });
+}
 const failures = [];
 const results = [];
 try {
@@ -80,7 +111,7 @@ try {
 
     await page.getByRole('button', { name: 'Try demo' }).first().click();
     await page.waitForURL(/#\/overview/);
-    await page.getByText('Detected because…').waitFor();
+    await page.getByText('What OpenKey concluded').waitFor();
     if (shots) await page.screenshot({ path: `${shots}/overview-${scheme}.png`, fullPage: true });
 
     const navLinks = await page.locator('nav .nav-item').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
@@ -90,8 +121,23 @@ try {
       await page.locator('main h1').first().waitFor({ timeout: 10000 });
       const h1 = await page.locator('main h1').first().textContent();
       results.push(`[${scheme}] ${href} → ${h1}`);
+      if (scheme === 'light') {
+        const problems = await a11yAudit(page);
+        if (problems.length) failures.push(`a11y ${href}: ${[...new Set(problems)].join('; ')}`);
+      }
       if (shots) await page.screenshot({ path: `${shots}/${href.replace(/[#/?]/g, '') || 'home'}-${scheme}.png`, fullPage: true });
     }
+
+    // Keyboard only: focus the board, move with arrows, select with Enter.
+    await page.goto(base + '#/keymap');
+    await page.locator('.kb-key[tabindex="0"]').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    const inspectorTitle = await page.locator('.studio-side h2').first().textContent();
+    if (!/\(slot \d+\)/.test(inspectorTitle ?? '')) failures.push(`keyboard selection did not open the key inspector: ${inspectorTitle}`);
+    results.push(`[${scheme}] keyboard-only selection: ${inspectorTitle}`);
+    await page.keyboard.press('Escape');
 
     // Keymap studio: stage a change, review it, apply against the simulator.
     await page.goto(base + '#/keymap');
@@ -99,8 +145,9 @@ try {
     await page.getByPlaceholder(/Search/).fill('volume');
     await page.locator('.key-result').first().click();
     await page.getByRole('button', { name: /Review 1 change/ }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Apply' }).click();
-    await page.getByText(/write sent; verification unavailable|verified by read-back/).first().waitFor();
+    await page.getByRole('dialog').getByRole('button', { name: /Write 1 change/ }).click();
+    // The outcome stays visible in the change bar (not only in a toast).
+    await page.locator('.changebar').getByText(/Saved · the keyboard cannot report it back|Saved and verified/).waitFor();
     results.push(`[${scheme}] keymap apply: ok`);
 
     // Refresh on a deep route must work (static host, hash routing).
@@ -150,6 +197,267 @@ try {
     results.push(`unknown device: read-only view shown; possible AULA family listed: ${/AULA/.test(families)}; reports sent: ${sends}`);
     if (sends !== 0) failures.push(`unknown-device mode sent ${sends} report(s)`);
     if (!/AULA/.test(families)) failures.push('unknown-device mode did not list the AULA signature');
+    await ctx.close();
+  }
+
+  // Consent-gated identification: the AK820 topology under an identity no official software
+  // targets. Nothing may be sent until the user allows the handshake; then exactly START (04 18).
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[consent] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      const sent = (window.__hidSends = []);
+      const items = (n) => [{ reportSize: 8, reportCount: n }];
+      const mk = (usagePage, usage, input, output, feature) => ({
+        usagePage, usage, children: [],
+        inputReports: input ? [{ reportId: 0, items: items(input) }] : [],
+        outputReports: output ? [{ reportId: 0, items: items(output) }] : [],
+        featureReports: feature ? [{ reportId: 0, items: items(feature) }] : [],
+      });
+      const device = (collections) => ({
+        vendorId: 0x1234, productId: 0x0001, productName: 'Generic Keyboard', opened: false, collections,
+        open() { this.opened = true; return Promise.resolve(); }, close() { this.opened = false; return Promise.resolve(); },
+        sendReport: (id, d) => (sent.push(['out', id, [...new Uint8Array(d.buffer ?? d)].slice(0, 2)]), Promise.resolve()),
+        sendFeatureReport: (id, d) => (sent.push(['feature', id, [...new Uint8Array(d.buffer ?? d)].slice(0, 2)]), Promise.resolve()),
+        receiveFeatureReport: () => Promise.resolve(new DataView(new ArrayBuffer(64))),
+        addEventListener() {}, removeEventListener() {},
+      });
+      const devices = [device([mk(0xff13, 0x01, 64, 64, 64)]), device([mk(0xff68, 0x61, 64, 4096, 0)])];
+      const hid = { requestDevice: () => Promise.resolve(devices), getDevices: () => Promise.resolve(devices), addEventListener() {}, removeEventListener() {} };
+      Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
+    });
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Inspect any HID device' }).first().click();
+    await page.waitForURL(/#\/overview/);
+    await page.getByText('Strong candidate, not confirmed').first().waitFor();
+    if (shots) {
+      await page.screenshot({ path: `${shots}/consent-desktop.png`, fullPage: true });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.screenshot({ path: `${shots}/consent-mobile.png`, fullPage: true });
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      results.push(`consent page horizontal overflow at 390px: ${overflow}px`);
+      if (overflow > 0) failures.push(`consent page scrolls horizontally at 390px (${overflow}px)`);
+      await page.setViewportSize({ width: 1360, height: 900 });
+    }
+    const before = await page.evaluate(() => window.__hidSends.length);
+    await page.getByRole('button', { name: 'Allow sonix-feature identification' }).click();
+    await page.getByText(/sent 1 identification report/).waitFor();
+    const after = await page.evaluate(() => window.__hidSends);
+    results.push(`consent: before=${before} after=${JSON.stringify(after)}`);
+    if (before !== 0) failures.push(`identification sent ${before} report(s) before consent`);
+    if (JSON.stringify(after) !== JSON.stringify([['feature', 0, [4, 0x18]]])) failures.push(`consented handshake sent ${JSON.stringify(after)}`);
+    await ctx.close();
+  }
+
+  // A physical (stubbed) AK820 MAX: verified identity, experimental write with explicit opt-in, a
+  // visible write phase, then an unplug in the middle of a second write. The stub answers like the
+  // documented firmware (every command is echoed with status 01) and is slow on purpose.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[hardware-stub] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      const sent = (window.__hidSends = []);
+      let last = new Uint8Array(64);
+      const items = (n) => [{ reportSize: 8, reportCount: n }];
+      const mk = (usagePage, usage, input, output, feature) => ({
+        usagePage, usage, children: [],
+        inputReports: input ? [{ reportId: 0, items: items(input) }] : [],
+        outputReports: output ? [{ reportId: 0, items: items(output) }] : [],
+        featureReports: feature ? [{ reportId: 0, items: items(feature) }] : [],
+      });
+      const wait = () => new Promise((r) => setTimeout(r, window.__hidDelay ?? 0));
+      const device = (collections) => ({
+        vendorId: 0x0c45, productId: 0x8009, productName: 'AK820 MAX', opened: false, collections,
+        open() { this.opened = true; return Promise.resolve(); }, close() { this.opened = false; return Promise.resolve(); },
+        sendReport: () => wait(),
+        async sendFeatureReport(_id, d) {
+          await wait();
+          last = new Uint8Array(d.buffer ?? d).slice();
+          sent.push([...last.slice(0, 2)]);
+        },
+        async receiveFeatureReport() {
+          await wait();
+          const r = new Uint8Array(64);
+          if (last[0] === 0x04) { r.set(last.slice(0, 3)); r[3] = 1; }
+          return new DataView(r.buffer);
+        },
+        addEventListener() {}, removeEventListener() {},
+      });
+      const devices = [device([mk(0xff13, 0x01, 64, 64, 64)]), device([mk(0xff68, 0x61, 64, 4096, 0)])];
+      const listeners = { connect: [], disconnect: [] };
+      window.__unplug = () => { for (const l of listeners.disconnect) l({ device: devices[0] }); };
+      const hid = {
+        requestDevice: () => Promise.resolve(devices), getDevices: () => Promise.resolve(devices),
+        addEventListener: (type, l) => listeners[type]?.push(l),
+        removeEventListener: (type, l) => { listeners[type] = (listeners[type] ?? []).filter((x) => x !== l); },
+      };
+      Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
+    });
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Connect keyboard' }).first().click();
+    await page.waitForURL(/#\/overview/);
+    await page.locator('.statusbar').getByText('Verified match').waitFor();
+    results.push('hardware stub: status bar shows a verified match for a physical session');
+
+    // Keymap: edit, review, opt in, write.
+    await page.goto(base + '#/keymap');
+    await page.locator('.kb-key').nth(30).dispatchEvent('pointerdown');
+    await page.getByPlaceholder(/Search/).fill('volume');
+    await page.locator('.key-result').first().click();
+    await page.locator('.statusbar').getByText(/1 unapplied change/).waitFor();
+    await page.getByRole('button', { name: /Review 1 change/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Write 1 change/ }).click();
+    const write = page.getByRole('dialog').getByRole('button', { name: 'Write', exact: true });
+    if (!(await write.isDisabled())) failures.push('experimental write was possible without the opt-in');
+    await page.getByRole('dialog').getByLabel(/Enable experimental writes/).check();
+    await page.evaluate(() => (window.__hidDelay = 40));
+    await write.click();
+    await page.locator('.statusbar').getByText(/Writing to the keyboard/).waitFor();
+    await page.locator('.changebar').getByText(/Saved · the keyboard cannot report it back/).waitFor({ timeout: 15000 });
+    const cmds = await page.evaluate(() => window.__hidSends.filter((p) => p[0] === 4).map((p) => p[1].toString(16)));
+    results.push(`hardware stub: keymap write commands ${cmds.join(' ')}`);
+    if (!cmds.includes('11') || !cmds.includes('2')) failures.push(`keymap write did not send the expected sequence: ${cmds}`);
+
+    // Second write, unplugged while it runs: no spinner may survive, and the user is told the state is unknown.
+    await page.locator('.kb-key').nth(31).dispatchEvent('pointerdown');
+    await page.getByPlaceholder(/Search/).fill('mute');
+    await page.locator('.key-result').first().click();
+    await page.evaluate(() => (window.__hidDelay = 300));
+    await page.getByRole('button', { name: /Review 1 change/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Write 1 change/ }).click();
+    await page.locator('.statusbar').getByText(/Writing to the keyboard/).waitFor();
+    await page.evaluate(() => window.__unplug());
+    await page.getByText(/disconnected during/).waitFor();
+    await page.locator('.statusbar').getByText('No keyboard connected').waitFor();
+    if (await page.locator('.statusbar .spinner').count()) failures.push('a spinner survived the unplug');
+    results.push('hardware stub: unplug during a write ends the session without a stale spinner');
+    await ctx.close();
+  }
+
+  // Linux permission problem: the browser lists the keyboard but cannot open it until the udev rule
+  // is installed. OpenKey must explain the fix, serve the installer, and connect on Retry.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[linux-setup] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      window.__openOk = false;
+      let last = new Uint8Array(64);
+      const items = (n) => [{ reportSize: 8, reportCount: n }];
+      const mk = (usagePage, usage, input, output, feature) => ({
+        usagePage, usage, children: [],
+        inputReports: input ? [{ reportId: 0, items: items(input) }] : [],
+        outputReports: output ? [{ reportId: 0, items: items(output) }] : [],
+        featureReports: feature ? [{ reportId: 0, items: items(feature) }] : [],
+      });
+      const device = (collections) => ({
+        vendorId: 0x0c45, productId: 0x8009, productName: 'AK820 MAX', opened: false, collections,
+        open() {
+          if (!window.__openOk) return Promise.reject(new window.DOMException('Failed to open the device.', 'NotAllowedError'));
+          this.opened = true;
+          return Promise.resolve();
+        },
+        close() { this.opened = false; return Promise.resolve(); },
+        sendReport: () => Promise.resolve(),
+        sendFeatureReport(_id, d) { last = new Uint8Array(d.buffer ?? d).slice(); return Promise.resolve(); },
+        receiveFeatureReport() {
+          const r = new Uint8Array(64);
+          if (last[0] === 0x04) { r.set(last.slice(0, 3)); r[3] = 1; }
+          return Promise.resolve(new DataView(r.buffer));
+        },
+        addEventListener() {}, removeEventListener() {},
+      });
+      const devices = [device([mk(0xff13, 0x01, 64, 64, 64)]), device([mk(0xff68, 0x61, 64, 4096, 0)])];
+      const hid = { requestDevice: () => Promise.resolve(devices), getDevices: () => Promise.resolve(devices), addEventListener() {}, removeEventListener() {} };
+      Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
+    });
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Connect keyboard' }).first().click();
+    await page.getByRole('heading', { name: 'Linux setup required' }).waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/linux-setup.png`, fullPage: true });
+    const files = await page.evaluate(async () => {
+      const get = async (u) => { const r = await fetch(u); return { ok: r.ok, text: await r.text() }; };
+      return { installer: await get('./linux/install-openkey-udev.sh'), rule: await get('./linux/99-openkey.rules') };
+    });
+    if (!files.installer.ok || !files.installer.text.includes('OPENKEY_RULE_EOF')) failures.push('installer script is not served');
+    if (!files.rule.ok || !files.rule.text.includes('SUBSYSTEM=="hidraw"')) failures.push('udev rule is not served');
+    // The user ran the installer and replugged: opening now works.
+    await page.evaluate(() => (window.__openOk = true));
+    await page.getByRole('button', { name: 'Retry connecting' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.locator('.statusbar').getByText('Verified match').waitFor();
+    results.push('linux setup: panel shown, rule and installer served, retry connected');
+    await ctx.close();
+  }
+
+  // Screen gallery (demo): generated animations load into the local preview; nothing is uploaded.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[gallery] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Try demo' }).first().click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/screen');
+    await page.getByRole('heading', { name: 'Animation gallery' }).waitFor();
+    const cards = await page.locator('.gallery-item').count();
+    await page.locator('.gallery-item').filter({ hasText: 'Plasma' }).getByRole('button', { name: 'Use' }).click();
+    await page.getByText('30 of max 255').waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/screen-gallery.png`, fullPage: true });
+    results.push(`gallery: ${cards} animations; Plasma loaded into the preview (30 frames)`);
+    if (cards < 8) failures.push(`gallery shows only ${cards} animations`);
+    await ctx.close();
+  }
+
+  // Phone width: no horizontal overflow, and the off-canvas navigation is out of the tab order when closed.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[mobile] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Try demo' }).first().click();
+    await page.waitForURL(/#\/overview/);
+    for (const r of ['overview', 'keymap', 'rgb', 'macros', 'screen', 'settings-device', 'backup', 'profiles', 'tester', 'lab', 'compat', 'settings']) {
+      await page.goto(base + '#/' + r);
+      await page.locator('main h1').first().waitFor();
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      if (over > 0) failures.push(`[mobile] #/${r} overflows horizontally by ${over}px`);
+    }
+    const inertClosed = await page.locator('#side-nav').evaluate((el) => el.inert);
+    await page.getByRole('button', { name: /navigation/i }).click();
+    const inertOpen = await page.locator('#side-nav').evaluate((el) => el.inert);
+    await page.keyboard.press('Escape');
+    const inertAfter = await page.locator('#side-nav').evaluate((el) => el.inert);
+    results.push(`mobile: nav inert closed=${inertClosed} open=${inertOpen} afterEscape=${inertAfter}`);
+    if (!inertClosed || inertOpen || !inertAfter) failures.push('[mobile] navigation is reachable while hidden, or not while open');
+    await ctx.close();
+  }
+
+  // Offline analysis works without WebHID and without a device.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[offline-analysis] pageerror: ${e.message}`));
+    await page.goto(base + '#/lab', { waitUntil: 'networkidle' });
+    await page.getByRole('tab', { name: 'Offline analysis' }).click();
+    for (const [sample, expected] of [['Fixture A (258A:015E)', 'Resembles a known family'], ['Fixture B (3151:6000)', 'Unknown device'], ['AK820 MAX PLUS descriptors', 'Strong candidate, not confirmed']]) {
+      await page.getByRole('button', { name: sample }).click();
+      // Files are previewed (sanitized summary) before analysis.
+      await page.getByText(/Before analysing:/).waitFor();
+      await page.getByRole('button', { name: 'Analyse', exact: true }).click();
+      await page.locator('#verdict-h').waitFor();
+      const kind = await page.locator('.vd-' + (expected === 'Unknown device' ? 'unknown' : expected === 'Resembles a known family' ? 'family_candidate' : 'strong_candidate')).first().textContent({ timeout: 5000 }).catch(() => null);
+      results.push(`offline analysis ${sample}: ${kind}`);
+      if (kind !== expected) failures.push(`offline analysis of ${sample} showed ${kind}, expected ${expected}`);
+      if (shots) await page.screenshot({ path: `${shots}/offline-${sample.replace(/\W+/g, '-')}.png`, fullPage: true });
+    }
+    // Compare the last file with fixture B.
+    await page.getByRole('button', { name: 'Fixture B (3151:6000)' }).click();
+    await page.getByRole('button', { name: /Compare with/ }).click();
+    await page.getByText(/Different HID descriptors/).waitFor();
+    results.push('offline comparison: ok');
     await ctx.close();
   }
 

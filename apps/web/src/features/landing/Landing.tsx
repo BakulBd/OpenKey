@@ -3,6 +3,7 @@ import type { CatalogStatus } from '@openkey/devices/catalog';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
+import { ConnectPanel } from '../connect/ConnectPanel.js';
 import { Logo } from '../../app/App.js';
 import { href } from '../../app/router.js';
 import { CONTRIBUTE_KEYBOARD_URL, REPO_URL } from '../../config.js';
@@ -12,7 +13,7 @@ const STATUS_ORDER: CatalogStatus[] = ['verified', 'experimental', 'community', 
 
 export function Landing() {
   const t = useT();
-  const { support, connect, connectDemo, inspect, conn } = useKeyboard();
+  const { support, inspect, conn } = useKeyboard();
   const busy = conn.status !== 'DISCONNECTED';
   const counts = STATUS_ORDER.map((s) => [s, CATALOG.filter((e) => e.status === s).length] as const);
 
@@ -36,18 +37,7 @@ export function Landing() {
         <p className="eyebrow">{t('landing.eyebrow')}</p>
         <h1>{t('landing.title')}</h1>
         <p className="lead">{t('landing.lead')}</p>
-        <div className="hero-actions">
-          <button type="button" className="btn primary large" disabled={!support.available || busy} onClick={() => void connect()}>
-            <Icon name="plug" /> {t('action.connect')}
-          </button>
-          <button type="button" className="btn large" disabled={busy} onClick={() => void connectDemo()}>
-            <Icon name="play" /> {t('action.demo')}
-          </button>
-          <a className="btn ghost large" href={href('compat')}>
-            {t('landing.devices')}
-          </a>
-        </div>
-        <BrowserStatus />
+        <ConnectPanel compact />
         <p className="muted small honest">{t('landing.honest')}</p>
       </section>
 
@@ -116,22 +106,5 @@ export function Landing() {
         </div>
       </section>
     </main>
-  );
-}
-
-export function BrowserStatus() {
-  const t = useT();
-  const { support } = useKeyboard();
-  if (support.available)
-    return (
-      <p className="browser-ok small">
-        <Icon name="check" /> {t('browser.ok')}
-      </p>
-    );
-  return (
-    <div className="callout warn small" role="note">
-      <strong>{support.secureContext ? t('browser.noWebHid') : t('browser.insecure')}</strong>{' '}
-      {t('browser.useDemo')}
-    </div>
   );
 }

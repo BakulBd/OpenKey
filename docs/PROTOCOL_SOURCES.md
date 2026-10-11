@@ -41,6 +41,20 @@ recorded, never resolved by picking one.
 | AULA F75 configuration: feature report ID 6, 520 bytes including ID                                | cloudglides/aula-f75-linux-drivers, not-ayan/openaula         | public RE                                     | INFERRED; sources disagree on keymap header byte 6 | 2026-10-08 | not tested                                         |
 | ROYUAN settings channel: FFFF:0002, 64-byte feature report; opcodes collide between yc500 and gen2 | Sharkfin `docs/PROTOCOL.md`                                   | public RE (with the project's own [HW] marks) | INFERRED for OpenKey                               | 2026-10-08 | not tested                                         |
 | VIA/Vial raw HID: FF60:0061, 32-byte reports                                                       | QMK documentation                                             | public specification                          | OBSERVED                                           | 2026-10-08 | not tested                                         |
+| Epomaker × AULA F75 Max (`0C45:800A`) uses the `sonix-feature` command set (START, SAVE, FINISH, TIME, IMAGE, macro, keymap) on FF13 + FF68 4096 | VitalyArt/Aula-F75-Max-Driver (MIT) source | public RE (author uses it on hardware) | INFERRED; corroborates the official-driver analysis | 2026-10-11 | not tested by OpenKey |
+| `04 27` = Fn-layer table (official AK820 driver) vs "lighting reset" (VitalyArt) | official driver; VitalyArt source | conflict | unresolved (ledger `KEYMAP_FN`) | 2026-10-11 | — |
+| Receiver `05AC:024F`: 32-byte reports, additive checksum at byte 31, battery query `20 01` | VitalyArt source; official driver | public RE + official driver | OBSERVED (driver) / INFERRED (third party) | 2026-10-11 | not tested |
+| AA/55 command pipes use unnumbered reports (report ID 0) | online driver; wsclx; baloghd | official driver + public RE | OBSERVED; now required by the matcher | 2026-10-11 | — |
+| `258A:015E` "Gaming Keyboard" (fixture A) and `3151:6000` "Fantech Atom Pro Keyboard" (fixture B) | owner's sanitized diagnostics; web search found no identification | descriptor summary | UNKNOWN; regression fixtures only | 2026-10-11 | — |
+
+## Command ledger
+
+Per-command evidence (purpose, class, request/response, validation, timing, side effects, tested unit,
+sources, and the capabilities that depend on it) lives in code so tests can hold it to account:
+`packages/protocols/src/families/sonix-feature/ledger.ts`, type in `packages/protocols/src/ledger.ts`.
+`tests/protocol/ledger.test.ts` fails if a command constant has no entry, if a capability claims more
+evidence than its commands, if a VERIFIED entry lacks a hardware fixture, or if a destructive entry is
+implemented. Other families will get ledgers as they are verified.
 
 ## Sources
 
@@ -52,6 +66,7 @@ recorded, never resolved by picking one.
 | Sharkfin (ROYUAN)                                                | planned ROYUAN adapter signature         | GPL-3.0-or-later; facts only, no code                                                        |
 | AULA F75 projects                                                | planned AULA adapter signature           | no license; facts only, no code                                                              |
 | QMK / VIA / Vial documentation                                   | planned Vial adapter, VIA identification | GPL; facts only, no code                                                                     |
+| VitalyArt/Aula-F75-Max-Driver                                     | cross-check of `sonix-feature` and `sonix-dongle` | MIT; facts only, no code copied (attribution kept in the ledger)                |
 
 Detailed analysis: [reverse-engineering/official-driver-analysis.md](reverse-engineering/official-driver-analysis.md),
 [RESEARCH_LOG.md](RESEARCH_LOG.md), [RESEARCH_MATRIX.md](RESEARCH_MATRIX.md).

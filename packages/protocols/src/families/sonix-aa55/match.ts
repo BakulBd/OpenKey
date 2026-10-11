@@ -13,6 +13,9 @@ export const MAX_COMMAND_PACKET = 64;
 export function isAa55CommandCollection(c: HidCollection): boolean {
   if (!CONFIG_USAGE_PAGES.includes(c.usagePage)) return false;
   if (c.usagePage === 0xff60 && c.usage === 0x61) return false;
+  // Every documented AA/55 device uses unnumbered reports (report ID 0, docs/protocol/sonix-aa55.md).
+  // A numbered collection is a different protocol; framing AA/55 under its report ID would be a guess.
+  if ([...c.outputReports, ...c.inputReports].some((r) => r.reportId !== 0)) return false;
   const out = maxReportSize(c.outputReports);
   return out > 8 && out <= MAX_COMMAND_PACKET && maxReportSize(c.inputReports) > 8;
 }

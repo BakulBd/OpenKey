@@ -1,41 +1,47 @@
 import { useMemo, useState } from 'react';
-import { MODIFIER_BITS, actionsEqual, describeAction, searchKeycodes, usageName } from '@openkey/core';
-import type { KeyAction, KeycodeGroup, MacroPlayMode } from '@openkey/core';
+import { MODIFIER_BITS, actionsEqual, searchKeycodes } from '@openkey/core';
+import type { KeyAction, KeyActionKind, KeycodeGroup, MacroPlayMode } from '@openkey/core';
 import { useT } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
 
-const GROUPS: (KeycodeGroup | 'all')[] = ['all', 'letters', 'digits', 'function', 'navigation', 'editing', 'modifiers', 'punctuation', 'numpad', 'media', 'system', 'mouse', 'shortcuts', 'special'];
+const GROUPS: KeycodeGroup[] = ['letters', 'digits', 'function', 'navigation', 'editing', 'modifiers', 'punctuation', 'numpad', 'media', 'system', 'mouse', 'shortcuts', 'special'];
 
-/** Searchable action picker. Keycode names are HID legends; group names and controls are translated. */
+/**
+ * Searchable action picker. Only action kinds the active adapter can encode are offered, so a choice
+ * here can never fail at write time for being unsupported. Keycode names are HID legends; group names
+ * and controls are translated.
+ */
 export function KeyPicker({
   value,
   onChange,
+  kinds,
   macroSlots,
   query,
   onQuery,
 }: {
   value: KeyAction;
   onChange: (a: KeyAction) => void;
+  kinds: readonly KeyActionKind[];
   macroSlots: number;
   query: string;
   onQuery: (q: string) => void;
 }) {
   const t = useT();
   const [group, setGroup] = useState<KeycodeGroup | 'all'>('all');
-  const results = useMemo(() => {
-    const r = searchKeycodes(query);
-    return group === 'all' ? r : r.filter((e) => e.group === group);
-  }, [query, group]);
+  const supported = useMemo(() => searchKeycodes(query).filter((e) => kinds.includes(e.action.kind)), [query, kinds]);
+  const groups = useMemo(() => GROUPS.filter((g) => searchKeycodes('').some((e) => e.group === g && kinds.includes(e.action.kind))), [kinds]);
+  const results = group === 'all' ? supported : supported.filter((e) => e.group === group);
+  const hidden = searchKeycodes(query).length - supported.length;
 
   return (
     <div className="picker">
       <label className="search">
         <Icon name="search" />
-        <input value={query} onChange={(e) => onQuery(e.target.value)} placeholder={t('keymap.searchPlaceholder')} aria-label={t('keymap.searchPlaceholder')} />
+        <input type="search" value={query} onChange={(e) => onQuery(e.target.value)} placeholder={t('keymap.searchPlaceholder')} aria-label={t('keymap.searchPlaceholder')} />
       </label>
-      <div className="chips" role="tablist" aria-label={t('keymap.groups')}>
-        {GROUPS.map((g) => (
-          <button key={g} type="button" role="tab" aria-selected={group === g} className={`chip ${group === g ? 'on' : ''}`} onClick={() => setGroup(g)}>
+      <div className="chips" role="group" aria-label={t('keymap.groups')}>
+        {(['all', ...groups] as const).map((g) => (
+          <button key={g} type="button" aria-pressed={group === g} className={`chip ${group === g ? 'on' : ''}`} onClick={() => setGroup(g)}>
             {t(`keygroup.${g}`)}
           </button>
         ))}
@@ -52,8 +58,9 @@ export function KeyPicker({
             </li>
           );
         })}
-        {results.length === 0 && <li className="muted small">{t('keymap.noResults')}</li>}
+        {results.length === 0 && <li className="muted small key-empty">{t('keymap.noResults')}</li>}
       </ul>
+      {hidden > 0 && <p className="small muted">{t('keymap.hiddenUnsupported', { n: hidden })}</p>}
 
       {value.kind === 'keyboard' && (
         <fieldset className="mods">
@@ -71,10 +78,10 @@ export function KeyPicker({
         </fieldset>
       )}
 
-      {macroSlots > 0 && (
+      {macroSlots > 0 && kinds.includes('macro') && (
         <fieldset className="macro-bind">
           <legend>{t('keymap.macro')}</legend>
-          <div className="row">
+          <div className="row wrap">
             <select
               aria-label={t('keymap.macroSlot')}
               value={value.kind === 'macro' ? value.index : ''}
@@ -100,11 +107,9 @@ export function KeyPicker({
               <input type="number" min={1} max={255} aria-label={t('keymap.repeat')} value={value.repeat || 1} onChange={(e) => onChange({ ...value, repeat: Number(e.target.value) })} />
             )}
           </div>
+          <p className="small muted">{t('keymap.macroLocal')}</p>
         </fieldset>
       )}
-      <p className="small muted">
-        {t('keymap.current')}: <strong>{describeAction(value, usageName)}</strong>
-      </p>
     </div>
   );
 }

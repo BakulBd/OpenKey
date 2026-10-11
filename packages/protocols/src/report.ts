@@ -1,5 +1,6 @@
 import { describeCollections } from '@openkey/hid';
 import { formatBcd, hex16 } from '@openkey/core';
+import type { DetectionVerdict } from './verdict.js';
 import type { DetectionReport } from './registry.js';
 
 const COLLECTION_NAMES: Record<string, string> = {
@@ -68,5 +69,31 @@ export function formatDetectionReport(r: DetectionReport, verbose = false): stri
     L.push('Selected: none');
   }
   for (const n of r.notes) L.push(`Note: ${n}`);
+  return L.join('\n');
+}
+
+/** Plain-text verdict for the CLI and logs. */
+export function formatVerdict(v: DetectionVerdict): string {
+  const L = [`Verdict: ${v.kind}${v.adapterId ? ` (${v.adapterId})` : ''} — confidence ${v.confidence}, ${v.writeEligible ? 'configurable (each write still needs its safety check)' : 'not configurable'}`];
+  for (const r of v.reasons) L.push(`  • ${r}`);
+  if (v.conflicts.length) L.push('Conflicting evidence:', ...v.conflicts.map((c) => `  ! ${c}`));
+  if (v.unknowns.length) L.push('Not observed:', ...v.unknowns.map((u) => `  ? ${u}`));
+  const n = v.next;
+  L.push(
+    `Next: ${
+      n.kind === 'configure'
+        ? `configure with ${n.adapterId}`
+        : n.kind === 'consent-probe'
+          ? `allow the ${n.adapterId} identification handshake (--allow-probe ${n.adapterId}); it sends: ${n.operations
+              .filter((o) => o.op === 'feature-set' || o.op === 'output')
+              .map((o) => `${o.op} id${o.reportId} [${o.payloadPrefix} …]`)
+              .join(', ')}`
+          : n.kind === 'connect-device'
+            ? `connect the device to run the ${n.adapterId} identification`
+            : n.kind === 'switch-transport'
+              ? `connect over ${n.transports.join(' or ')}`
+              : 'export a diagnostic package and request device support'
+    }`,
+  );
   return L.join('\n');
 }

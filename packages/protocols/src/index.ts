@@ -10,6 +10,10 @@ export * from './registry.js';
 export * from './session.js';
 export * from './report.js';
 export * from './fingerprint.js';
+export * from './verdict.js';
+export * from './diagnostics.js';
+export * from './conformance.js';
+export * from './ledger.js';
 export { PLANNED_ADAPTERS } from './families/planned.js';
 export * as sonixFeature from './families/sonix-feature/index.js';
 export * as sonixAa55 from './families/sonix-aa55/index.js';
@@ -28,3 +32,4 @@ export function createDefaultRegistry(): ProtocolRegistry {
   for (const p of PLANNED_ADAPTERS) r.plan(p);
   return r;
 }
+export * as example from './families/example/index.js';

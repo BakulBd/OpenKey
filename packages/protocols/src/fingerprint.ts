@@ -51,8 +51,8 @@ export function detectionConfidence(report: DetectionReport): DetectionConfidenc
   const sel = report.selected;
   if (sel) {
     const probe = report.candidates.find((c) => c.protocol.id === sel.protocolId)?.probe;
-    if (probe?.status === 'pass' && sel.confidence === Evidence.VERIFIED) return 'VERIFIED';
-    if (probe?.status === 'pass') return 'HIGH';
+    if (probe?.identified && sel.confidence === Evidence.VERIFIED) return 'VERIFIED';
+    if (probe?.identified) return 'HIGH';
     return 'MEDIUM';
   }
   if (report.ambiguous || report.possibleFamilies.length > 0 || report.catalog) return 'LOW';

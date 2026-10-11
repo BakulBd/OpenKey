@@ -4,9 +4,11 @@ import type { HidDeviceGroup } from '@openkey/hid';
 import type {
   CandidateMatch,
   ProbeContext,
+  ProbePlan,
   ProbeResult,
   ProtocolDefinition,
 } from '../../registry.js';
+import { ADAPTER_API_VERSION } from '../../registry.js';
 import { Cmd, DEVICE_INFO_BYTES, TFT_USAGE_PAGE } from './constants.js';
 import { decodeDeviceInfo } from './codecs.js';
 import { SONIX_AA55_PROTOCOL_ID, SonixAa55Driver } from './driver.js';
@@ -40,6 +42,52 @@ function match(group: HidDeviceGroup): CandidateMatch {
   return { applicable: !!iface, score, reasons, rejections };
 }
 
+/**
+ * Identities with a configuration in the official online driver (`vid-pid-productName`, e.g.
+ * `3141-32777-AK820`). The command-pipe signature (a small output report on FF00/FF01/FF68 …) is
+ * shared by countless unrelated devices, so GET_DEVICE_INFO is never sent to anything else
+ * without the user's consent.
+ */
+const ONLINE_DRIVER_IDENTITIES: readonly { vendorId: number; productId: number; productName: string }[] = [
+  { vendorId: 0x0c45, productId: 0x8009, productName: 'AK820' },
+  { vendorId: 0x0c45, productId: 0x8009, productName: 'AK980 PRO' },
+  { vendorId: 0x0c45, productId: 0x8009, productName: 'AJAZZ KEYBOARD' },
+];
+
+const probePlan: ProbePlan = {
+  operations: [
+    {
+      level: 'handshake',
+      op: 'output',
+      collection: 'command collection (FF68/FF80/FF00/FF01/FF1B)',
+      reportId: 0,
+      payloadPrefix: 'AA 10 30',
+      purpose: 'GET_DEVICE_INFO (0x10, 48 bytes): read-only query the online driver sends first.',
+      effect: 'none',
+      evidence: Evidence.OBSERVED,
+    },
+    {
+      level: 'handshake',
+      op: 'input-read',
+      collection: 'command collection',
+      reportId: 0,
+      payloadPrefix: '',
+      purpose: 'Read the 55-framed answer; VID/PID inside it must equal the USB identity.',
+      effect: 'none',
+      evidence: Evidence.OBSERVED,
+    },
+  ],
+  autoConsent(group) {
+    const id = group.identity;
+    const listed = ONLINE_DRIVER_IDENTITIES.some(
+      (o) => o.vendorId === id.vendorId && o.productId === id.productId && o.productName === id.productName.trim(),
+    );
+    return listed
+      ? { auto: true, reason: 'the official online driver has a configuration for this exact identity' }
+      : { auto: false, reason: 'the command-pipe signature is shared by unrelated devices; identity not in the online driver configuration' };
+  },
+};
+
 async function probe(ctx: ProbeContext): Promise<ProbeResult> {
   if (ctx.level === 'passive') {
     return {
@@ -71,10 +119,12 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
       },
     ],
     facts: { deviceInfo: info },
+    identified: idMatches,
   };
 }
 
 export const sonixAa55Protocol: ProtocolDefinition = {
+  apiVersion: ADAPTER_API_VERSION,
   id: SONIX_AA55_PROTOCOL_ID,
   manifest: {
     version: '1.0.0',
@@ -86,6 +136,13 @@ export const sonixAa55Protocol: ProtocolDefinition = {
       { source: 'official-driver', reference: 'AJAZZ online driver bundle 2026-09-11', status: Evidence.OBSERVED },
       { source: 'public-reverse-engineering', reference: 'wsclx/ak820pro-modder', status: Evidence.INFERRED },
     ],
+    license: 'MIT',
+    limitations: [
+      'Never run on hardware by OpenKey; behaviour comes from the online driver and a simulator.',
+      'Factory reset, OTA and other firmware-level commands are blocked in the transfer layer.',
+    ],
+    fixtures: [],
+    verifiedIdentities: [],
   },
   name: 'AJAZZ online-driver protocol (AA/55 output reports)',
   family: 'sonix-aa55',
@@ -100,6 +157,7 @@ export const sonixAa55Protocol: ProtocolDefinition = {
     'wsclx/ak820pro-modder hardware notes',
   ],
   match,
+  probePlan,
   probe,
   async createDriver(group, opts) {
     return new SonixAa55Driver(group, opts);

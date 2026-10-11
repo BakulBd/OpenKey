@@ -130,6 +130,7 @@ export default function Tester() {
       )}
       <Card>
         <KeyboardView
+            scrollHint={t('kb.scrollHint')}
           layout={layout}
           label={t('tester.boardLabel')}
           pressed={(k) => k.usage != null && held.has(k.usage)}

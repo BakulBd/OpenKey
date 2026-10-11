@@ -1,0 +1,5 @@
+# LF everywhere: shell scripts, udev rules and generated configs are compared byte for byte on every OS.
+* text=auto eol=lf
+*.png binary
+*.bin binary
+*.hid binary

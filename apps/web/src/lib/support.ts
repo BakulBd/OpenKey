@@ -1,11 +1,11 @@
 import { buildSupportBundle, hexId, supportBundleToIssue } from '@openkey/core';
-import type { SupportBundle, SupportCollection } from '@openkey/core';
+import type { ResearchNote, SupportBundle, SupportCollection } from '@openkey/core';
 import type { HidCollection } from '@openkey/hid';
 import type { Session, RecentError } from '../state/keyboard.js';
 import type { ConnectionState } from '@openkey/core';
 import { APP_VERSION, ISSUES_URL } from '../config.js';
 
-const reports = (list: { reportId: number; size: number }[]): string[] => list.map((r) => `id ${r.reportId}: ${r.size} B`);
+const reports = (list: { reportId: number; size: number }[]) => list.map(({ reportId, size }) => ({ reportId, size }));
 
 export function toSupportCollection(c: HidCollection): SupportCollection {
   return {
@@ -37,6 +37,7 @@ export function sessionSupportBundle(session: Session | null, conn: ConnectionSt
           ...(id.manufacturer ? { manufacturer: id.manufacturer } : {}),
           ...(id.serialNumber ? { serialNumber: id.serialNumber } : {}),
           ...(id.release !== undefined ? { release: hexId(id.release) } : {}),
+          transport: session!.group.transportHint,
           interfaces: session!.group.interfaces.map((i) => ({
             ...(i.interfaceNumber !== undefined ? { interfaceNumber: i.interfaceNumber } : {}),
             collections: i.collections.map(toSupportCollection),
@@ -50,6 +51,7 @@ export function sessionSupportBundle(session: Session | null, conn: ConnectionSt
     detection: session
       ? {
           confidence: session.fingerprint.confidence,
+          verdict: session.verdict.kind,
           reasons: session.fingerprint.explanation,
           candidates: session.detection.possibleFamilies.map((f) => `${f.id} (${f.status})`),
         }
@@ -61,10 +63,10 @@ export function sessionSupportBundle(session: Session | null, conn: ConnectionSt
 }
 
 /** GitHub "new issue" URL with a short body; the full package is attached as a file by the user. */
-export function supportIssueUrl(bundle: SupportBundle, kind: 'device-support' | 'bug'): string {
+export function supportIssueUrl(bundle: SupportBundle, kind: 'device-support' | 'bug', notes: ResearchNote[] = []): string {
   const d = bundle.device;
   const title = kind === 'device-support' ? `Device support: ${d ? `${d.productName} (${d.vendorId}:${d.productId})` : 'unknown device'}` : 'Bug report';
   // Browsers and GitHub truncate very long URLs: keep the body to the summary, not the full JSON.
-  const body = supportBundleToIssue(bundle).split('<details>')[0] + '\n_Attach the exported diagnostic package (JSON) to this issue._\n';
+  const body = supportBundleToIssue(bundle, notes).split('<details>')[0] + '\n_Attach the exported diagnostic package (JSON) to this issue._\n';
   return `${ISSUES_URL}?labels=${kind}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body.slice(0, 6000))}`;
 }

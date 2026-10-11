@@ -1,0 +1,31 @@
+# Safety invariants
+
+The rules OpenKey enforces before anything reaches a keyboard, where each is enforced, and the test
+that fails if it is broken. The policy narrative is in [security.md](security.md).
+
+| # | Rule | Enforced in | Test |
+| - | ---- | ----------- | ---- |
+| 1 | An unknown device receives nothing beyond descriptor access. | `ProtocolRegistry.detect` (no candidate → no probe); verdict `writeEligible: false` → no driver | `tests/safety/invariants.test.ts` rule 1; `tools/e2e/smoke.mjs` (stubbed WebHID, 0 reports) |
+| 2 | No probe runs without evidence that it is harmless for *this identity*. Handshakes run automatically only for identities the vendor's own software sends them to, or a public-specification read on a reserved collection; otherwise the user must allow it, after seeing the exact bytes. | `ProbePlan.autoConsent`, `detect(…, { consent })` | invariants rule 2; `tests/conformance/adapters.conformance.test.ts` ("never auto-probes an unrelated identity"); e2e consent flow |
+| 3 | Probes send only the operations their plan declares, and never at the passive level. | `ProbePlan.operations`, `checkProbeTraffic` | conformance suite (per adapter, real probe against a sample device) |
+| 4 | Descriptor similarity never creates a driver. A driver exists only after the device answered a family-specific request (`ProbeResult.identified`). | `openDriver`, `detectionVerdict` | invariants rule 3 (CRS, AK820 offline, fixtures A/B); `tests/protocol/verdict.test.ts` |
+| 5 | Two families that may read the same bytes differently are never resolved by guessing; once one family is identified, no other family's probe is sent. | `selectCandidate` (AMBIGUOUS), detection loop | `tests/protocol/verdict.test.ts` (AMBIGUOUS) |
+| 6 | Writes follow evidence and risk class: VERIFIED + safe class → normal; OBSERVED/INFERRED or CAUTION/HIGH_RISK → per-session opt-in; HYPOTHESIS/UNKNOWN → never; UNSAFE (firmware, bootloader, erase) → never, not even on a simulator. | `writeDecision`, `guardWrites` (driver proxy used by the web app **and** the CLI) | invariants rules 4 and 8; `tests/core/foundation.test.ts` (safety policy) |
+| 7 | No adapter capability offers an unsafe or evidence-free write, and no capability claims more evidence than the commands it uses. | capability tables, protocol ledger | invariants rule 4; `tests/protocol/ledger.test.ts` |
+| 8 | Destructive commands exist only as documentation. | ledger `implemented: false`; AA/55 `BLOCKED_COMMANDS` | `tests/protocol/ledger.test.ts`; `tests/integration/sonix-aa55-driver.test.ts` |
+| 9 | Report sizes, report IDs and acknowledgements are validated; a stale echo is not an acknowledgement; timeouts and disconnects surface as errors, never as data. | sessions/links per family, `MockHidDevice` fault injection | `tests/transport/mock-faults.test.ts`; template adapter tests |
+| 10 | A write is reported *verified* only after a read-back from the device; a failed or mismatching read-back never triggers another write. | `runTransaction` | `tests/core/foundation.test.ts` (transaction); invariants rule 5 |
+| 11 | Unknown-device mode cannot apply; a reconnect never resumes a write; re-identification cannot jump to APPLYING. | `core/connection.ts` | `tests/core/foundation.test.ts` (state machine) |
+| 12 | Simulations never pass for hardware. A simulator's verdict is SIMULATED and the UI shows no hardware-verified badge for it. | `detectionVerdict` (backend `mock`), `VerdictCard` | invariants rule 6 |
+| 13 | Diagnostics are sanitized: exports drop serial numbers unless opted in, never contain typing, macros, keymaps or payloads; imports never carry a serial and are size-bounded; an imported device cannot open a transport. | `buildSupportBundle`, `parseSupportBundle`, `offlineGroup` | invariants rules 3 and 7 |
+| 14 | Backups never silently apply to another model: slot-indexed sections are skipped unless the user explicitly allows it. | `planRestore` | `tests/core/backup.test.ts` ("restore across models") |
+
+## Adding a write path
+
+1. The command is in the family's ledger with its evidence, side effects and the capabilities using it.
+2. The capability's `confidence` is no higher than the weakest ledger entry it uses (the ledger test
+   checks this) and it carries a `safety` level.
+3. The driver method is listed in `WRITE_METHODS` (`packages/core/src/write-guard.ts`) if it is new.
+4. A simulator test covers the exact packet sequence; a fault-injection test covers timeout, a corrupt
+   answer and a disconnect.
+5. It stays experimental until a hardware run is recorded (see [AK820_INVESTIGATION.md](AK820_INVESTIGATION.md#7-safe-experiments-in-order)).

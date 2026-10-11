@@ -8,6 +8,7 @@ import {
   emptyCapabilities,
   hex16,
 } from '@openkey/core';
+import type { KeyActionKind } from '@openkey/core';
 import type {
   Capabilities,
   DeviceInfo,
@@ -122,6 +123,11 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
   private l(): Aa55Link {
     if (!this.link) throw new UnsupportedFeatureError('configuration', 'not connected');
     return this.link;
+  }
+
+  /** The online-driver encoder supports only the shared pages (encodeSlotAa55). */
+  override getKeyActionKinds(): readonly KeyActionKind[] {
+    return ['default', 'keyboard', 'consumer', 'mouse', 'macro'];
   }
 
   getLayout(): KeyboardLayout {
