@@ -10,6 +10,7 @@ hardware results from keyboards OpenKey has not seen — and careful code that k
 ## Development
 
 ```sh
+git clone https://github.com/BakulBd/openkey.git && cd openkey
 pnpm install
 pnpm dev          # web app on http://localhost:5173 (WebHID works on localhost)
 pnpm test         # unit, protocol, fixture, mock-HID and integration tests

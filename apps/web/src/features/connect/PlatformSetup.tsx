@@ -5,23 +5,23 @@ import { useT } from '../../i18n/i18n.js';
 import type { MessageKey } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
 import { currentOs } from '../../lib/platform.js';
+import { installCommand, ruleCovers, usbId } from '../../lib/udev.js';
 import type { OsName } from '../../lib/platform.js';
 
 /** Files served by the app itself (emitted from udev/ in the repository at build time). */
-export const RULE_URL = './linux/99-openkey.rules';
+export const RULE_URL = './linux/70-openkey.rules';
 export const INSTALLER_URL = './linux/install-openkey-udev.sh';
-const INSTALL_CMD = 'sudo sh ~/Downloads/install-openkey-udev.sh';
-const MANUAL_CMD = 'sudo cp ~/Downloads/99-openkey.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger';
+const MANUAL_CMD = 'sudo cp ~/Downloads/70-openkey.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger';
 
-function CopyLine({ text }: { text: string }) {
+function CopyLine({ text, label }: { text: string; label?: string }) {
   const t = useT();
   const [done, setDone] = useState(false);
   return (
     <div className="copy-line">
-      <code>{text}</code>
+      <code aria-label={label}>{text}</code>
       <button
         type="button"
-        className="btn small ghost"
+        className={`btn small ${done ? 'ghost' : 'primary'}`}
         onClick={() =>
           void navigator.clipboard?.writeText(text).then(
             () => setDone(true),
@@ -29,34 +29,44 @@ function CopyLine({ text }: { text: string }) {
           )
         }
       >
-        {done ? t('lab.report.copied') : t('setup.copy')}
+        <Icon name={done ? 'check' : 'copy'} size={14} /> {done ? t('lab.report.copied') : t('setup.copy')}
       </button>
     </div>
   );
 }
 
-/** The four Linux steps: download, run the installer yourself, replug, retry. */
-function LinuxSteps({ onRetry }: { onRetry?: () => void }) {
+type SetupDevice = AccessProblem['device'];
+
+/**
+ * The Linux setup in three steps: paste one command, replug, retry. The command downloads the
+ * installer from this site and runs it with sudo; for a keyboard the shipped rule does not list, it
+ * adds that keyboard's USB ID. Downloading the files by hand stays available.
+ */
+function LinuxSteps({ device, onRetry }: { device?: SetupDevice; onRetry?: () => void }) {
   const t = useT();
+  const installer = new URL(INSTALLER_URL, document.baseURI).href;
+  const listed = !device || ruleCovers(device.vendorId, device.productId);
+  const extra = device && !listed ? ` --device ${usbId(device.vendorId, device.productId)}` : '';
   return (
-    <ol className="setup-steps">
+    <ol className="setup-steps big">
       <li>
-        <strong>{t('setup.linux.step1')}</strong>
-        <div className="row wrap">
-          <a className="btn small primary" href={INSTALLER_URL} download="install-openkey-udev.sh">
-            <Icon name="backup" /> {t('setup.linux.installer')}
-          </a>
-          <a className="btn small" href={RULE_URL} download="99-openkey.rules">
-            {t('setup.linux.rule')}
-          </a>
-        </div>
-        <span className="small muted">{t('setup.linux.step1Note')}</span>
-      </li>
-      <li>
-        <strong>{t('setup.linux.step2')}</strong>
-        <CopyLine text={INSTALL_CMD} />
+        <strong>{t('setup.linux.paste')}</strong>
+        <CopyLine text={installCommand(installer, device)} label={t('setup.linux.paste')} />
+        <span className="small muted">{t('setup.linux.pasteNote')}</span>
+        {!listed && device && <span className="small">{t('setup.linux.addsDevice', { id: usbId(device.vendorId, device.productId).toUpperCase() })}</span>}
         <details className="small">
           <summary>{t('setup.linux.manual')}</summary>
+          <div className="row wrap">
+            <a className="btn small" href={INSTALLER_URL} download="install-openkey-udev.sh">
+              <Icon name="backup" /> {t('setup.linux.installer')}
+            </a>
+            <a className="btn small ghost" href={RULE_URL} download="70-openkey.rules">
+              {t('setup.linux.rule')}
+            </a>
+          </div>
+          <p>{t('setup.linux.step1Note')}</p>
+          <CopyLine text={`sudo sh ~/Downloads/install-openkey-udev.sh${extra}`} />
+          <p>{t('setup.linux.byHand')}</p>
           <CopyLine text={MANUAL_CMD} />
         </details>
       </li>
@@ -68,7 +78,7 @@ function LinuxSteps({ onRetry }: { onRetry?: () => void }) {
         {onRetry && (
           <div>
             <button type="button" className="btn primary" onClick={onRetry}>
-              {t('setup.retry')}
+              <Icon name="plug" /> {t('setup.retry')}
             </button>
           </div>
         )}
@@ -87,7 +97,7 @@ export function AccessHelp({ problem }: { problem: AccessProblem }) {
       <section className="access-help callout warn" role="alert" aria-labelledby="access-h">
         <h2 id="access-h">{t('setup.linux.title')}</h2>
         <p>{t('setup.linux.lead', { name: problem.device.name || t('dev.unnamed') })}</p>
-        <LinuxSteps onRetry={busy ? undefined : () => void retryAccess()} />
+        <LinuxSteps device={problem.device} onRetry={busy ? undefined : () => void retryAccess()} />
         <details className="small">
           <summary>{t('setup.linux.what')}</summary>
           <p>{t('setup.linux.whatBody')}</p>
@@ -120,12 +130,12 @@ export function AccessHelp({ problem }: { problem: AccessProblem }) {
 const TABS: OsName[] = ['windows', 'macos', 'linux', 'chromeos'];
 
 /** One-time setup per operating system, opened on the detected system. */
-export function PlatformGuide() {
+export function PlatformGuide({ defaultOpen = true }: { defaultOpen?: boolean }) {
   const t = useT();
   const detected = currentOs();
   const [os, setOs] = useState<OsName>(TABS.includes(detected) ? detected : 'windows');
   return (
-    <details className="platform-guide" open={detected === 'linux'}>
+    <details className="platform-guide" open={defaultOpen && detected === 'linux'}>
       <summary>{t('setup.guide', { os: t(`os.${detected}` as MessageKey) })}</summary>
       <div className="tabs" role="tablist" aria-label={t('setup.guideTabs')}>
         {TABS.map((x) => (

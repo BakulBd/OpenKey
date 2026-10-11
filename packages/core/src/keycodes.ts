@@ -15,6 +15,7 @@ export type KeycodeGroup =
   | 'system'
   | 'mouse'
   | 'shortcuts'
+  | 'layers'
   | 'special';
 
 export interface KeycodeEntry {
@@ -167,6 +168,10 @@ export function keycodeCatalog(): KeycodeEntry[] {
     out.push({ id: `mouse-${action}`, action: { kind: 'mouse', action }, name, group: 'mouse', aliases: ['mouse', ...aliases] });
   for (const [name, usage, modifiers, aliases] of SHORTCUTS)
     out.push({ id: `sc-${name}`, action: { kind: 'keyboard', usage, modifiers }, name, group: 'shortcuts', aliases: ['shortcut', ...aliases] });
+  for (let layer = 0; layer < 8; layer++) {
+    out.push({ id: `mo-${layer}`, action: { kind: 'layer', layer, mode: 'momentary' }, name: `Hold for layer ${layer}`, group: 'layers', qmk: `MO(${layer})`, aliases: ['layer', 'momentary', 'fn'] });
+    out.push({ id: `tg-${layer}`, action: { kind: 'layer', layer, mode: 'toggle' }, name: `Toggle layer ${layer}`, group: 'layers', qmk: `TG(${layer})`, aliases: ['layer', 'toggle'] });
+  }
   cache = out;
   return out;
 }

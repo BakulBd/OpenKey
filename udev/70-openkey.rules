@@ -1,7 +1,13 @@
 # OpenKey – grant the logged-in user (uaccess) and the plugdev group access to the HID
-# interfaces of AJAZZ AK820-family keyboards and receivers. Needed by the CLI and by Chromium's
-# WebHID on Linux. Install:
-#   sudo cp udev/99-openkey.rules /etc/udev/rules.d/
+# interfaces of the keyboards and receivers OpenKey supports (AJAZZ, AULA, RK). Needed by the CLI and by Chromium's
+# WebHID on Linux.
+#
+# The number matters: systemd turns TAG+="uaccess" into an access entry for the logged-in user in
+# 73-seat-late.rules, and udev applies rule files in name order, so this file must sort before 73.
+# (OpenKey shipped it as 99-openkey.rules before; there only the plugdev group got access.)
+#
+# Install (or run install-openkey-udev.sh, which does the same):
+#   sudo cp udev/70-openkey.rules /etc/udev/rules.d/
 #   sudo udevadm control --reload-rules && sudo udevadm trigger
 # then unplug and replug the keyboard.
 
@@ -17,3 +23,8 @@ SUBSYSTEM=="hidraw", KERNELS=="0005:0C45:FEFE.*", MODE="0660", GROUP="plugdev", 
 # CRS-based AK820 Max Plus revision (VID 1A2C)
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1a2c", ATTRS{idProduct}=="a036", MODE="0660", GROUP="plugdev", TAG+="uaccess"
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1a2c", ATTRS{idProduct}=="8fff", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+# BY Tech / SinoWealth boards: AULA F75, F87, F99, H108 (all 258A:010C), RK R75 RGB wired (258A:015E)
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="258a", ATTRS{idProduct}=="010c", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="258a", ATTRS{idProduct}=="015e", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+# AULA / AJAZZ "BY edition" 2.4 GHz receiver
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", ATTRS{idProduct}=="fa09", MODE="0660", GROUP="plugdev", TAG+="uaccess"

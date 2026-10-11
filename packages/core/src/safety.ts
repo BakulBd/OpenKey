@@ -39,8 +39,8 @@ export type WriteDecision =
   | { kind: 'blocked'; reason: string };
 
 /**
- * Decides whether the UI may offer a write. Normal UI exposes only verified operations of a safe
- * class; everything else is either experimental (opt-in) or blocked.
+ * Decides whether the UI may offer a write. Normal UI exposes only operations verified on hardware
+ * (with a confirmation for CAUTION and HIGH_RISK); everything else is experimental (opt-in) or blocked.
  */
 export function writeDecision(support: FeatureSupport, ctx: SafetyContext): WriteDecision {
   if (!support.write) return { kind: 'blocked', reason: 'The device or protocol offers no write for this feature.' };
@@ -52,8 +52,15 @@ export function writeDecision(support: FeatureSupport, ctx: SafetyContext): Writ
     return { kind: 'blocked', reason: 'No evidence for this command; it is never sent.' };
 
   const verified = support.confidence === Evidence.VERIFIED;
-  const safeClass = safety === SafetyLevel.SAFE_VOLATILE || safety === SafetyLevel.SAFE_PERSISTENT;
-  if (verified && safeClass) return { kind: 'allowed' };
+  // A hardware-verified write is offered in normal UI whatever its risk class: the UI asks once per
+  // session for CAUTION (previous value not readable) and every time for HIGH_RISK. Unverified
+  // writes, and writes whose risk was never assessed, stay behind the experimental opt-in.
+  const knownClass =
+    safety === SafetyLevel.SAFE_VOLATILE ||
+    safety === SafetyLevel.SAFE_PERSISTENT ||
+    safety === SafetyLevel.CAUTION ||
+    safety === SafetyLevel.HIGH_RISK;
+  if (verified && knownClass) return { kind: 'allowed' };
 
   const reason = !verified
     ? `Not yet verified on hardware (evidence: ${support.confidence.toLowerCase().replace('_', ' ')}).`

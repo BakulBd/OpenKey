@@ -23,6 +23,8 @@ const PATHS = {
   redo: 'M15 14l5-5-5-5M20 9H9a5 5 0 000 10h3',
   x: 'M6 6l12 12M18 6L6 18',
   check: 'M5 12l5 5 9-10',
+  copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
+  terminal: 'M3 5h18v14H3zM7 9l3 3-3 3M12 15h5',
   warn: 'M12 3l10 18H2zM12 10v4M12 17h0',
   info: 'M12 21a9 9 0 110-18 9 9 0 010 18zM12 11v6M12 7h0',
   menu: 'M4 7h16M4 12h16M4 17h16',

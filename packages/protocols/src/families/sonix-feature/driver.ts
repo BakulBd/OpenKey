@@ -175,7 +175,7 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
   }
 
   getCapabilities(): Capabilities {
-    return sonixFeatureCapabilities(this.variant, this.transport);
+    return sonixFeatureCapabilities(this.variant, this.transport, this.group.identity.productId);
   }
 
   async getDeviceInfo(): Promise<DeviceInfo> {

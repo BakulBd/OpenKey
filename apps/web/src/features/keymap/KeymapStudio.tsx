@@ -7,6 +7,7 @@ import {
   describeAction,
   keyBySlot,
   keycodeCatalog,
+  layerIndex,
   markApplied,
   pushHistory,
   redo,
@@ -22,6 +23,7 @@ import { Dialog } from '../../components/Dialog.js';
 import { Icon } from '../../components/Icon.js';
 import { ChangeBar, useChangeTracking } from '../../components/ChangeBar.js';
 import { KeyPicker } from './KeyPicker.js';
+import { DefinitionPanel } from './DefinitionPanel.js';
 import { WriteGateNote } from '../shared/WriteGateNote.js';
 import { KEYCODE_EVENT } from '../../app/CommandPalette.js';
 import { href } from '../../app/router.js';
@@ -38,7 +40,11 @@ export function keymapChanges(before: Slots, after: Slots): { slot: number; befo
     .filter((c) => !actionsEqual(c.before, c.after));
 }
 
-const feature = (layer: LayerId): FeatureId => (layer === 'fn' ? 'fnLayer' : 'keymap');
+const feature = (layer: LayerId): FeatureId => (layer === 'base' ? 'keymap' : 'fnLayer');
+
+/** Drivers that need a keyboard definition before their keymap can be shown (VIA boards). */
+type NeedsDefinition = { needsDefinition: boolean };
+const needsDefinition = (d: unknown): boolean => !!(d as Partial<NeedsDefinition>).needsDefinition;
 
 export default function KeymapStudio() {
   const t = useT();
@@ -55,18 +61,19 @@ export default function KeymapStudio() {
   const setH = useCallback((next: History<Slots>) => setHistories((x) => ({ ...x, [layer]: next })), [layer]);
   const pendingFor = (l: LayerId) => (histories[l] ? keymapChanges(histories[l]!.applied, histories[l]!.present).length : 0);
   const changes = useMemo(() => (h ? keymapChanges(h.applied, h.present) : []), [h]);
-  const totalPending = pendingFor('base') + pendingFor('fn');
+  const totalPending = (Object.keys(histories) as LayerId[]).reduce((n, l) => n + pendingFor(l), 0);
   const track = useChangeTracking('keymap', ['keymap', 'fnLayer', 'factoryDefaults'], totalPending);
 
   // Read each layer once; local edits survive switching layers.
+  const waiting = !!device && needsDefinition(device.driver);
   useEffect(() => {
-    if (histories[layer]) return;
+    if (histories[layer] || waiting) return;
     void read(t('keymap.read'), (d) => d.getKeymap(layer)).then((s) => {
       if (!s) return;
       setProvenance(s.provenance);
       setHistories((x) => ({ ...x, [layer]: createHistory<Slots>({ ...s.slots }) }));
     });
-  }, [layer, histories, read, t]);
+  }, [layer, histories, read, t, waiting]);
 
   // A keycode picked in the command palette fills the search box.
   useEffect(() => {
@@ -101,11 +108,19 @@ export default function KeymapStudio() {
   }, [h, setH, selected, review]);
 
   if (!device) return null;
+  if (waiting)
+    return (
+      <div className="page">
+        <PageHeader title={t('nav.keymap')} lead={t('keymap.lead')} />
+        <DefinitionPanel />
+      </div>
+    );
   if (!h) return <Loading />;
   const layout = device.driver.getLayout();
   const caps = device.caps;
   const kinds = device.driver.getKeyActionKinds();
-  const layers: LayerId[] = caps.fnLayer.write || caps.fnLayer.read !== 'none' ? ['base', 'fn'] : ['base'];
+  const layers = device.driver.getLayerIds();
+  const layerName = (l: LayerId) => (l === 'base' ? t('keymap.layerBase') : l === 'fn' && layers.length <= 2 ? t('keymap.layerFn') : t('keymap.layerN', { n: layerIndex(l) }));
   const key = selected !== null ? keyBySlot(layout, selected) : undefined;
   const current = selected !== null ? (h.present[selected] ?? DEFAULT) : DEFAULT;
   const appliedAction = selected !== null ? (h.applied[selected] ?? DEFAULT) : DEFAULT;
@@ -133,7 +148,7 @@ export default function KeymapStudio() {
   const doApply = async () => {
     setReview(false);
     const tx: Transaction<Slots> = {
-      label: t(layer === 'fn' ? 'keymap.applyFn' : 'keymap.applyBase'),
+      label: layer === 'base' ? t('keymap.applyBase') : layers.length <= 2 ? t('keymap.applyFn') : t('keymap.applyLayer', { n: layerIndex(layer) }),
       acknowledged: true,
       // Validate the whole layer before anything is sent: only encodable actions (or encodings read
       // from the device and preserved as raw) may be written.
@@ -154,7 +169,7 @@ export default function KeymapStudio() {
     const tx: Transaction<Slots> = {
       label: t('keymap.restoreDefaults'),
       acknowledged: true,
-      apply: () => device.driver.restoreDefaults(layer === 'fn' ? 'fnLayer' : 'keymap'),
+      apply: () => device.driver.restoreDefaults(layer === 'base' ? 'keymap' : 'fnLayer'),
     };
     const r = await apply('factoryDefaults', tx, h.applied, {});
     track.record(r);
@@ -182,7 +197,7 @@ export default function KeymapStudio() {
                   setSelected(null);
                 }}
               >
-                {t(l === 'fn' ? 'keymap.layerFn' : 'keymap.layerBase')}
+                {layerName(l)}
                 {pendingFor(l) > 0 && <span className="dot-badge" aria-label={t('keymap.unsaved')} />}
               </button>
             ))}
@@ -264,7 +279,7 @@ export default function KeymapStudio() {
                     {t('keymap.resetKey')}
                   </button>
                 </div>
-                <KeyPicker value={current} onChange={setAction} kinds={kinds} macroSlots={macroSlots} query={query} onQuery={setQuery} />
+                <KeyPicker value={current} onChange={setAction} kinds={kinds} macroSlots={macroSlots} query={query} onQuery={setQuery} specials={device.driver.getSpecialActions()} layerCount={layers.length} />
               </>
             )}
             {caps.factoryDefaults.write && (
@@ -316,7 +331,7 @@ export default function KeymapStudio() {
               {device.demo ? ` (${t('mode.simulated')})` : ''}
             </li>
             <li>
-              <span className="muted">{t('plan.layer')}</span> {t(layer === 'fn' ? 'keymap.layerFn' : 'keymap.layerBase')}
+              <span className="muted">{t('plan.layer')}</span> {layerName(layer)}
             </li>
             <li>
               <span className="muted">{t('plan.persistence')}</span> {t('plan.onboard')}

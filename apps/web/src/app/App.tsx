@@ -18,6 +18,8 @@ import { applyTheme } from '../state/theme.js';
 import { UpdateBanner } from './UpdateBanner.js';
 import { StatusBar } from './StatusBar.js';
 import { Dialog } from '../components/Dialog.js';
+import { ErrorBoundary } from '../components/ErrorBoundary.js';
+import { ISSUES_URL } from '../config.js';
 
 export function Root() {
   useEffect(() => applyTheme(), []);
@@ -132,6 +134,11 @@ function App() {
     .filter((x) => x.v !== 'hide');
   const active = ROUTES.find((r) => r.id === route);
   const activeVis = active ? routeVisibility(active, caps, !!device, !!session) : 'hide';
+  // A descriptive tab title per page (shared links, history, search snippets).
+  const pageTitle = active ? t(active.label) : null;
+  useEffect(() => {
+    document.title = pageTitle ? `${pageTitle} · OpenKey` : 'OpenKey — open-source keyboard configurator in your browser';
+  }, [pageTitle]);
 
   const palette = paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} go={go} />;
   const leaveDialog = leaving && (
@@ -258,9 +265,11 @@ function App() {
           ) : activeVis === 'research' ? (
             <ResearchNeeded route={active} />
           ) : (
-            <Suspense fallback={<Loading />}>
-              <Page key={pageKey} />
-            </Suspense>
+            <ErrorBoundary resetKey={pageKey} fallback={(e, reset) => <PageError error={e} onRetry={reset} />}>
+              <Suspense fallback={<Loading />}>
+                <Page key={pageKey} />
+              </Suspense>
+            </ErrorBoundary>
           )}
         </main>
         <Footer compact />
@@ -269,6 +278,31 @@ function App() {
       {palette}
       {leaveDialog}
       <UpdateBanner />
+    </div>
+  );
+}
+
+/** Shown when one page fails to render; the rest of the app and the connection keep working. */
+function PageError({ error, onRetry }: { error: Error; onRetry: () => void }) {
+  const t = useT();
+  return (
+    <div className="page narrow">
+      <div className="card" role="alert">
+        <h1>{t('pageError.title')}</h1>
+        <p>{t('pageError.body')}</p>
+        <div className="row wrap">
+          <button type="button" className="btn primary" onClick={onRetry}>
+            {t('pageError.retry')}
+          </button>
+          <a className="btn" href={`${ISSUES_URL}?labels=bug`} target="_blank" rel="noopener noreferrer">
+            {t('footer.bug')}
+          </a>
+        </div>
+        <details className="small">
+          <summary>{t('error.technical')}</summary>
+          <code className="wrap-any">{error.message}</code>
+        </details>
+      </div>
     </div>
   );
 }

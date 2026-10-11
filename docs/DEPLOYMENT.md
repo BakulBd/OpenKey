@@ -12,8 +12,9 @@ browser (WebHID); the host never sees a device.
 | Path | Purpose |
 | ---- | ------- |
 | `index.html`, `assets/*`, `sw.js`, `manifest.webmanifest`, icons | the app and its offline shell (installable as a desktop app on Windows, macOS, Linux and ChromeOS) |
-| `linux/99-openkey.rules`, `linux/install-openkey-udev.sh` | the Linux permission rule and its installer, generated from `udev/` |
+| `linux/70-openkey.rules`, `linux/install-openkey-udev.sh` | the Linux permission rule and its installer, generated from `udev/` |
 | `_headers` | security headers for Netlify and Cloudflare Pages, generated from `vercel.json` |
+| `og.png`, `robots.txt`, `sitemap.xml` | social preview image and search-engine files; canonical and Open Graph URLs use `OPENKEY_SITE_URL` (build-time environment variable, default `https://openkey-lovat.vercel.app`). Set it when you host OpenKey elsewhere: `OPENKEY_SITE_URL=https://keys.example.org pnpm build:web` |
 
 ## Security headers (all hosts)
 

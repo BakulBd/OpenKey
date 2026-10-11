@@ -36,7 +36,7 @@ describe('sonix-feature evidence ledger', () => {
   });
 
   it('no capability claims more evidence than the commands it depends on', () => {
-    const caps = sonixFeature.sonixFeatureCapabilities(sonixFeature.resolveVariant('AK820 MAX'), 'usb');
+    const caps = sonixFeature.sonixFeatureCapabilities(sonixFeature.resolveVariant('AK820 MAX'), 'usb', 0x8009);
     for (const [feature, c] of Object.entries(caps)) {
       if (!c.write) continue;
       const deps = ledger.filter((e) => e.implemented && e.usedBy.includes(feature as never));

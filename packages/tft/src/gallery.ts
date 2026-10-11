@@ -73,6 +73,61 @@ function shade(img: RgbaImage, fn: (u: number, v: number) => Rgb): void {
     }
 }
 
+/** Pixel-art sprite helpers: a sprite is rows of characters, each mapped to a colour ('.' = clear). */
+type Palette = Record<string, Rgb>;
+const mirror = (half: string[]): string[] => half.map((r) => r + [...r].reverse().join(''));
+
+function spriteAt(sprite: string[], pal: Palette, col: number, row: number, x: number, y: number): Rgb | null {
+  const ch = sprite[y - row]?.[x - col];
+  return ch && ch !== '.' ? (pal[ch] ?? null) : null;
+}
+
+/** Paints on a coarse grid of `grid` cells across the shorter side, so pixel art stays crisp. */
+function pixels(img: RgbaImage, grid: number, fn: (x: number, y: number, u: number, v: number) => Rgb): void {
+  shade(img, (u, v) => fn(Math.floor(u * grid), Math.floor(v * grid), u, v));
+}
+
+const KITTY_PAL: Palette = {
+  K: [0.27, 0.16, 0.22],
+  W: [1, 0.8, 0.55],
+  P: [1, 0.58, 0.7],
+  E: [0.16, 0.1, 0.16],
+  H: [1, 1, 1],
+  C: [1, 0.62, 0.66],
+  L: [0.45, 0.32, 0.38],
+};
+/** Left half of a cat face; mirrored into the full 20-cell sprite. */
+const KITTY_OPEN = mirror([
+  '....K.....',
+  '...KPK....',
+  '...KPPK...',
+  '...KWWWKKK',
+  '..KWWWWWWW',
+  '..KWWHEWWW',
+  'LLKWWEEWWW',
+  '..KWCCWWWP',
+  'LLKWWWWWKW',
+  '..KWWWWWWK',
+  '...KWWWWWW',
+  '....KKKKKK',
+]);
+const KITTY_BLINK = KITTY_OPEN.map((r, i) => (i === 5 ? mirror(['..KWWWWWWW'])[0]! : i === 6 ? mirror(['LLKWWKKWWW'])[0]! : r));
+const SMALL_HEART = ['.X.X.', 'XXXXX', 'XXXXX', '.XXX.', '..X..'];
+
+const WALK_PAL: Palette = { K: [0.12, 0.1, 0.16], W: [0.98, 0.62, 0.3], S: [1, 0.82, 0.6], E: [0.1, 0.08, 0.1], P: [1, 0.55, 0.65] };
+const WALK_BODY = [
+  '..............K...K.',
+  '.............KWK.KWK',
+  '.............KWWKWWK',
+  '...KKKKKKKKKKWWWWWWK',
+  '..KWWWWWWWWWWWWWEWWK',
+  '..KWSWWSWWSWWWWWWWPK',
+  '..KWWWWWWWWWWKWWWWK.',
+  '..KWSWWSWWSWWKKKKK..',
+  '..KWWWWWWWWWWK......',
+  '...KKKKKKKKKK.......',
+];
+
 /** Additive plot of a soft dot (used by particle animations). */
 function dot(img: RgbaImage, cx: number, cy: number, radius: number, c: Rgb, alpha = 1): void {
   const { width: w, height: h, data } = img;
@@ -313,6 +368,301 @@ export const GALLERY: readonly GalleryAnimation[] = [
         [0.4, 3, 0.03, [0.6, 1, 0.6]],
       ];
       for (const [r, k, size, c] of planets) dot(img, 0.5 + Math.cos(TAU * k * t) * r, 0.5 + Math.sin(TAU * k * t) * r, size, c);
+    },
+  },
+  {
+    id: 'kitty',
+    name: 'Kitty',
+    description: 'A pixel-art kitten that bobs, blinks and sends floating hearts.',
+    frames: 32,
+    delayMs: 60,
+    paint(img, t) {
+      const G = 24;
+      const bob = Math.round(Math.sin(TAU * t) * 0.7);
+      const face = frac(t - 0.62) < 0.07 ? KITTY_BLINK : KITTY_OPEN;
+      const hearts = [0.1, 0.35, 0.6, 0.85].map((p, i) => ({ x: [1, 18, 3, 16][i]!, y: Math.round(26 - frac(p + t) * 32) }));
+      pixels(img, G, (x, y, u, v) => {
+        const c = spriteAt(face, KITTY_PAL, 2, 7 + bob, x, y);
+        if (c) return c;
+        for (const h of hearts) if (spriteAt(SMALL_HEART, { X: [1, 0.45, 0.62] }, h.x, h.y, x, y)) return [1, 0.45, 0.62];
+        // Pastel sky with a soft vignette.
+        const d = Math.hypot(u - 0.5, v - 0.45);
+        return [mix(0.86, 0.72, v) - d * 0.2, mix(0.8, 0.66, v) - d * 0.25, mix(1, 0.92, v) - d * 0.15];
+      });
+    },
+  },
+  {
+    id: 'kitty-walk',
+    name: 'Cat walk',
+    description: 'An orange pixel cat strolling under the stars.',
+    frames: 24,
+    delayMs: 70,
+    paint(img, t) {
+      const G = 32;
+      const step = frac(t * 2);
+      // Two stride phases per loop: diagonal legs move together, like a real walk.
+      const lift = (phase: number) => (frac(step + phase) < 0.5 ? 1 : 0);
+      const legs = [
+        { x: 4, up: lift(0) },
+        { x: 6, up: lift(0.5) },
+        { x: 10, up: lift(0.5) },
+        { x: 12, up: lift(0) },
+      ];
+      const sway = Math.sin(TAU * t * 2);
+      const bodyCol = 7;
+      const bodyRow = 13;
+      const stars = rng(7);
+      const field = Array.from({ length: 14 }, () => ({ x: Math.floor(stars() * G), y: Math.floor(stars() * 11), p: stars() }));
+      pixels(img, G, (x, y) => {
+        const c = spriteAt(WALK_BODY, WALK_PAL, bodyCol, bodyRow, x, y);
+        if (c) return c;
+        // Legs: three cells with a paw; a lifted leg is one cell shorter and reaches forward.
+        for (const l of legs) {
+          const lx = bodyCol + l.x + l.up;
+          const top = bodyRow + 9;
+          const bottom = bodyRow + 12 - l.up;
+          if (y >= top && y <= bottom && (x === lx || x === lx + 1)) return y === bottom ? WALK_PAL.S! : WALK_PAL.W!;
+          if (y >= top && y <= bottom && (x === lx - 1 || x === lx + 2)) return WALK_PAL.K!;
+        }
+        // Tail: two cells thick, rising from the rump and swaying.
+        for (let k = 1; k <= 6; k++) {
+          const tx = bodyCol + 2 - Math.round(k * 0.6);
+          const ty = bodyRow + 4 - k + Math.round(sway * (k / 6) * 1.6);
+          if ((x === tx || x === tx - 1) && y === ty) return k >= 5 ? WALK_PAL.S! : WALK_PAL.W!;
+        }
+        // Ground: dashes scroll left one full pattern per half loop.
+        const ground = bodyRow + 13;
+        if (y === ground) return (x + Math.floor(t * 12)) % 6 < 3 ? [0.35, 0.3, 0.5] : [0.2, 0.18, 0.32];
+        if (y > ground) return [0.13, 0.12, 0.22];
+        for (const s of field) if (x === s.x && y === s.y) return Array(3).fill(0.55 + 0.45 * Math.sin(TAU * (t + s.p)) ** 2) as Rgb;
+        return [0.07, mix(0.06, 0.14, y / ground), mix(0.18, 0.32, y / ground)];
+      });
+    },
+  },
+  {
+    id: 'fireworks',
+    name: 'Fireworks',
+    description: 'Three bursts of colour over a starry city night.',
+    frames: 36,
+    delayMs: 55,
+    paint(img, t) {
+      shade(img, (u, v) => [0.02 + v * 0.05, 0.02 + v * 0.04, 0.08 + v * 0.12]);
+      const sky = rng(3);
+      for (let i = 0; i < 26; i++) dot(img, sky(), sky() * 0.6, 0.004, [0.7, 0.7, 0.8], 0.4 + 0.4 * Math.sin(TAU * (t + sky())) ** 2);
+      const bursts: [number, number, number, number][] = [
+        [0.3, 0.32, 0.0, 0.02],
+        [0.7, 0.26, 0.33, 0.6],
+        [0.5, 0.45, 0.66, 0.85],
+      ];
+      for (const [bx, by, phase, hue] of bursts) {
+        const age = frac(t - phase);
+        if (age < 0.12) {
+          // The rocket climbs before it bursts.
+          dot(img, bx, 1 - (1 - by) * (age / 0.12), 0.008, [1, 0.9, 0.6]);
+          continue;
+        }
+        const k = (age - 0.12) / 0.88;
+        const r = 0.22 * (1 - (1 - k) ** 3);
+        const fade = (1 - k) ** 1.5;
+        for (let i = 0; i < 32; i++) {
+          const a = (TAU * i) / 32;
+          const c = hsv(hue + (i % 3) * 0.04, 0.75, 1);
+          const drop = k * k * 0.08;
+          // A short trail behind every spark, brighter at the head.
+          for (const [lag, w] of [[0, 1], [0.12, 0.55], [0.24, 0.3]] as const) {
+            const rr = r * (1 - lag);
+            dot(img, bx + Math.cos(a) * rr, by + Math.sin(a) * rr + drop, 0.013 - lag * 0.02, c, Math.min(1, fade * 1.4) * w);
+          }
+          if (i % 2 === 0) dot(img, bx + Math.cos(a) * r * 0.55, by + Math.sin(a) * r * 0.55 + drop, 0.008, [1, 1, 0.85], fade * 0.8);
+        }
+        dot(img, bx, by, 0.05 * (1 - k), [1, 0.9, 0.7], fade * 0.6);
+      }
+      // City skyline.
+      const { width: w, height: h, data } = img;
+      const city = rng(9);
+      const heights = Array.from({ length: 12 }, () => 0.08 + city() * 0.14);
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++) {
+          const hh = heights[Math.floor((x / w) * heights.length)]!;
+          if (y / h > 1 - hh) {
+            const i = (y * w + x) * 4;
+            const win = (x % 5 === 2 && y % 6 === 3 && city() > 0.55) || false;
+            data[i] = win ? 230 : 12;
+            data[i + 1] = win ? 200 : 12;
+            data[i + 2] = win ? 120 : 22;
+          }
+        }
+    },
+  },
+  {
+    id: 'snowfall',
+    name: 'Snowfall',
+    description: 'Soft snow drifting over a quiet winter night.',
+    frames: 40,
+    delayMs: 60,
+    paint(img, t) {
+      shade(img, (u, v) => {
+        const hill = 0.78 + 0.05 * Math.sin(u * 7.5) + 0.03 * Math.sin(u * 17);
+        if (v > hill) return [0.86 - (v - hill) * 0.6, 0.9 - (v - hill) * 0.5, 0.98];
+        return [0.04 + v * 0.12, 0.07 + v * 0.16, 0.2 + v * 0.25];
+      });
+      dot(img, 0.78, 0.18, 0.06, [0.95, 0.95, 0.85]);
+      const r = rng(17);
+      for (let i = 0; i < 70; i++) {
+        const x0 = r();
+        const y0 = r();
+        const speed = r() < 0.5 ? 1 : 2;
+        const size = 0.004 + r() * 0.008;
+        const p = r();
+        const y = frac(y0 + t * speed);
+        dot(img, frac(x0 + 0.02 * Math.sin(TAU * (t * speed + p))), y, size, [0.9, 0.93, 1], 0.9);
+      }
+    },
+  },
+  {
+    id: 'ocean',
+    name: 'Ocean Sunset',
+    description: 'Rolling waves under a warm setting sun.',
+    frames: 40,
+    delayMs: 60,
+    paint(img, t) {
+      shade(img, (u, v) => {
+        const sun = Math.hypot(u - 0.5, (v - 0.48) * 1.1);
+        const waves = [0.55, 0.65, 0.76, 0.88];
+        for (let k = 0; k < waves.length; k++) {
+          const y = waves[k]! + 0.02 * Math.sin(TAU * (u * (1.5 + k * 0.6) - t * (k + 1))) + 0.01 * Math.sin(TAU * (u * 4 + t * 2));
+          if (v > y) {
+            const d = 0.35 + k * 0.12;
+            const glint = Math.exp(-(((u - 0.5) * 6) ** 2)) * Math.max(0, Math.sin(TAU * (u * 9 + t * 3))) * 0.4 * (1 - k * 0.2);
+            return [0.05 + glint + 0.1 * (1 - d), 0.18 + glint * 0.8 + 0.2 * (1 - d), 0.35 + 0.25 * (1 - d) + glint * 0.5];
+          }
+        }
+        if (sun < 0.12) return [1, 0.85 - sun * 2, 0.45];
+        const g = smooth(0, 0.55, v);
+        return [mix(0.35, 1, g), mix(0.2, 0.55, g) + 0.2 * Math.exp(-sun * 6), mix(0.5, 0.35, g)];
+      });
+    },
+  },
+  {
+    id: 'sakura',
+    name: 'Sakura',
+    description: 'Cherry blossom petals floating on a spring breeze.',
+    frames: 40,
+    delayMs: 60,
+    paint(img, t) {
+      shade(img, (u, v) => {
+        // Branch across the top left.
+        const branch = Math.abs(v - (0.12 + 0.18 * u * u)) < 0.02 && u < 0.7;
+        if (branch) return [0.3, 0.18, 0.15];
+        return [mix(1, 0.98, v), mix(0.88, 0.78, v), mix(0.93, 0.9, v)];
+      });
+      for (let i = 0; i < 9; i++) dot(img, 0.08 + i * 0.07, 0.13 + 0.18 * (0.08 + i * 0.07) ** 2 - 0.02, 0.032, [0.05, -0.5, -0.25], 1);
+      const r = rng(23);
+      for (let i = 0; i < 40; i++) {
+        const x0 = r();
+        const y0 = r();
+        const p = r();
+        const speed = r() < 0.6 ? 1 : 2;
+        const y = frac(y0 + t * speed);
+        const x = frac(x0 + y * 0.25 + 0.03 * Math.sin(TAU * (t * speed + p)));
+        dot(img, x, y, 0.016 + 0.006 * Math.sin(TAU * (t + p)) ** 2, [-0.02, -0.42, -0.22], 1);
+      }
+    },
+  },
+  {
+    id: 'bd-flag',
+    name: 'Bangladesh Flag',
+    description: 'The flag of Bangladesh waving in the wind.',
+    frames: 36,
+    delayMs: 55,
+    paint(img, t) {
+      shade(img, (u, v) => {
+        // Pole on the left.
+        if (u > 0.08 && u < 0.105 && v > 0.12) return [0.75, 0.75, 0.78];
+        const x = (u - 0.105) / 0.84;
+        const amp = 0.035 * x;
+        const wave = Math.sin(TAU * (x * 1.6 - t));
+        const y = (v - 0.2 - amp * wave) / 0.5;
+        if (x < 0 || x > 1 || y < 0 || y > 1) return [mix(0.55, 0.85, v), mix(0.75, 0.92, v), 1];
+        const light = 0.85 + 0.15 * Math.cos(TAU * (x * 1.6 - t));
+        // Red disc: centre at 45 % of the length, radius 1/5 of the length (flag 10:6).
+        const inDisc = Math.hypot((x - 0.45) * 10, (y - 0.5) * 6) < 2;
+        return inDisc ? [0.957 * light, 0.165 * light, 0.255 * light] : [0, 0.416 * light, 0.306 * light];
+      });
+    },
+  },
+  {
+    id: 'fish-tank',
+    name: 'Fish Tank',
+    description: 'Pixel fish and rising bubbles in a calm aquarium.',
+    frames: 40,
+    delayMs: 70,
+    paint(img, t) {
+      const G = 32;
+      const fish = [
+        { y: 9, phase: 0.1, speed: 1, body: [1, 0.55, 0.15] as Rgb, dir: 1 },
+        { y: 17, phase: 0.6, speed: 1, body: [0.3, 0.75, 1] as Rgb, dir: -1 },
+        { y: 23, phase: 0.35, speed: 2, body: [1, 0.85, 0.2] as Rgb, dir: 1 },
+      ];
+      const r = rng(31);
+      const bubbles = Array.from({ length: 10 }, () => ({ x: Math.floor(r() * G), p: r() }));
+      pixels(img, G, (x, y, u, v) => {
+        for (const f of fish) {
+          const fx = Math.floor(frac(f.phase + t * f.speed) * (G + 8)) - 4;
+          const dx = (x - fx) * f.dir;
+          const dy = y - f.y;
+          if (dx >= -1 && dx <= 1 && Math.abs(dy) <= 1) return dx === 1 && dy === -1 ? [0.05, 0.05, 0.1] : f.body;
+          if (dx === 2 && dy === 0) return f.body;
+          if (dx === -2 && Math.abs(dy) <= 1) return [f.body[0] * 0.8, f.body[1] * 0.6, f.body[2] * 0.6];
+        }
+        for (const b of bubbles) if (x === b.x && y === Math.floor((1 - frac(b.p + t * 2)) * G)) return [0.75, 0.9, 1];
+        if (y >= G - 3) return (x * 7 + y * 3) % 5 === 0 ? [0.85, 0.75, 0.45] : [0.75, 0.65, 0.4];
+        const sway = Math.sin(TAU * (t + x * 0.05));
+        if (x % 9 === 2 && y > G - 12 + Math.round(sway)) return [0.15, 0.6, 0.3];
+        return [0.05, mix(0.45, 0.2, v) + 0.03 * Math.sin(TAU * (u * 2 + t)), mix(0.75, 0.45, v)];
+      });
+    },
+  },
+  {
+    id: 'lava-lamp',
+    name: 'Lava Lamp',
+    description: 'Slow glowing blobs that merge and split.',
+    frames: 48,
+    delayMs: 60,
+    paint(img, t) {
+      const blobs = [0, 1, 2, 3, 4].map((i) => ({
+        x: 0.5 + 0.22 * Math.sin(TAU * (t + i * 0.2)),
+        y: 0.5 + 0.32 * Math.sin(TAU * (t * (i % 2 ? 1 : 2) + i * 0.37)),
+        r: 0.09 + 0.02 * (i % 3),
+      }));
+      shade(img, (u, v) => {
+        let f = 0;
+        for (const b of blobs) f += (b.r * b.r) / ((u - b.x) ** 2 + (v - b.y) ** 2 + 1e-4);
+        const k = smooth(0.9, 1.1, f);
+        const glow = Math.min(1, f * 0.3);
+        return [mix(0.12 + glow * 0.3, 1, k), mix(0.02 + glow * 0.05, 0.35 + 0.3 * v, k), mix(0.18 + glow * 0.2, 0.15, k)];
+      });
+    },
+  },
+  {
+    id: 'spiral-galaxy',
+    name: 'Spiral Galaxy',
+    description: 'A two-armed galaxy turning in deep space.',
+    frames: 48,
+    delayMs: 60,
+    paint(img, t) {
+      shade(img, (u, v) => {
+        const x = u - 0.5;
+        const y = (v - 0.5) * 1.15;
+        const r = Math.hypot(x, y);
+        const a = Math.atan2(y, x);
+        const arm = Math.cos(2 * (a - Math.log(r + 0.02) * 2.4 - TAU * t));
+        const density = Math.exp(-r * 5) * (0.55 + 0.45 * arm);
+        const core = Math.exp(-r * r * 140);
+        return [density * 0.9 + core, density * 0.7 + core * 0.9, density * 1.2 + core * 0.7];
+      });
+      const r = rng(41);
+      for (let i = 0; i < 40; i++) dot(img, r(), r(), 0.003, [0.8, 0.8, 1], 0.3 + 0.5 * Math.sin(TAU * (t + r())) ** 2);
     },
   },
   {

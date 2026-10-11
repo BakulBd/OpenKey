@@ -102,7 +102,6 @@ const m: Partial<Messages> = {
   'landing.pipe.ui': '介面',
   'landing.pipe.ui.d': '只顯示鍵盤真正能做的事。',
   'landing.hardwareTitle': '硬體狀態',
-  'landing.flagship': '旗艦裝置：AJAZZ AK820 MAX PLUS（TFT）。辨識與讀取已在硬體上驗證；寫入在驗證前為實驗性。',
   'landing.countsNote': '數字為各驗證狀態的目錄項目；絕不會加總成單一「已支援」數字。',
   'landing.privacyTitle': '以隱私為設計核心',
   'landing.privacy.noAccount': '無帳號、無分析、無追蹤。',

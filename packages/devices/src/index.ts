@@ -121,3 +121,4 @@ export function matchProfiles(
   return out.sort((a, b) => b.score - a.score);
 }
 export * from './catalog.js';
+export * from './guide.js';

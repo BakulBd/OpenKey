@@ -26,7 +26,17 @@ export type KeyAction =
   /** Encoding OpenKey does not understand; preserved byte-for-byte. */
   | { kind: 'raw'; bytes: number[] };
 
-export type LayerId = 'base' | 'fn';
+/** `base` and `fn` for two-layer boards; `layer2`, `layer3` … for firmware with more layers. */
+export type LayerId = 'base' | 'fn' | `layer${number}`;
+
+/** 0 for base, 1 for fn, n for `layer<n>`. */
+export function layerIndex(id: LayerId): number {
+  return id === 'base' ? 0 : id === 'fn' ? 1 : Number(id.slice(5));
+}
+
+export function layerIdAt(n: number): LayerId {
+  return n === 0 ? 'base' : n === 1 ? 'fn' : `layer${n}`;
+}
 
 export type KeyActionKind = KeyAction['kind'];
 

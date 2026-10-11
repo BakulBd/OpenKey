@@ -93,6 +93,13 @@ export interface ProbeConsent {
 export interface ProbePlan {
   operations: ProbeOperation[];
   autoConsent(group: HidDeviceGroupInfo): ProbeConsent;
+  /**
+   * How the family is identified. `handshake` (default): the device answers a family-specific
+   * request. `vendor-model-list`: only for write-only protocols with no read command at all; the
+   * exact USB identity must appear in the vendor software's own model list *and* the report layout
+   * must match. Such adapters send nothing while detecting, and their writes stay experimental.
+   */
+  identifiedBy?: 'handshake' | 'vendor-model-list';
 }
 
 /** A physical unit an adapter was verified on (detection and identification at least). */

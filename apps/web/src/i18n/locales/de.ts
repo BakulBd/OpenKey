@@ -102,7 +102,6 @@ const m: Partial<Messages> = {
   'landing.pipe.ui': 'Oberfläche',
   'landing.pipe.ui.d': 'Angezeigt wird nur, was deine Tastatur wirklich kann.',
   'landing.hardwareTitle': 'Hardware-Status',
-  'landing.flagship': 'Referenzgerät: AJAZZ AK820 MAX PLUS (TFT). Erkennung und Lesen sind auf Hardware geprüft; Schreiben bleibt bis zur Prüfung experimentell.',
   'landing.countsNote': 'Die Zahlen sind Katalogeinträge je Prüfstatus; sie werden nie zu einer „unterstützt“-Zahl addiert.',
   'landing.privacyTitle': 'Datenschutz von Grund auf',
   'landing.privacy.noAccount': 'Kein Konto, keine Analyse, kein Tracking.',

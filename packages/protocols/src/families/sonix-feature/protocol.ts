@@ -225,28 +225,30 @@ export const sonixFeatureProtocol: ProtocolDefinition = {
   id: SONIX_FEATURE_PROTOCOL_ID,
   manifest: {
     version: '1.0.0',
-    status: 'experimental',
+    status: 'verified',
     transports: { input: ['usb', '2.4ghz', 'bluetooth'], configuration: ['usb'] },
     verification:
-      'Detection, START handshake and per-key colour read verified on an AK820 MAX PLUS (fw 1.07, USB). Writes are reproduced from the official driver and not yet verified on hardware.',
+      'Verified on an AK820 MAX PLUS (0C45:8009, fw 1.07, USB): detection, handshake, per-key read, and the keymap, Fn layer, macro, lighting, per-key, screen, clock and settings writes. Other variants and links are reproduced from the official driver.',
     safety:
-      'Writes need the experimental opt-in until verified. Most settings cannot be read back; OpenKey mirrors what it wrote. No firmware, bootloader or erase command exists in this adapter.',
+      'Verified writes are offered after a confirmation; everything else needs the experimental opt-in. Most settings cannot be read back; OpenKey mirrors what it wrote. No firmware, bootloader or erase command exists in this adapter.',
     provenance: [
       { source: 'hardware-verification', reference: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json', status: Evidence.VERIFIED },
       { source: 'hardware-verification', reference: 'fixtures/rgb/ak820-max-plus-read-per-key-hw.json', status: Evidence.VERIFIED },
+      { source: 'hardware-verification', reference: 'fixtures/verification/ak820-max-plus-owner-test-hw.json', status: Evidence.VERIFIED },
       { source: 'official-driver', reference: 'AJAZZ AK820 MAX&MAX PLUS driver V1.0.0.5 (docs/reverse-engineering/official-driver-analysis.md)', status: Evidence.OBSERVED },
       { source: 'public-reverse-engineering', reference: 'VitalyArt/Aula-F75-Max-Driver (MIT): same command set on 0C45:800A, independent cross-check', status: Evidence.INFERRED },
     ],
     license: 'MIT',
     limitations: [
       'Keymap, macros, lighting and settings cannot be read back; OpenKey shows what it last wrote.',
-      'Writes are reproduced from the official driver and not yet verified on hardware.',
+      'Writes are verified on the AK820 MAX PLUS over USB only; live per-key preview and default restore are not verified.',
       'No configuration over Bluetooth; the 2.4 GHz receiver is a separate adapter.',
       'The firmware version is not reported; bcdDevice is only a hint.',
     ],
     fixtures: [
       'fixtures/device-info/ak820-max-plus-start-handshake-hw.json',
       'fixtures/rgb/ak820-max-plus-read-per-key-hw.json',
+      'fixtures/verification/ak820-max-plus-owner-test-hw.json',
       'fixtures/diagnostics/ak820-max-plus-descriptors.json',
     ],
     verifiedIdentities: [
@@ -256,8 +258,8 @@ export const sonixFeatureProtocol: ProtocolDefinition = {
         productName: 'AK820 MAX',
         release: 0x0107,
         transport: 'usb',
-        scope: 'descriptors, START handshake, per-key colour read',
-        evidence: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json',
+        scope: 'descriptors, START handshake, per-key colour read; keymap, Fn layer, macros, lighting, per-key, screen image and GIF, clock and settings writes',
+        evidence: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json, fixtures/verification/ak820-max-plus-owner-test-hw.json',
       },
     ],
   },

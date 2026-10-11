@@ -102,7 +102,6 @@ const m: Partial<Messages> = {
   'landing.pipe.ui': 'Interface',
   'landing.pipe.ui.d': 'Seul ce que votre clavier sait vraiment faire est affiché.',
   'landing.hardwareTitle': 'État du matériel',
-  'landing.flagship': 'Clavier phare : AJAZZ AK820 MAX PLUS (TFT). Détection et lecture vérifiées sur le matériel ; écritures expérimentales jusqu’à vérification.',
   'landing.countsNote': 'Les nombres sont des entrées du catalogue par état de vérification ; ils ne sont jamais additionnés en un seul total « pris en charge ».',
   'landing.privacyTitle': 'Confidentialité par conception',
   'landing.privacy.noAccount': 'Pas de compte, pas d’analyse, pas de pistage.',

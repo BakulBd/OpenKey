@@ -17,6 +17,8 @@ import {
   offlineGroup,
   sonixAa55,
   sonixFeature,
+  byTech,
+  royuan,
 } from '@openkey/protocols';
 import { ROOT } from '../helpers.js';
 
@@ -31,6 +33,12 @@ const rawHid = (page: number, usage: number, size: number) => ({
 /** A device each adapter is expected to identify, answering exactly like the documented firmware. */
 const SAMPLES: Record<string, () => MockHidDevice> = {
   'sonix-feature': () => new sonixFeature.SonixFeatureSimulator().device,
+  'by-tech': () => new byTech.ByTechSimulator().device,
+  royuan: () => new royuan.RoyuanSimulator().device,
+  'rk-classic': () =>
+    new MockHidDevice({ vendorId: 0x258a, productId: 0x004a, productName: 'RK61RGB Wired' }, [
+      { info: { collections: [{ usagePage: 0x0001, usage: 0x0080, inputReports: [], outputReports: [], featureReports: [{ reportId: 0x0a, size: 64 }] }] }, behavior: { onFeatureSet: () => undefined } },
+    ]),
   'sonix-aa55': () => new sonixAa55.SonixAa55Simulator().device,
   'qmk-via': () =>
     new MockHidDevice({ vendorId: 0xfeed, productId: 0x0001, productName: 'QMK board' }, [
@@ -101,7 +109,10 @@ describe('adapter conformance', () => {
       const report = await solo.detect(dev.group(), { level: 'handshake', consent: [def.id] });
       expect(checkProbeTraffic(def, dev.traffic, 'handshake')).toEqual([]);
       const handshake = def.probePlan.operations.some((o) => o.level === 'handshake');
-      expect(report.candidates[0]!.probe?.identified ?? false).toBe(handshake);
+      // Write-only protocols identified from the vendor's model list send nothing and still identify.
+      const listed = def.probePlan.identifiedBy === 'vendor-model-list';
+      expect(report.candidates[0]!.probe?.identified ?? false).toBe(handshake || listed);
+      if (listed) expect(dev.traffic).toEqual([]);
     });
 
     it(`${def.id}: the passive level sends nothing`, async () => {

@@ -102,7 +102,6 @@ const m: Partial<Messages> = {
   'landing.pipe.ui': '인터페이스',
   'landing.pipe.ui.d': '키보드가 실제로 할 수 있는 것만 보여 줍니다.',
   'landing.hardwareTitle': '하드웨어 상태',
-  'landing.flagship': '대표 장치: AJAZZ AK820 MAX PLUS(TFT). 감지와 읽기는 실제 하드웨어에서 검증되었고, 쓰기는 검증 전까지 실험 단계입니다.',
   'landing.countsNote': '숫자는 검증 상태별 카탈로그 항목 수이며, 하나의 “지원” 숫자로 합치지 않습니다.',
   'landing.privacyTitle': '개인정보 보호 중심 설계',
   'landing.privacy.noAccount': '계정, 분석, 추적이 없습니다.',

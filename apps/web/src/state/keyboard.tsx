@@ -119,8 +119,26 @@ export interface WriteGate {
 export interface AccessProblem {
   os: OsName;
   kind: 'permission' | 'busy';
-  device: { key: string; name: string };
+  device: { key: string; name: string; vendorId: number; productId: number };
   detail: string;
+}
+
+/**
+ * Opens and closes the device's first vendor interface (or its first interface) without sending a
+ * report. Returns the error message when the OS refuses access, null otherwise.
+ */
+async function openDenied(group: HidDeviceGroup): Promise<string | null> {
+  const iface = group.interfaces.find((i) => i.collections.some((c) => c.usagePage >= 0xff00)) ?? group.interfaces[0];
+  if (!iface) return null;
+  try {
+    const t = await group.openInterface(iface);
+    await t.close().catch(() => undefined);
+    return null;
+  } catch (e) {
+    const code = (e as { code?: unknown }).code;
+    const message = e instanceof Error ? e.message : String(e);
+    return isAccessFailure(code, message) ? message : null;
+  }
 }
 
 /** Errors that mean "could not open the device", as opposed to a protocol answer. */
@@ -128,6 +146,10 @@ const OPEN_FAILURE = /cannot open|failed to open|permission|denied|not ?allowed|
 function isAccessFailure(code: unknown, message: string): boolean {
   return (code === 'PERMISSION' || code === 'TRANSPORT') && OPEN_FAILURE.test(message);
 }
+
+/** Simulated keyboards for the demo: one per protocol family OpenKey configures. */
+export type DemoKind = 'ak820' | 'aula-f75' | 'rk-r75' | 'via';
+export const DEMO_KINDS: readonly DemoKind[] = ['ak820', 'via', 'aula-f75', 'rk-r75'];
 
 /** A device the site already has permission for and that is plugged in now. */
 export interface AuthorizedDevice {
@@ -170,9 +192,12 @@ interface Ctx {
   inspect(): Promise<void>;
   /** Opens an already-authorised device without the browser chooser. */
   openAuthorized(key: string): Promise<void>;
-  connectDemo(): Promise<void>;
+  /** Opens a firmware simulator: the AK820 MAX (default), an AULA F75 or an RK R75. */
+  connectDemo(kind?: DemoKind): Promise<void>;
   /** Unknown-device mode: run one adapter's identification handshake after the user allowed it. */
   identify(adapterId: string): Promise<void>;
+  /** Re-identifies the connected keyboard with the consent it already has, refreshing capabilities. */
+  reconnect(): Promise<void>;
   disconnect(): Promise<void>;
   /** Runs a read with error reporting. Answers for a previous session are discarded (undefined). */
   read<T>(label: string, fn: (d: KeyboardDriver) => Promise<T>, opts?: { quiet?: boolean }): Promise<T | undefined>;
@@ -296,7 +321,8 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
 
   const noteAccess = useCallback((group: HidDeviceGroup, detail: string) => {
     const os = currentOs();
-    setAccessProblem({ os, kind: os === 'linux' ? 'permission' : 'busy', device: { key: group.key, name: group.identity.productName }, detail });
+    const { productName: name, vendorId, productId } = group.identity;
+    setAccessProblem({ os, kind: os === 'linux' ? 'permission' : 'busy', device: { key: group.key, name, vendorId, productId }, detail });
   }, []);
 
   const attach = useCallback(
@@ -330,9 +356,18 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
         // Every matching adapter failed to *open* the device: that is a permission or busy problem,
         // not a protocol answer. End the attempt and show the fix instead of a misleading verdict.
         const probed = detection.candidates.filter((c) => c.match.applicable && c.probe && c.probe.status !== 'skipped');
-        if (!demo && probed.length && probed.every((c) => c.probe!.status === 'error' && isAccessFailure(c.probe!.facts.errorCode, c.probe!.summary))) {
-          noteAccess(group, probed[0]!.probe!.summary);
-          dispatch({ type: 'FAIL', message: probed[0]!.probe!.summary, recoverable: false });
+        let denied =
+          !demo && probed.length && probed.every((c) => c.probe!.status === 'error' && isAccessFailure(c.probe!.facts.errorCode, c.probe!.summary))
+            ? probed[0]!.probe!.summary
+            : null;
+        // No probe opened the device (it waits for consent, or nothing matched): check that the OS
+        // lets the browser open it at all, so a Linux permission problem is explained right away
+        // instead of after the user allowed identification. Opening sends nothing to the keyboard.
+        if (!demo && !denied && probed.length === 0) denied = await openDenied(group);
+        if (stale()) return false;
+        if (denied) {
+          noteAccess(group, denied);
+          dispatch({ type: 'FAIL', message: denied, recoverable: false });
           dispatch({ type: 'RESET' });
           return false;
         }
@@ -399,6 +434,15 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     [attach, lock],
   );
 
+  const reconnect = useCallback(async () => {
+    const s = sessionRef.current;
+    if (s?.kind !== 'device' || lock.current) return;
+    const protocolId = s.detection.selected?.protocolId;
+    await s.driver.disconnect().catch(() => undefined);
+    dispatch({ type: 'REIDENTIFY' });
+    await attach(s.group, s.demo, { consent: protocolId ? [protocolId] : [], log: s.log, reidentify: true });
+  }, [attach, lock]);
+
   const request = useCallback(
     async (filters: HIDDeviceFilter[]) => {
       if (!support.available) return;
@@ -457,12 +501,21 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
   const openAuthorizedRef = useRef(openAuthorized);
   openAuthorizedRef.current = openAuthorized;
 
-  const connectDemo = useCallback(async () => {
-    dispatch({ type: 'OPEN_DEMO' });
-    const { sonixFeature } = await import('@openkey/protocols');
-    const sim = new sonixFeature.SonixFeatureSimulator();
-    await attach(sim.device.group(), true);
-  }, [attach]);
+  const connectDemo = useCallback(
+    async (kind: DemoKind = 'ak820') => {
+      dispatch({ type: 'OPEN_DEMO' });
+      const { sonixFeature, byTech, via } = await import('@openkey/protocols');
+      if (kind === 'ak820') return void (await attach(new sonixFeature.SonixFeatureSimulator().device.group(), true));
+      if (kind === 'via') return void (await attach(new via.ViaSimulator().device.group(), true));
+      const sim =
+        kind === 'aula-f75'
+          ? new byTech.ByTechSimulator()
+          : new byTech.ByTechSimulator({ identity: { vendorId: 0x258a, productId: 0x015e, productName: 'Gaming Keyboard', manufacturer: 'BY Tech' }, modelCode: byTech.R75_IDENTITY });
+      // A simulator cannot be harmed, so its identification read needs no consent.
+      await attach(sim.device.group(), true, { consent: ['by-tech'] });
+    },
+    [attach],
+  );
 
   const disconnect = useCallback(async () => {
     dispatch({ type: 'DISCONNECT' });
@@ -697,6 +750,7 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     openAuthorized,
     connectDemo,
     identify,
+    reconnect,
     disconnect,
     read,
     gate,

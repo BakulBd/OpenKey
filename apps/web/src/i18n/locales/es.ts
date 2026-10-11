@@ -102,7 +102,6 @@ const m: Partial<Messages> = {
   'landing.pipe.ui': 'Interfaz',
   'landing.pipe.ui.d': 'Solo se muestra lo que tu teclado realmente puede hacer.',
   'landing.hardwareTitle': 'Estado del hardware',
-  'landing.flagship': 'Teclado insignia: AJAZZ AK820 MAX PLUS (TFT). La detección y la lectura están verificadas en hardware; la escritura es experimental hasta verificarse.',
   'landing.countsNote': 'Los números son entradas del catálogo por estado de verificación; nunca se suman en una única cifra de «compatibles».',
   'landing.privacyTitle': 'Privacidad desde el diseño',
   'landing.privacy.noAccount': 'Sin cuenta, sin analítica, sin rastreo.',

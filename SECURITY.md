@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Report security problems privately through GitHub's **Report a vulnerability** (security advisories) for
-this repository, not in a public issue. Include steps to reproduce and the affected version.
+this repository (https://github.com/BakulBd/openkey/security/advisories/new), not in a public issue. Include steps to reproduce and the affected version.
 
 ## Scope
 

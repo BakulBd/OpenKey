@@ -13,7 +13,7 @@ The web app detects this: when the browser lists the keyboard but cannot open it
    sudo sh ~/Downloads/install-openkey-udev.sh
    ```
 
-   It copies one rule file (`99-openkey.rules`, embedded in the script, identical to the repository
+   It copies one rule file (`70-openkey.rules`, embedded in the script, identical to the repository
    file) to `/etc/udev/rules.d/`, keeps a `.bak` of a different existing file, and reloads udev for
    hidraw devices. `--dry-run` shows what it would do, `--uninstall` removes the rule. It never talks
    to a keyboard and never runs automatically.
@@ -23,7 +23,7 @@ The web app detects this: when the browser lists the keyboard but cannot open it
 By hand instead:
 
 ```sh
-sudo cp udev/99-openkey.rules /etc/udev/rules.d/
+sudo cp udev/70-openkey.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=hidraw
 ```
 

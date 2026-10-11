@@ -1,5 +1,51 @@
 # Changelog
 
+## Unreleased — AK820 verified, AULA and RK keyboards, easier Linux, GIF gallery
+
+- AJAZZ AK820 MAX / MAX PLUS (`0C45:8009`, USB): keymap, Fn layer, macros, lighting, per-key colours,
+  screen image and GIF, clock and settings writes are now **verified on hardware** (owner test,
+  `fixtures/verification/ak820-max-plus-owner-test-hw.json`) and no longer need the experimental switch.
+  Other AK820 variants and links keep their previous status. Write policy: a hardware-verified write of
+  any assessed risk class is offered after a confirmation (every time for HIGH_RISK).
+- New **BY Tech** adapter for AULA F75/F87/F99/H108 and RK R75 RGB: identifies the model by its own model
+  code (one read, asked first except on `258A:010C`), reads the 128-byte settings page and writes back only
+  changed bytes with a read-back check. Lighting and sleep are experimental. Unknown models (the R75) can
+  be **taught** their layout from two key presses on the keyboard itself, reads only.
+- Demo picker: AJAZZ AK820 MAX (screen), AULA F75 and RK R75 simulators.
+- Linux: the rule is now `70-openkey.rules` (systemd applies `uaccess` only to rules sorted before
+  `73-seat-late.rules`; the old `99-` name granted only the `plugdev` group) and the installer replaces
+  OpenKey's old file. New `--device VVVV:PPPP` adds any keyboard. The setup panel gives one command to
+  paste, prefilled with the failing keyboard's ID, and the app checks whether the OS lets it open the
+  keyboard before asking for identification.
+- Screen gallery: two original pixel-art cats (Kitty, Cat walk) and a new tab of nine public-domain /
+  CC0 GIFs from Wikimedia Commons (cats, heart, Muybridge animals, Earth, globe, Newton's cradle,
+  zoetrope), credited in THIRD_PARTY.md.
+- Repository: https://github.com/BakulBd/openkey.
+- **VIA adapter** for QMK/VIA and Vial keyboards: keymaps on any number of layers (layer and special
+  keys in the picker), macros, QMK lighting channels, read-back after every write; VIA definition and
+  QMK `info.json` import (KLE parser) or a matrix grid; reset and bootloader commands never sent.
+- **Name Studio** on the Screen page: type a name ("Bakul" by default) and pick one of ten animated
+  styles (Neon Pulse, Rainbow Wave, Galaxy Dream, Typewriter, Blaze, LED Marquee, Love Beat, Cyber
+  Glitch, Royal Gold, Matrix Code), with a list of keyboards whose screen accepts uploads.
+- SEO and sharing: descriptive title, canonical URL, Open Graph and Twitter cards with a 1200×630 image,
+  JSON-LD, robots.txt and sitemap.xml (`OPENKEY_SITE_URL` sets the public URL), crawlable static text.
+- **ROYUAN adapter** (sharkfin's hardware-tested notes, facts only): identify `0x8F`, command-set
+  detection via `0x80`, lighting read/write `0x87`/`0x07` with read-back; reset, erase and boot opcodes
+  refused by the packet builder. The magnetic AJAZZ AK820 (`3151:4015`) and the AJAZZ "BY edition"
+  (`258A:010C`, BY Tech adapter) are now community-supported.
+- **Classic RK adapter** (rangoli / kludgeknight facts): 78 Royal Kludge models from RK's own model list
+  (RK61, RK68, RK84, RK87, RK100 …), lighting and sleep; write-only, identified from the vendor model list
+  (`identifiedBy: 'vendor-model-list'`, documented in the adapter contract), nothing sent while detecting.
+- **"Is my keyboard supported?"** guide for 40 popular keyboards by name (Bangladesh, Asia, gaming,
+  enthusiast) in the Compatibility page and docs/MODEL_GUIDE.md.
+- Screen: eight new animations (Fireworks, Snowfall, Ocean Sunset, Sakura, Bangladesh Flag, Fish Tank,
+  Lava Lamp, Spiral Galaxy), two more public-domain GIFs (tesseract, hurricane from space), speed and loop
+  (reverse, boomerang) controls, and photo slideshows with crossfades.
+- Card-based Compatibility center (status cards as filters, brand chips, device cards, "not compatible
+  yet" with reasons, VIA-for-any-brand callout), landing hero with a live keyboard screen, feature cards,
+  per-page titles, and error boundaries so a failing page never blanks the app.
+- Source review of the community projects with licences and findings: docs/SOURCES_REVIEW.md.
+
 ## Unreleased — platforms, deployment, screen gallery
 
 - Linux: the app detects "listed but cannot be opened", shows **Linux setup required** with a

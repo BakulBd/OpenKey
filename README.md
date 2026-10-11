@@ -6,23 +6,29 @@ OpenKey talks to a keyboard directly over WebHID. There is no installer, no acco
 telemetry: the deployment is static files, and everything you create stays in your browser. Keyboards
 are supported through protocol adapters, and OpenKey says exactly what it has verified for each one.
 
-**Live app:** https://openkey-lovat.vercel.app · **Try it without hardware:** open the app and click
-_Try demo_.
+**Live app:** https://openkey-lovat.vercel.app · **Source:** https://github.com/BakulBd/openkey ·
+**Try it without hardware:** open the app and click _Try demo_.
 
-> OpenKey is not universal yet. Today it configures the AJAZZ AK820 family; any other keyboard can be
-> inspected read-only and reported so an adapter can be built. It never flashes firmware.
+> OpenKey is not universal yet. Today it configures the AJAZZ AK820 family and, experimentally, AULA and
+> RK keyboards on the BY Tech platform; any other keyboard can be inspected read-only and reported so an
+> adapter can be built. It never flashes firmware.
 
 ## What works today
 
 | Area                                                    | State                                                                                                                                                                                                                                                                       |
 | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Flagship: AJAZZ AK820 MAX / MAX PLUS (TFT), `0C45:8009` | Detection, protocol handshake and per-key colour read **verified on hardware**. Keymap, Fn layer, lighting, per-key write, macros, screen upload, clock and settings are implemented from the official driver and are **experimental** (opt-in) until verified on hardware. |
+| Flagship: AJAZZ AK820 MAX / MAX PLUS (TFT), `0C45:8009` | **Verified on hardware** over USB: detection, handshake, per-key read, and keymap, Fn layer, macros, lighting, per-key colours, screen image and GIF upload, clock and settings writes (owner test 2026-10-11). Each write still asks for confirmation; screen uploads every time. Live per-key preview and default restore remain experimental. |
 | Other AK820 variants                                    | Community or research status; see the Compatibility page.                                                                                                                                                                                                                   |
-| AULA, ROYUAN, Vial                                      | Planned adapters: their descriptor signatures are recognised in unknown-device mode; nothing is sent.                                                                                                                                                                       |
+| AULA F75 / F87 / F99 / H108 (`258A:010C`), RK R75 RGB (`258A:015E`) | New **BY Tech** adapter: model identified by its own model code; lighting effect, colour, brightness, speed and sleep read from the keyboard and written back with a read-back check (**experimental**, from a third-party implementation verified on an F75). Unknown models of this platform (e.g. the R75) can be taught their settings layout with the keyboard's own shortcuts — reads only. |
+| QMK / VIA and Vial keyboards (Keychron, GMMK and many custom boards)   | New **VIA** adapter: keymap on every layer, layer keys, macros and QMK lighting, all read back after writing (experimental until verified on a physical board). Load the keyboard's VIA definition or QMK `info.json` once for the key picture, or use a matrix grid. |
+| ROYUAN boards (Akko, MonsGeek, ABKO, magnetic AJAZZ AK820 with screen …) | New **ROYUAN** adapter: identification (asked first) and lighting effect, colour, brightness and speed with read-back (experimental). Keymap, macros and settings wait for hardware evidence because the two ROYUAN command sets reuse those opcodes differently. |
+| Royal Kludge RK61, RK68, RK84, RK87, RK100 … (78 models on RK's own list) | New **classic RK** adapter: lighting effect, colour, brightness, speed and sleep (write-only protocol; OpenKey shows what it last wrote). Experimental. |
+| Not yet                                                 | 2.4 GHz receivers (settings over radio), Bluetooth links (no settings channel), the AK820 wired single-colour (CRS `1A2C:9605`). Inspect and report them from the app; see the Compatibility page. |
 | Any HID device                                          | Read-only inspection with an explained verdict and next safe step, sanitized diagnostic package, device-support request, offline analysis of diagnostic files.                                                                                                              |
 | Demo                                                    | Full UI against a firmware simulator running the real protocol code.                                                                                                                                                                                                        |
 
-Feature-level detail with evidence: [docs/HARDWARE_TEST_MATRIX.md](docs/HARDWARE_TEST_MATRIX.md),
+Popular keyboards by name (Redragon, Fantech, RK, AULA, Keychron, Akko, Wooting, Razer, Logitech …):
+[docs/MODEL_GUIDE.md](docs/MODEL_GUIDE.md). Feature-level detail with evidence: [docs/HARDWARE_TEST_MATRIX.md](docs/HARDWARE_TEST_MATRIX.md),
 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## How it works

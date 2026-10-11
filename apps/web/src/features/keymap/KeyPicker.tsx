@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { MODIFIER_BITS, actionsEqual, searchKeycodes } from '@openkey/core';
-import type { KeyAction, KeyActionKind, KeycodeGroup, MacroPlayMode } from '@openkey/core';
+import { MODIFIER_BITS, actionsEqual, keycodeCatalog, searchKeycodes } from '@openkey/core';
+import type { KeyAction, KeyActionKind, KeycodeEntry, KeycodeGroup, MacroPlayMode } from '@openkey/core';
 import { useT } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
 
-const GROUPS: KeycodeGroup[] = ['letters', 'digits', 'function', 'navigation', 'editing', 'modifiers', 'punctuation', 'numpad', 'media', 'system', 'mouse', 'shortcuts', 'special'];
+const GROUPS: KeycodeGroup[] = ['letters', 'digits', 'function', 'navigation', 'editing', 'modifiers', 'punctuation', 'numpad', 'media', 'system', 'mouse', 'shortcuts', 'layers', 'special'];
 
 /**
  * Searchable action picker. Only action kinds the active adapter can encode are offered, so a choice
@@ -18,6 +18,8 @@ export function KeyPicker({
   macroSlots,
   query,
   onQuery,
+  specials = [],
+  layerCount = 2,
 }: {
   value: KeyAction;
   onChange: (a: KeyAction) => void;
@@ -25,13 +27,24 @@ export function KeyPicker({
   macroSlots: number;
   query: string;
   onQuery: (q: string) => void;
+  /** Firmware functions the driver offers as `special` actions (QMK Transparent, lighting keys …). */
+  specials?: readonly { code: number; label: string }[];
+  /** Layer keys are offered for layers that exist. */
+  layerCount?: number;
 }) {
   const t = useT();
   const [group, setGroup] = useState<KeycodeGroup | 'all'>('all');
-  const supported = useMemo(() => searchKeycodes(query).filter((e) => kinds.includes(e.action.kind)), [query, kinds]);
-  const groups = useMemo(() => GROUPS.filter((g) => searchKeycodes('').some((e) => e.group === g && kinds.includes(e.action.kind))), [kinds]);
+  const entries = useMemo<KeycodeEntry[]>(
+    () => [
+      ...keycodeCatalog().filter((e) => e.action.kind !== 'layer' || e.action.layer < layerCount),
+      ...specials.map((s) => ({ id: `sp-${s.code}`, action: { kind: 'special' as const, code: s.code, label: s.label }, name: s.label, group: 'special' as const, aliases: ['special', 'qmk'] })),
+    ],
+    [specials, layerCount],
+  );
+  const supported = useMemo(() => searchKeycodes(query, entries).filter((e) => kinds.includes(e.action.kind)), [query, kinds, entries]);
+  const groups = useMemo(() => GROUPS.filter((g) => entries.some((e) => e.group === g && kinds.includes(e.action.kind))), [kinds, entries]);
   const results = group === 'all' ? supported : supported.filter((e) => e.group === group);
-  const hidden = searchKeycodes(query).length - supported.length;
+  const hidden = searchKeycodes(query, entries).length - supported.length;
 
   return (
     <div className="picker">

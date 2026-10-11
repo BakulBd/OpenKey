@@ -191,7 +191,7 @@ try {
     await page.goto(base, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Inspect any HID device' }).first().click();
     await page.waitForURL(/#\/overview/);
-    await page.getByText('Read-only.').waitFor();
+    await page.getByText('Read-only.', { exact: true }).waitFor();
     const families = await page.locator('.explain').textContent();
     const sends = await page.evaluate(() => window.__hidSends.length);
     results.push(`unknown device: read-only view shown; possible AULA family listed: ${/AULA/.test(families)}; reports sent: ${sends}`);
@@ -301,7 +301,8 @@ try {
     await page.locator('.statusbar').getByText('Verified match').waitFor();
     results.push('hardware stub: status bar shows a verified match for a physical session');
 
-    // Keymap: edit, review, opt in, write.
+    // Keymap: edit, review, confirm, write. The AK820 MAX keymap write is verified on hardware, so it
+    // needs a confirmation but not the experimental opt-in.
     await page.goto(base + '#/keymap');
     await page.locator('.kb-key').nth(30).dispatchEvent('pointerdown');
     await page.getByPlaceholder(/Search/).fill('volume');
@@ -310,8 +311,8 @@ try {
     await page.getByRole('button', { name: /Review 1 change/ }).click();
     await page.getByRole('dialog').getByRole('button', { name: /Write 1 change/ }).click();
     const write = page.getByRole('dialog').getByRole('button', { name: 'Write', exact: true });
-    if (!(await write.isDisabled())) failures.push('experimental write was possible without the opt-in');
-    await page.getByRole('dialog').getByLabel(/Enable experimental writes/).check();
+    if (await write.isDisabled()) failures.push('a hardware-verified write still required the experimental opt-in');
+    if (await page.getByRole('dialog').getByLabel(/Enable experimental writes/).count()) failures.push('the confirmation for a verified write offered the experimental opt-in');
     await page.evaluate(() => (window.__hidDelay = 40));
     await write.click();
     await page.locator('.statusbar').getByText(/Writing to the keyboard/).waitFor();
@@ -379,16 +380,100 @@ try {
     if (shots) await page.screenshot({ path: `${shots}/linux-setup.png`, fullPage: true });
     const files = await page.evaluate(async () => {
       const get = async (u) => { const r = await fetch(u); return { ok: r.ok, text: await r.text() }; };
-      return { installer: await get('./linux/install-openkey-udev.sh'), rule: await get('./linux/99-openkey.rules') };
+      return { installer: await get('./linux/install-openkey-udev.sh'), rule: await get('./linux/70-openkey.rules') };
     });
     if (!files.installer.ok || !files.installer.text.includes('OPENKEY_RULE_EOF')) failures.push('installer script is not served');
     if (!files.rule.ok || !files.rule.text.includes('SUBSYSTEM=="hidraw"')) failures.push('udev rule is not served');
+    const cmd = await page.locator('.access-help .copy-line code').first().textContent();
+    if (!/^curl -fsSL \S+\/linux\/install-openkey-udev\.sh -o \/tmp\/openkey-udev\.sh && sudo sh \/tmp\/openkey-udev\.sh$/.test(cmd ?? ''))
+      failures.push(`unexpected install command for a listed keyboard: ${cmd}`);
     // The user ran the installer and replugged: opening now works.
     await page.evaluate(() => (window.__openOk = true));
     await page.getByRole('button', { name: 'Retry connecting' }).click();
     await page.waitForURL(/#\/overview/);
     await page.locator('.statusbar').getByText('Verified match').waitFor();
     results.push('linux setup: panel shown, rule and installer served, retry connected');
+    await ctx.close();
+  }
+
+  // A keyboard the shipped rule does not list: the OS refuses to open it before any adapter probes it.
+  // OpenKey must still explain the Linux fix, with that keyboard's USB ID added to the command.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[linux-unlisted] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      const dev = {
+        vendorId: 0x1234, productId: 0x5678, productName: 'Some Keyboard', opened: false,
+        collections: [{ usagePage: 0xff00, usage: 1, children: [], inputReports: [], outputReports: [], featureReports: [{ reportId: 6, items: [{ reportSize: 8, reportCount: 32 }] }] }],
+        open: () => Promise.reject(new window.DOMException('Failed to open the device.', 'NotAllowedError')),
+        close: () => Promise.resolve(),
+        sendReport: () => Promise.resolve(), sendFeatureReport: () => Promise.resolve(),
+        receiveFeatureReport: () => Promise.resolve(new DataView(new ArrayBuffer(32))),
+        addEventListener() {}, removeEventListener() {},
+      };
+      window.__sent = 0;
+      const hid = { requestDevice: () => Promise.resolve([dev]), getDevices: () => Promise.resolve([dev]), addEventListener() {}, removeEventListener() {} };
+      Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
+    });
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Connect keyboard' }).first().click();
+    await page.getByRole('heading', { name: 'Linux setup required' }).waitFor();
+    const cmd = await page.locator('.access-help .copy-line code').first().textContent();
+    if (!(cmd ?? '').endsWith('sudo sh /tmp/openkey-udev.sh --device 1234:5678')) failures.push(`install command does not add the unlisted keyboard: ${cmd}`);
+    await page.getByText(/not in OpenKey’s list yet/).waitFor();
+    results.push('linux setup: unlisted keyboard detected before identification; command adds --device 1234:5678');
+    await ctx.close();
+  }
+
+  // Demo keyboards of the BY Tech family: AULA F75 (documented layout) and RK R75 (taught layout).
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[by-tech] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'AULA F75' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.locator('.dev-chip').getByText('AULA F75').waitFor();
+    await page.goto(base + '#/rgb');
+    await page.getByText('Fixed on').first().waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/aula-f75-lighting.png`, fullPage: true });
+    await page.goto(base + '#/');
+    await page.getByRole('button', { name: 'Disconnect' }).first().click().catch(() => undefined);
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'RK R75' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.locator('.dev-chip').getByText('RK R75 RGB (wired)').waitFor();
+    await page.goto(base + '#/rgb');
+    await page.getByRole('heading', { name: 'Teach OpenKey your keyboard' }).waitFor();
+    await page.getByRole('button', { name: 'Start (reads the settings)' }).click();
+    await page.getByRole('button', { name: 'Done, read again' }).waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/rk-r75-teach.png`, fullPage: true });
+    results.push('by-tech demos: AULA F75 lighting decoded; RK R75 offers the teach flow (reads only)');
+    await ctx.close();
+  }
+
+  // QMK / VIA demo: the keymap asks for a definition, a matrix grid works, every layer is editable.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[via] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'QMK / VIA board' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/keymap');
+    await page.getByRole('heading', { name: 'Load this keyboard’s layout' }).waitFor();
+    await page.getByText('No file? Use a matrix grid').click();
+    await page.getByLabel('Rows').fill('5');
+    await page.getByLabel('Columns').fill('15');
+    await page.getByRole('button', { name: 'Use a grid' }).click();
+    await page.getByRole('tab', { name: 'Layer 2' }).waitFor();
+    await page.getByRole('tab', { name: 'Layer 2' }).click();
+    const keys = await page.locator('.kb-key').count();
+    if (shots) await page.screenshot({ path: `${shots}/via-keymap.png`, fullPage: true });
+    if (keys !== 75) failures.push(`VIA grid shows ${keys} keys, expected 75`);
+    if (await page.getByText(/Protocol error/).count()) failures.push('VIA: an error toast appeared after choosing the grid');
+    results.push(`via demo: definition step, 5×15 grid (${keys} keys), layers 0–3`);
     await ctx.close();
   }
 
@@ -408,6 +493,21 @@ try {
     if (shots) await page.screenshot({ path: `${shots}/screen-gallery.png`, fullPage: true });
     results.push(`gallery: ${cards} animations; Plasma loaded into the preview (30 frames)`);
     if (cards < 8) failures.push(`gallery shows only ${cards} animations`);
+    await page.getByRole('tab', { name: 'Public-domain GIFs' }).click();
+    const gifs = await page.locator('.gallery-item').count();
+    await page.locator('.gallery-item').filter({ hasText: 'Cat with a waving tail' }).getByRole('button', { name: 'Use' }).click();
+    await page.getByText('2 of max 255').waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/screen-gallery-gifs.png`, fullPage: true });
+    if (gifs < 11) failures.push(`public-domain tab shows only ${gifs} GIFs`);
+    results.push(`gallery: ${gifs} public-domain GIFs; the cat GIF decoded into the preview`);
+    await page.getByRole('tab', { name: 'Name Studio' }).click();
+    await page.getByLabel('Your name').waitFor();
+    const styles = await page.locator('.gallery-item').count();
+    await page.locator('.gallery-item').filter({ hasText: 'Neon Pulse' }).getByRole('button', { name: 'Use' }).click();
+    await page.getByText('30 of max 255').waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/name-studio.png`, fullPage: true });
+    if (styles < 10) failures.push(`Name Studio shows only ${styles} styles`);
+    results.push(`name studio: ${styles} styles for "Bakul"; Neon Pulse loaded into the preview`);
     await ctx.close();
   }
 
@@ -442,7 +542,7 @@ try {
     page.on('pageerror', (e) => failures.push(`[offline-analysis] pageerror: ${e.message}`));
     await page.goto(base + '#/lab', { waitUntil: 'networkidle' });
     await page.getByRole('tab', { name: 'Offline analysis' }).click();
-    for (const [sample, expected] of [['Fixture A (258A:015E)', 'Resembles a known family'], ['Fixture B (3151:6000)', 'Unknown device'], ['AK820 MAX PLUS descriptors', 'Strong candidate, not confirmed']]) {
+    for (const [sample, expected] of [['Fixture A (258A:015E)', 'Strong candidate, not confirmed'], ['Fixture B (3151:6000)', 'Unknown device'], ['AK820 MAX PLUS descriptors', 'Strong candidate, not confirmed']]) {
       await page.getByRole('button', { name: sample }).click();
       // Files are previewed (sanitized summary) before analysis.
       await page.getByText(/Before analysing:/).waitFor();

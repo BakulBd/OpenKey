@@ -82,8 +82,10 @@ const TABLE: Record<ConnectionStatus, Handler> = {
         : { ...s, status: 'APPLYING' }
       : e.type === 'READ_DONE'
         ? s
-        : e.type === 'REIDENTIFY' && s.mode === 'unknown'
-          ? { status: 'DETECTING' }
+        : e.type === 'REIDENTIFY'
+          ? // Unknown devices after consent; configurable devices after their adapter learned
+            // something that changes their capabilities (a confirmed settings layout).
+            { status: 'DETECTING', ...(s.mode === 'demo' ? { mode: 'demo' as const } : {}) }
           : undefined,
   APPLYING: (s, e) =>
     e.type === 'APPLY_SENT' ? { ...s, status: e.verify ? 'VERIFYING' : 'READY' } : undefined,

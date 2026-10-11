@@ -1,0 +1,31 @@
+{
+  "description": "Owner hardware test of the experimental AK820 MAX PLUS writes, run from OpenKey with the experimental opt-in",
+  "date": "2026-10-11",
+  "device": "AJAZZ AK820 MAX PLUS TFT (USB 0C45:8009 'AK820 MAX', bcdDevice 1.07)",
+  "firmware": "1.07 (bcdDevice)",
+  "transport": "usb",
+  "interface": "if3 FF13:0001 (commands), FF68:0061 (screen data)",
+  "reportId": 0,
+  "confidence": "VERIFIED",
+  "source": "hardware",
+  "method": "The keyboard owner applied each feature from OpenKey on the physical keyboard and confirmed the result on the keyboard itself (lights, screen, typed keys, macro playback, sleep behaviour). Per-key colours are additionally checked by OpenKey's own read-back (READ_PER_KEY_RGB).",
+  "verified": [
+    { "feature": "tft", "commands": ["IMAGE", "SAVE"], "result": "still image shown on the screen" },
+    { "feature": "tftGif", "commands": ["IMAGE", "SAVE"], "result": "animation plays on the screen" },
+    { "feature": "tftClock", "commands": ["TIME", "SAVE"], "result": "screen clock shows the computer's time" },
+    { "feature": "rgb", "commands": ["START", "LIGHT_MODE", "SAVE", "FINISH"], "result": "effect, colour, brightness and speed change on the keyboard" },
+    { "feature": "perKeyRgb", "commands": ["START", "PER_KEY_RGB", "SAVE", "FINISH"], "result": "per-key colours shown on the keyboard" },
+    { "feature": "keymap", "commands": ["START", "KEYMAP_BASE", "SAVE", "FINISH"], "result": "remapped keys type the new key" },
+    { "feature": "fnLayer", "commands": ["START", "KEYMAP_FN", "SAVE", "FINISH"], "result": "Fn-layer keys type the new key" },
+    { "feature": "macros", "commands": ["MACRO_BEGIN", "MACRO_DATA", "SAVE"], "result": "macro plays back" },
+    { "feature": "sleep / keyResponse / winLock / altLocks", "commands": ["START", "SETTINGS", "SAVE"], "result": "settings take effect" }
+  ],
+  "notVerified": [
+    "REALTIME_RGB (live per-key preview stream)",
+    "Keymap/Fn defaults restore",
+    "Any write over the 2.4 GHz receiver or Bluetooth",
+    "Other AK820 variants (AK820 PRO, unknown product strings)"
+  ],
+  "packets": [],
+  "privacy": "No packets, keymaps, macro contents, images or typing are recorded here."
+}

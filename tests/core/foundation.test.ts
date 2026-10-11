@@ -65,6 +65,11 @@ describe('safety policy', () => {
     const s = configurable('device', true, Evidence.VERIFIED, { safety: SafetyLevel.SAFE_PERSISTENT });
     expect(writeDecision(s, real).kind).toBe('allowed');
   });
+  it('allows hardware-verified writes of every assessed risk class; unassessed risk stays opt-in', () => {
+    for (const safety of [SafetyLevel.CAUTION, SafetyLevel.HIGH_RISK])
+      expect(writeDecision(configurable('mirror', true, Evidence.VERIFIED, { safety }), real).kind).toBe('allowed');
+    expect(writeDecision(configurable('mirror', true, Evidence.VERIFIED), real).kind).toBe('experimental');
+  });
   it('makes unverified writes experimental (opt-in)', () => {
     const s = configurable('mirror', true, Evidence.OBSERVED, { safety: SafetyLevel.CAUTION });
     const d = writeDecision(s, real);
@@ -206,13 +211,18 @@ describe('connection state machine', () => {
     expect(back.status).toBe('READY');
   });
 
-  it('only an unknown-device session can re-run identification, and it cannot jump to APPLYING', () => {
+  it('re-identification runs from READY only and cannot jump to APPLYING', () => {
     const unknown = run([...connectSupported.slice(0, 4), { type: 'DETECTED', mode: 'unknown' }]);
     const again = transition(unknown, { type: 'REIDENTIFY' });
     expect(again.status).toBe('DETECTING');
     expect(transition(again, { type: 'APPLY' }).status).toBe('DETECTING');
-    const supported = run(connectSupported);
-    expect(transition(supported, { type: 'REIDENTIFY' })).toBe(supported);
+    // A configurable session re-identifies after its adapter learned something (a taught layout).
+    const supported = transition(run(connectSupported), { type: 'REIDENTIFY' });
+    expect(supported.status).toBe('DETECTING');
+    expect(transition(supported, { type: 'APPLY' }).status).toBe('DETECTING');
+    // Never in the middle of a write.
+    const applying = transition(run(connectSupported), { type: 'APPLY' });
+    expect(transition(applying, { type: 'REIDENTIFY' })).toBe(applying);
   });
 
   it('ignores stray events', () => {

@@ -173,7 +173,7 @@ const EXPLAIN: Partial<Record<ErrorKind, { title: string; reason?: string; hint?
   PERMISSION: {
     title: 'Permission denied',
     reason: 'The browser or operating system did not grant access to the device.',
-    hint: 'On Linux install the OpenKey udev rule (udev/99-openkey.rules) and replug the keyboard. In the browser, pick the device again in the chooser.',
+    hint: 'On Linux install the OpenKey udev rule (udev/70-openkey.rules) and replug the keyboard. In the browser, pick the device again in the chooser.',
   },
   TRANSPORT: {
     title: 'Communication failed',

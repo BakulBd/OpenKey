@@ -3,12 +3,24 @@ import type { CatalogStatus } from '@openkey/devices/catalog';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
+import type { IconName } from '../../components/Icon.js';
+import type { MessageKey } from '../../i18n/i18n.js';
+import { HeroVisual } from './HeroVisual.js';
 import { ConnectPanel } from '../connect/ConnectPanel.js';
 import { Logo } from '../../app/App.js';
 import { href } from '../../app/router.js';
 import { CONTRIBUTE_KEYBOARD_URL, REPO_URL } from '../../config.js';
 
 const PIPELINE = ['transport', 'discovery', 'detection', 'adapter', 'capabilities', 'ui'] as const;
+const BRANDS = ['AJAZZ AK820', 'AULA F75 · F87 · F99', 'RK R75', 'Akko · MonsGeek (ROYUAN)', 'QMK / VIA', 'Vial', 'Any HID device: inspect'];
+const FEATURES: [IconName, string][] = [
+  ['keymap', 'keymap'],
+  ['rgb', 'lighting'],
+  ['macros', 'macros'],
+  ['screen', 'screen'],
+  ['backup', 'backup'],
+  ['tester', 'tester'],
+];
 const STATUS_ORDER: CatalogStatus[] = ['verified', 'experimental', 'community', 'research', 'unsupported'];
 
 export function Landing() {
@@ -33,12 +45,39 @@ export function Landing() {
         </nav>
       </header>
 
-      <section className="hero">
-        <p className="eyebrow">{t('landing.eyebrow')}</p>
-        <h1>{t('landing.title')}</h1>
-        <p className="lead">{t('landing.lead')}</p>
-        <ConnectPanel compact />
-        <p className="muted small honest">{t('landing.honest')}</p>
+      <div className="hero-wrap">
+        <section className="hero">
+          <p className="eyebrow">{t('landing.eyebrow')}</p>
+          <h1>{t('landing.title')}</h1>
+          <p className="lead">{t('landing.lead')}</p>
+          <ConnectPanel compact />
+          <p className="muted small honest">{t('landing.honest')}</p>
+        </section>
+        <HeroVisual />
+      </div>
+
+      <section className="brand-strip" aria-labelledby="works-h">
+        <h2 id="works-h" className="small muted">{t('landing.worksWith')}</h2>
+        <ul>
+          {BRANDS.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="feat-h" className="feature-section">
+        <h2 id="feat-h">{t('landing.featuresTitle')}</h2>
+        <ul className="feature-grid">
+          {FEATURES.map(([icon, key]) => (
+            <li key={key} className="feature-card">
+              <span className="feature-icon">
+                <Icon name={icon} />
+              </span>
+              <strong>{t(`landing.feat.${key}` as MessageKey)}</strong>
+              <span className="muted small">{t(`landing.feat.${key}.d` as MessageKey)}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="landing-grid" aria-labelledby="pipe-h">

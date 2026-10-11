@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TftFrame, TftInfo, Transaction, TxOutcome, UploadProgress } from '@openkey/core';
-import { decodeGif, fromRgb565le, pattern, prepareAnimation, redBlueAnimation, rotateImage } from '@openkey/tft';
+import { applyLoop, decodeGif, fromRgb565le, pattern, prepareAnimation, redBlueAnimation, retime, rotateImage, slideshow } from '@openkey/tft';
+import type { LoopStyle } from '@openkey/tft';
 import type { AnimationFrame, FitMode, PatternName } from '@openkey/tft';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
@@ -52,6 +53,8 @@ export default function TftStudio() {
   const [fit, setFit] = useState<FitMode>('cover');
   const [dither, setDither] = useState(true);
   const [rotation, setRotation] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [loop, setLoop] = useState<LoopStyle>('normal');
   const [frames, setFrames] = useState<TftFrame[]>([]);
   const [stats, setStats] = useState<{ dropped: number; clamped: number }>({ dropped: 0, clamped: 0 });
   const [progress, setProgress] = useState<UploadProgress | null>(null);
@@ -64,12 +67,12 @@ export default function TftStudio() {
   }, [device, read, t]);
   useEffect(() => {
     if (!info || !source.length) return;
-    const rotated = source.map((f) => ({ ...f, image: rotateImage(f.image, rotation) }));
+    const rotated = applyLoop(retime(source, speed), loop).map((f) => ({ ...f, image: rotateImage(f.image, rotation) }));
     const r = prepareAnimation(rotated, info, { fit, dither });
     setFrames(r.frames);
     setStats({ dropped: r.dropped, clamped: r.clampedDelays });
     setCurrent(0);
-  }, [source, info, fit, dither, rotation]);
+  }, [source, info, fit, dither, rotation, speed, loop]);
   useEffect(() => {
     if (frames.length < 2) return;
     const id = setTimeout(() => setCurrent((c) => (c + 1) % frames.length), Math.max(30, frames[current]?.delayMs ?? 100));
@@ -122,6 +125,33 @@ export default function TftStudio() {
                 }}
               />
             </div>
+            <div className="field">
+              <span className="field-label">{t('tft.slideshow')}</span>
+              <label className="btn file-btn">
+                {t('tft.slideshowPick')}
+                <input
+                  type="file"
+                  multiple
+                  accept={IMAGE_TYPES.filter((x) => x !== 'image/gif').join(',')}
+                  className="visually-hidden"
+                  onChange={(e) => {
+                    const files = [...(e.currentTarget.files ?? [])].slice(0, 12);
+                    e.currentTarget.value = '';
+                    if (!files.length) return;
+                    if (files.some((f) => !IMAGE_TYPES.includes(f.type) || f.size > MAX_FILE_BYTES)) return notify({ kind: 'error', title: t('tft.badType'), hint: t('tft.typesHint') });
+                    void Promise.all(files.map(decodeFile)).then(
+                      (all) => {
+                        setSource(slideshow(all.map((fs) => fs[0]!.image), info.width, info.height));
+                        setGalleryId(null);
+                        setOutcome(null);
+                      },
+                      () => notify({ kind: 'error', title: t('tft.decodeFailed'), hint: t('tft.typesHint') }),
+                    );
+                  }}
+                />
+              </label>
+              <span className="small muted">{t('tft.slideshowHint')}</span>
+            </div>
             <Field label={t('tft.pattern')}>
               <select
                 defaultValue=""
@@ -154,6 +184,22 @@ export default function TftStudio() {
                       {q * 90}°
                     </option>
                   ))}
+                </select>
+              </Field>
+              <Field label={t('tft.speed')}>
+                <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+                  {[0.5, 0.75, 1, 1.5, 2].map((x) => (
+                    <option key={x} value={x}>
+                      {x}×
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t('tft.loop')}>
+                <select value={loop} onChange={(e) => setLoop(e.target.value as LoopStyle)}>
+                  <option value="normal">{t('tft.loop.normal')}</option>
+                  <option value="reverse">{t('tft.loop.reverse')}</option>
+                  <option value="boomerang">{t('tft.loop.boomerang')}</option>
                 </select>
               </Field>
               <label className="check field-check">

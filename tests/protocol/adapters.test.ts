@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Evidence, FeatureStatus, SafetyLevel, writeDecision } from '@openkey/core';
+import { Evidence, FeatureStatus, SafetyLevel, toHex, writeDecision } from '@openkey/core';
 import { MockHidDevice, replayBehavior } from '@openkey/hid';
 import type { HidInterfaceInfo, MockBehavior, RecordedPacket } from '@openkey/hid';
 import { buildFingerprint, createDefaultRegistry, sonixFeature } from '@openkey/protocols';
@@ -36,28 +36,33 @@ describe('adapter registry', () => {
     for (const p of r.planned()) expect(p.manifest.transports.configuration).toEqual([]);
   });
 
-  it('the flagship adapter is experimental until its writes are verified on hardware', () => {
-    const p = createDefaultRegistry().get('sonix-feature')!;
-    expect(p.manifest.status).toBe('experimental');
-    expect(p.manifest.transports.configuration).toEqual(['usb']);
+  it('every adapter that claims "verified" names a tested unit backed by a hardware fixture', () => {
+    for (const p of createDefaultRegistry().list().filter((x) => x.manifest.status === 'verified')) {
+      expect(p.manifest.verifiedIdentities.length, p.id).toBeGreaterThan(0);
+      for (const v of p.manifest.verifiedIdentities) expect(v.evidence, p.id).toMatch(/-hw\.json/);
+    }
+    const flagship = createDefaultRegistry().get('sonix-feature')!;
+    expect(flagship.manifest.status).toBe('verified');
+    expect(flagship.manifest.transports.configuration).toEqual(['usb']);
   });
 });
 
 describe('unknown-device mode: planned families', () => {
-  it('names AULA as a possible family from descriptors only and sends nothing', async () => {
+  it('a BY Tech-shaped board is only a candidate and receives nothing without consent', async () => {
     const trip = tripwire();
     const dev = new MockHidDevice({ vendorId: 0x258a, productId: 0x010c, productName: 'USB-HID Keyboard' }, [
       { info: iface([{ usagePage: 0x0001, usage: 0x0006, inputReports: [{ reportId: 0, size: 8 }], outputReports: [], featureReports: [] }]), behavior: trip },
       { info: iface([{ usagePage: 0xff00, usage: 0x0001, inputReports: [], outputReports: [], featureReports: [{ reportId: 6, size: 519 }] }]), behavior: trip },
     ]);
     const report = await createDefaultRegistry().detect(dev.group(), { level: 'handshake' });
-    expect(report.selected).toBeNull();
-    expect(report.possibleFamilies.map((f) => f.id)).toContain('aula-sinowealth');
-    const fp = buildFingerprint(report);
-    expect(fp.confidence).toBe('LOW');
-    expect(fp.explanation.join('\n')).toMatch(/not support/);
+    expect(report.selected?.identification ?? 'descriptor').toBe('descriptor');
+    expect(report.possibleFamilies.map((f) => f.id)).toContain('by-tech');
     expect(trip.touched).toEqual([]);
     expect(dev.traffic).toEqual([]);
+    // With consent, an all-zero reply is not an answer: the read is rejected and nothing else is sent.
+    const allowed = await createDefaultRegistry().detect(dev.group(), { level: 'handshake', consent: ['by-tech'] });
+    expect(allowed.selected).toBeNull();
+    expect(dev.traffic.map((t) => `${t.op}:${t.op === 'feature-set' ? toHex(t.data.subarray(0, 2)) : ''}`)).toEqual(['feature-set:82 01', 'feature-get:']);
   });
 
   it('names ROYUAN for an FFFF:0002 64-byte feature collection and sends nothing', async () => {
@@ -67,7 +72,8 @@ describe('unknown-device mode: planned families', () => {
     ]);
     const report = await createDefaultRegistry().detect(dev.group(), { level: 'handshake' });
     expect(report.possibleFamilies.map((f) => f.id)).toEqual(['royuan']);
-    expect(report.selected).toBeNull();
+    // A candidate from descriptors only: the identify read waits for consent.
+    expect(report.selected?.identification ?? 'descriptor').toBe('descriptor');
     expect(trip.touched).toEqual([]);
   });
 
@@ -113,22 +119,31 @@ describe('AK820 MAX PLUS fingerprint (real descriptors + hardware handshake capt
 describe('AK820 capability regression (USB)', () => {
   const sim = new sonixFeature.SonixFeatureSimulator();
   const variant = sonixFeature.resolveVariant('AK820 MAX');
-  const caps = sonixFeature.sonixFeatureCapabilities(variant, 'usb');
+  const caps = sonixFeature.sonixFeatureCapabilities(variant, 'usb', 0x8009);
   const real = { simulated: false, experimentalEnabled: false };
+  /** Verified on the owner's AK820 MAX PLUS (fixtures/verification/ak820-max-plus-owner-test-hw.json). */
+  const VERIFIED_WRITES = ['keymap', 'fnLayer', 'macros', 'rgb', 'perKeyRgb', 'tft', 'tftGif', 'tftClock', 'sleep', 'keyResponse', 'winLock', 'altLocks'];
 
-  it('no flagship write is offered in normal UI until verified on hardware', () => {
+  it('offers exactly the hardware-verified writes in normal UI; the rest stay opt-in', () => {
     expect(sim).toBeTruthy();
     for (const [id, c] of Object.entries(caps)) {
       if (!c.write) continue;
-      expect.soft(writeDecision(c, real).kind, id).not.toBe('allowed');
       expect.soft(c.safety, id).toBeDefined();
+      expect.soft(writeDecision(c, real).kind, id).toBe(VERIFIED_WRITES.includes(id) ? 'allowed' : 'experimental');
     }
+  });
+
+  it('verification applies only to the tested unit and link', () => {
+    const other = (pid: number, t: 'usb' | '2.4ghz', name = 'AK820 MAX') =>
+      sonixFeature.sonixFeatureCapabilities(sonixFeature.resolveVariant(name), t, pid);
+    for (const c of [other(0x800a, 'usb'), other(0x8009, '2.4ghz'), other(0x8009, 'usb', 'AK820'), other(0x8009, 'usb', 'Mystery Board')])
+      for (const id of VERIFIED_WRITES) expect.soft(c[id as 'keymap'].confidence, id).not.toBe(Evidence.VERIFIED);
   });
 
   it('settings the firmware cannot report are WRITE_ONLY and CAUTION', () => {
     expect(caps.keymap.status).toBe(FeatureStatus.WRITE_ONLY);
     expect(caps.keymap.safety).toBe(SafetyLevel.CAUTION);
-    expect(caps.perKeyRgb.status).toBe(FeatureStatus.CONFIGURABLE);
+    expect(caps.perKeyRgb.status).toBe(FeatureStatus.SUPPORTED);
     expect(caps.perKeyRgb.read).toBe('device');
   });
 
@@ -139,7 +154,7 @@ describe('AK820 capability regression (USB)', () => {
   });
 
   it('Bluetooth is transport-limited, not unsupported', () => {
-    const bt = sonixFeature.sonixFeatureCapabilities(variant, 'bluetooth');
+    const bt = sonixFeature.sonixFeatureCapabilities(variant, 'bluetooth', 0x8009);
     expect(bt.keymap.status).toBe(FeatureStatus.TRANSPORT_LIMITED);
     expect(bt.tft.status).toBe(FeatureStatus.TRANSPORT_LIMITED);
   });
@@ -156,11 +171,15 @@ describe('device catalogue', () => {
     const id = { vendorId: 0x258a, productId: 0x010c, productName: 'USB-HID Keyboard' };
     expect(lookupCatalogAll(id).map((e) => e.brand).sort()).toEqual(['AJAZZ', 'AULA']);
     expect(lookupCatalog(id)).toBeUndefined();
-    expect(lookupCatalog({ vendorId: 0x0c45, productId: 0x8009, productName: 'AK820 MAX' })?.status).toBe('experimental');
+    expect(lookupCatalog({ vendorId: 0x0c45, productId: 0x8009, productName: 'AK820 MAX' })?.status).toBe('verified');
   });
 
-  it('no catalogue entry claims "verified" without hardware-verified writes', async () => {
+  it('no catalogue entry claims "verified" without an adapter verified on that exact identity', async () => {
     const { CATALOG } = await import('@openkey/devices');
-    expect(CATALOG.filter((e) => e.status === 'verified')).toEqual([]);
+    const reg = createDefaultRegistry();
+    for (const e of CATALOG.filter((x) => x.status === 'verified')) {
+      const ids = reg.list().flatMap((p) => p.manifest.verifiedIdentities);
+      expect(ids.some((v) => v.vendorId === e.vendorId && v.productId === e.productId && v.transport === e.link), `${e.brand} ${e.model}`).toBe(true);
+    }
   });
 });

@@ -1,4 +1,4 @@
-import { useKeyboard } from '../../state/keyboard.js';
+import { DEMO_KINDS, useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
 import type { MessageKey } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
@@ -51,6 +51,14 @@ export function ConnectPanel({ compact = false }: { compact?: boolean }) {
           <Icon name="lab" /> {t('action.inspect')}
         </button>
       </div>
+      <div className="demo-picker" role="group" aria-label={t('demo.pick')}>
+        <span className="small muted">{t('demo.pick')}</span>
+        {DEMO_KINDS.map((k) => (
+          <button key={k} type="button" className="chip" disabled={busy} onClick={() => void connectDemo(k)}>
+            {t(`demo.${k}` as MessageKey)}
+          </button>
+        ))}
+      </div>
 
       {status.mode === 'connecting' && (
         <ol className="connect-steps" aria-label={t('connect.progress')}>
@@ -81,7 +89,7 @@ export function ConnectPanel({ compact = false }: { compact?: boolean }) {
         ))}
       </ul>
 
-      {support.available && !accessProblem && <PlatformGuide />}
+      {support.available && !accessProblem && <PlatformGuide defaultOpen={!compact} />}
 
       {authorized.length > 0 && !busy && (
         <div className="authorized">

@@ -3,17 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="OpenKey: open-source, local-first keyboard configurator for the browser. Connects over WebHID; no account, no telemetry." />
+    <title>OpenKey — open-source keyboard configurator in your browser</title>
+    <meta name="description" content="Configure your keyboard in the browser: keymaps, layers, lighting, macros and screen GIFs over WebHID. Supports AJAZZ AK820, AULA, RK and QMK/VIA keyboards. Open source, no install, no account, no telemetry." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="author" content="OpenKey contributors" />
+    <meta name="application-name" content="OpenKey" />
     <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0d0f13" media="(prefers-color-scheme: dark)" />
-    <title>OpenKey</title>
+    <meta name="color-scheme" content="light dark" />
+    <link rel="canonical" href="__SITE_URL__/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OpenKey" />
+    <meta property="og:title" content="OpenKey — configure your keyboard in the browser" />
+    <meta property="og:description" content="Keymaps, layers, lighting, macros and screen GIFs over WebHID. AJAZZ AK820, AULA, RK and QMK/VIA keyboards. Open source, local-first, no account." />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="OpenKey: a keyboard with a pixel-art cat on its screen, next to the words Configure your keyboard right in the browser." />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OpenKey — configure your keyboard in the browser" />
+    <meta name="twitter:description" content="Keymaps, lighting, macros and screen GIFs over WebHID. Open source, no install, no account." />
+    <meta name="twitter:image" content="__SITE_URL__/og.png" />
+
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "OpenKey",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Windows, macOS, Linux, ChromeOS (Chrome, Edge, Opera or Brave)",
+        "description": "Open-source, local-first keyboard configurator that runs in the browser over WebHID: keymaps, layers, lighting, macros and screen animations.",
+        "url": "__SITE_URL__/",
+        "image": "__SITE_URL__/og.png",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "codeRepository": "https://github.com/BakulBd/openkey",
+        "featureList": ["Keymap and layer editor", "RGB lighting", "Macros", "Screen GIF upload with Name Studio", "QMK / VIA keyboards", "Read-only inspection of any HID device"]
+      }
+    </script>
   </head>
   <body>
     <noscript>OpenKey needs JavaScript: it runs entirely in your browser and talks to the keyboard over WebHID.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <main class="prerender">
+        <h1>OpenKey — configure your keyboard in the browser</h1>
+        <p>Open-source, local-first keyboard configurator over WebHID: keymaps, layers, lighting, macros and screen GIFs for AJAZZ AK820, AULA, RK and QMK/VIA keyboards. No install, no account, no telemetry.</p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

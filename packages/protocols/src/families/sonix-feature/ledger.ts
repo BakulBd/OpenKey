@@ -10,6 +10,9 @@ const ACK_RULE = 'acknowledgement must echo the command; a non-echo is rejected 
 const PACING = '35 ms before each SET and each GET; failed SETs inside a table retried up to 10 times';
 const TEST_UNIT = 'AK820 MAX PLUS TFT, 0C45:8009 "AK820 MAX", bcdDevice 1.07, USB, Linux';
 const AULA = 'VitalyArt/Aula-F75-Max-Driver (MIT): same code on 0C45:800A (independent, INFERRED)';
+/** Owner test of the writes on the same unit; result confirmed on the keyboard (2026-10-11). */
+const OWNER_TEST = 'fixtures/verification/ak820-max-plus-owner-test-hw.json';
+const OWNER_UNIT = `${TEST_UNIT}; owner test 2026-10-11, result confirmed on the keyboard`;
 
 const entry = (e: Omit<LedgerEntry, 'family' | 'versions'> & Partial<Pick<LedgerEntry, 'versions'>>): LedgerEntry => ({
   family: FAMILY,
@@ -84,10 +87,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: ACK_RULE,
     errors: '—',
     timing: PACING,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'unknown beyond ending the transaction',
     usedBy: ['keymap', 'fnLayer', 'rgb', 'perKeyRgb'],
-    sources: ['FUN_0042b100, FUN_00418420', AULA],
+    sources: [OWNER_TEST, 'FUN_0042b100, FUN_00418420', AULA],
     implemented: true,
   }),
   entry({
@@ -101,10 +105,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: 'data packet ends AA 55 (bytes 14–15)',
     errors: '—',
     timing: PACING,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'replaces the lighting effect; the previous one cannot be read back',
     usedBy: ['rgb', 'perKeyRgb'],
-    sources: ['FUN_0042b100'],
+    sources: [OWNER_TEST, 'FUN_0042b100'],
     implemented: true,
   }),
   entry({
@@ -118,10 +123,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: 'table trailer AA 55; read-back with READ_PER_KEY_RGB',
     errors: '—',
     timing: PACING,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'replaces all key colours (restorable from a read-back taken first)',
     usedBy: ['perKeyRgb'],
-    sources: ['FUN_0044ba10'],
+    sources: [OWNER_TEST, 'FUN_0044ba10'],
     implemented: true,
   }),
   entry({
@@ -170,10 +176,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: 'slot encoding FUN_00418070; unknown encodings preserved as raw',
     errors: '—',
     timing: PACING,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'replaces the whole layer; no read command exists, so keep a backup',
     usedBy: ['keymap', 'factoryDefaults'],
-    sources: ['FUN_00418420(0)', AULA],
+    sources: [OWNER_TEST, 'FUN_00418420(0)', AULA],
     implemented: true,
   }),
   entry({
@@ -187,11 +194,12 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: 'as KEYMAP_BASE',
     errors: '—',
     timing: PACING,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects:
-      'replaces the Fn layer. Conflict: VitalyArt/Aula-F75-Max-Driver labels its 0x27 step "Resetting lighting data"; the official AK820 driver uses 0x27 for the Fn table. Unresolved until verified on hardware.',
+      'replaces the Fn layer. Third parties disagree: VitalyArt/Aula-F75-Max-Driver labels its 0x27 step "Resetting lighting data" and gusleig/ajazz-ak820-pro-mac calls 0x27 "remap (wireless)" without a byte layout. On the AK820 MAX PLUS it writes the Fn table (owner test 2026-10-11), as in the official AK820 driver.',
     usedBy: ['fnLayer', 'factoryDefaults'],
-    sources: ['FUN_00418420(1)', AULA],
+    sources: [OWNER_TEST, 'FUN_00418420(1)', AULA],
     implemented: true,
   }),
   entry({
@@ -205,10 +213,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: ACK_RULE,
     errors: '—',
     timing: PACING,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'none known',
     usedBy: ['macros'],
-    sources: ['FUN_0042d6f0', AULA],
+    sources: [OWNER_TEST, 'FUN_0042d6f0', AULA],
     implemented: true,
   }),
   entry({
@@ -222,10 +231,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: 'events × 8 ≤ 0xA8C; image ends AA 55',
     errors: '—',
     timing: `${PACING}; 30 ms settle around the data`,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'replaces all macros; trigger-mode byte values are INFERRED from the online driver',
     usedBy: ['macros'],
-    sources: ['FUN_0042d6f0'],
+    sources: [OWNER_TEST, 'FUN_0042d6f0'],
     implemented: true,
   }),
   entry({
@@ -239,10 +249,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: 'trailer AA 55 at 62–63',
     errors: '—',
     timing: PACING,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'replaces every setting in the packet at once; none can be read back',
     usedBy: ['sleep', 'keyResponse', 'winLock', 'altLocks'],
-    sources: ['FUN_00414060'],
+    sources: [OWNER_TEST, 'FUN_00414060'],
     implemented: true,
   }),
   entry({
@@ -256,10 +267,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: 'trailer AA 55',
     errors: '—',
     timing: PACING,
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'sets the clock (harmless, re-settable)',
     usedBy: ['tftClock'],
-    sources: ['FUN_00423940', `${AULA}: identical layout incl. weekday at byte 10`],
+    sources: [OWNER_TEST, 'FUN_00423940', `${AULA}: identical layout incl. weekday at byte 10`],
     implemented: true,
   }),
   entry({
@@ -273,10 +285,11 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     validation: 'header frames ≤ 255, delays in 2 ms units',
     errors: 'missing chunk input report within 300 ms → abort before SAVE',
     timing: '300 ms per chunk acknowledgement',
-    evidence: Evidence.OBSERVED,
+    evidence: Evidence.VERIFIED,
+    testedOn: OWNER_UNIT,
     sideEffects: 'replaces the stored animation; cannot be read back',
     usedBy: ['tft', 'tftGif'],
-    sources: ['FUN_00422980, FUN_0044f2d0', AULA],
+    sources: [OWNER_TEST, 'FUN_00422980, FUN_0044f2d0', AULA],
     implemented: true,
   }),
   entry({

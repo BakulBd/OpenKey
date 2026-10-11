@@ -71,13 +71,13 @@ describe('rule 1: an unknown device receives nothing', () => {
     });
   }
 
-  it('fixture A only resembles the AULA research signature: no adapter, no write path', async () => {
+  it('fixture A (RK R75) is a strong BY Tech candidate from descriptors, never write-eligible without identification', async () => {
     const a = await analyzeDiagnostic(diagnostic(FIXTURE_A), createDefaultRegistry());
-    expect(a.detection.selected).toBeNull();
-    expect(a.detection.possibleFamilies.map((f) => f.id)).toEqual(['aula-sinowealth']);
-    expect(a.verdict.kind).toBe('FAMILY_CANDIDATE');
+    expect(a.detection.selected).toMatchObject({ protocolId: 'by-tech', identification: 'descriptor' });
+    expect(a.detection.possibleFamilies.map((f) => f.id)).toEqual(['by-tech']);
+    expect(a.verdict.kind).toBe('STRONG_CANDIDATE');
     expect(a.verdict.writeEligible).toBe(false);
-    expect(a.verdict.reasons.join(' ')).toMatch(/resemblance is not support/i);
+    expect(a.verdict.reasons.join(' ')).toMatch(/Identification has not run/);
     expect(a.missingUsages).toBe(2);
   });
 
@@ -238,7 +238,8 @@ describe('rule 7: diagnostics stay sanitized', () => {
 describe('rule 8: every front end gets the same write policy', () => {
   it('a guarded driver refuses unverified writes without the opt-in, before any packet is sent', async () => {
     const { guardWrites } = await import('@openkey/core');
-    const sim = new sonixFeature.SonixFeatureSimulator();
+    // 0C45:800A shares the protocol but was never tested, so its writes stay experimental.
+    const sim = new sonixFeature.SonixFeatureSimulator({ vendorId: 0x0c45, productId: 0x800a, productName: 'AK820 MAX', release: 0x0107 });
     const kb = await connect(sim.device);
     let experimental = false;
     const d = guardWrites(kb.driver, () => ({ simulated: false, experimentalEnabled: experimental }));
@@ -253,6 +254,17 @@ describe('rule 8: every front end gets the same write policy', () => {
     experimental = true;
     await d.setPerKeyRgb({ 1: { r: 1, g: 2, b: 3 } });
     expect(sent(sim.device.traffic).length).toBeGreaterThan(before);
+  });
+
+  it('writes verified on the tested unit pass without the opt-in; unverified ones still need it', async () => {
+    const { guardWrites } = await import('@openkey/core');
+    const sim = new sonixFeature.SonixFeatureSimulator();
+    const kb = await connect(sim.device);
+    const d = guardWrites(kb.driver, () => ({ simulated: false, experimentalEnabled: false }));
+    const before = sent(sim.device.traffic).length;
+    await d.setPerKeyRgb({ 1: { r: 1, g: 2, b: 3 } });
+    expect(sent(sim.device.traffic).length).toBeGreaterThan(before);
+    await expect(d.restoreDefaults('keymap')).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED');
   });
 
   it('features with no write are blocked even with the opt-in', async () => {

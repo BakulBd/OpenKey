@@ -46,6 +46,13 @@ export interface KeyboardDriver {
    * would fail at write time. `raw` is never offered: it only preserves encodings read from the device.
    */
   getKeyActionKinds(): readonly KeyActionKind[];
+  /** Layers the editor offers, in order. Two-layer boards return `base` and `fn`. */
+  getLayerIds(): readonly LayerId[];
+  /**
+   * Firmware-specific functions offered for assignment as `special` actions (e.g. QMK "Transparent",
+   * lighting keys). Never includes functions that reboot or erase the keyboard.
+   */
+  getSpecialActions(): readonly { code: number; label: string }[];
   getKeymap(layer?: LayerId): Promise<KeymapState>;
   setKeymap(state: KeymapState): Promise<void>;
   getFnLayer(): Promise<KeymapState>;
@@ -117,6 +124,13 @@ export abstract class BaseKeyboardDriver implements KeyboardDriver {
   getKeyActionKinds(): readonly KeyActionKind[] {
     // Conservative default: an adapter must declare anything beyond plain keys.
     return ['default', 'keyboard'];
+  }
+  getLayerIds(): readonly LayerId[] {
+    const c = this.getCapabilities();
+    return c.fnLayer.write || c.fnLayer.read !== 'none' ? ['base', 'fn'] : ['base'];
+  }
+  getSpecialActions(): readonly { code: number; label: string }[] {
+    return [];
   }
   async getKeymap(_layer?: LayerId): Promise<KeymapState> {
     return unsupported('keymap');

@@ -102,7 +102,6 @@ const m: Partial<Messages> = {
   'landing.pipe.ui': '界面',
   'landing.pipe.ui.d': '只显示键盘真正能做的事。',
   'landing.hardwareTitle': '硬件状态',
-  'landing.flagship': '旗舰设备：AJAZZ AK820 MAX PLUS（TFT）。识别与读取已在硬件上验证；写入在验证前为实验性。',
   'landing.countsNote': '数字为各验证状态下的目录条目；绝不会合并成一个“已支持”总数。',
   'landing.privacyTitle': '隐私优先的设计',
   'landing.privacy.noAccount': '无账号、无统计分析、无追踪。',

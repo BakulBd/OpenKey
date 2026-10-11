@@ -22,5 +22,5 @@ HFD80CP100 MCU (SN32F299 clone), WCH CH582F radio, PY25Q128HA 16 MB SPI flash, G
 
 ## Linux permissions
 
-hidraw nodes are root-only by default. Install `udev/99-openkey.rules` (grants `plugdev` and the
+hidraw nodes are root-only by default. Install `udev/70-openkey.rules` (grants `plugdev` and the
 logged-in seat via `uaccess`) and replug. Chrome's WebHID needs the same rule.

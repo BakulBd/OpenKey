@@ -67,7 +67,7 @@ jobs:
           grep -qi '^permissions-policy: hid=(self)' headers.txt
           grep -qi '^x-content-type-options: nosniff' headers.txt
           curl -fsSI http://localhost:8080/linux/install-openkey-udev.sh | grep -qi 'content-disposition: attachment'
-          curl -fsS http://localhost:8080/linux/99-openkey.rules | grep -q 'SUBSYSTEM=="hidraw"'
+          curl -fsS http://localhost:8080/linux/70-openkey.rules | grep -q 'SUBSYSTEM=="hidraw"'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/_headers)" = 404
       - if: always()
         run: docker logs openkey; docker rm -f openkey

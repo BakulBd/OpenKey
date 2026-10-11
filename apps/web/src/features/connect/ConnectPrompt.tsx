@@ -1,3 +1,4 @@
+import { LayoutTeacher, isLearnable } from '../rgb/LayoutTeacher.js';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
 import { ConnectPanel } from './ConnectPanel.js';
@@ -39,6 +40,7 @@ export function ResearchNeeded({ route }: { route: RouteDef }) {
           {t('research.lab')}
         </a>
       </div>
+      {route.id === 'rgb' && isLearnable(device?.driver) && <LayoutTeacher />}
     </div>
   );
 }

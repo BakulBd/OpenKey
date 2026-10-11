@@ -102,7 +102,6 @@ const m: Partial<Messages> = {
   'landing.pipe.ui': 'インターフェース',
   'landing.pipe.ui.d': 'キーボードが実際にできることだけを表示します。',
   'landing.hardwareTitle': 'ハードウェアの状況',
-  'landing.flagship': 'フラッグシップ：AJAZZ AK820 MAX PLUS（TFT）。検出と読み取りは実機で検証済み。書き込みは検証まで実験的です。',
   'landing.countsNote': '数値は検証状態ごとのカタログ件数です。合算して一つの「対応」数にすることはありません。',
   'landing.privacyTitle': 'プライバシー重視の設計',
   'landing.privacy.noAccount': 'アカウント、解析、トラッキングはありません。',

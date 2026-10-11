@@ -4,6 +4,14 @@
   "private": true,
   "description": "OpenKey: open-source, local-first browser keyboard configurator with a modular protocol-adapter architecture.",
   "license": "MIT",
+  "homepage": "https://github.com/BakulBd/openkey#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BakulBd/openkey.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BakulBd/openkey/issues"
+  },
   "type": "module",
   "packageManager": "pnpm@10.0.0",
   "engines": {
