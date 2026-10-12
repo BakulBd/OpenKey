@@ -107,8 +107,10 @@ plugged in" and opens it without the chooser.
 
 ## Offline and air-gapped networks
 
-- Host the `dist/` folder internally; nothing in the app calls external services. The only outbound
-  links are user-clicked GitHub links (issues, source), which you can ignore or block.
+- Host the `dist/` folder internally; nothing in the app calls external services on its own. The only
+  outbound requests are user-initiated: GitHub links (issues, source) and, for VIA keyboards, the
+  "Get the layout from VIA" button (`https://usevia.app/definitions/…`). Remove `https://usevia.app`
+  from `connect-src` in `vercel.json` (and regenerate the nginx snippet) to disable it.
 - After the first visit the service worker serves the whole app offline.
 - Diagnostic packages, backups and profiles are files the user downloads; nothing is uploaded.
 

@@ -140,7 +140,10 @@ export function sonixFeatureCapabilities(
     caps.tft = configurable('none', true, W, {
       safety: HIGH_RISK,
       value: `${p.tft.width}×${p.tft.height} RGB565`,
-      note: 'Upload only; images cannot be read back.',
+      note:
+        W === C
+          ? 'Upload only; images cannot be read back.'
+          : 'Upload only. Verified on the AK820 MAX; AK820 Pro firmware is reported to frame still images differently (Beattrey/ajazz-ak820-config), so treat uploads here as a test.',
     });
     caps.tftGif = configurable('none', true, W, {
       safety: HIGH_RISK,

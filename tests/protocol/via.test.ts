@@ -248,3 +248,42 @@ describe('VIA driver (firmware simulator)', () => {
     );
   });
 });
+
+describe('VIA compiled definitions (usevia.app format)', () => {
+  it('parses resolved keys, skips decals, and derives the USB identity', () => {
+    const d = via.parseDefinition(
+      JSON.stringify({
+        name: 'Compiled',
+        vendorProductId: (0x3434 << 16) | 0x0100,
+        matrix: { rows: 2, cols: 2 },
+        menus: ['qmk_rgb_matrix'],
+        layouts: {
+          width: 3,
+          height: 2,
+          optionKeys: {},
+          keys: [
+            { row: 0, col: 0, x: 0, y: 0, w: 1, h: 1, d: false },
+            { row: 0, col: 1, x: 1, y: 0, w: 2, h: 1, d: false },
+            { row: 1, col: 0, x: 0, y: 1, w: 1, h: 1, d: true },
+            { row: 1, col: 1, x: 1, y: 1, w: 1, h: 1, d: false },
+          ],
+        },
+      }),
+    );
+    expect(d).toMatchObject({
+      vendorId: 0x3434,
+      productId: 0x0100,
+      rows: 2,
+      cols: 2,
+      lighting: 'qmk_rgb_matrix',
+    });
+    expect(d.layout.keys.map((k) => k.slot)).toEqual([0, 1, 3]);
+  });
+
+  it('builds the usevia.app URLs from the USB identity, v3 first', () => {
+    expect(via.viaDefinitionUrls(0x3434, 0x0100)).toEqual([
+      'https://usevia.app/definitions/v3/875823360.json',
+      'https://usevia.app/definitions/v2/875823360.json',
+    ]);
+  });
+});

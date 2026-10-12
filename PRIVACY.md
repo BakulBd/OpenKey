@@ -3,7 +3,12 @@
 OpenKey runs entirely in your browser. There is no OpenKey server, no account, no analytics, no
 telemetry, no advertising and no tracking. The site is static files; the host (Vercel) serves them and
 sees ordinary web-server request data (IP address, user agent) like any website, but OpenKey itself
-sends nothing anywhere.
+sends nothing anywhere on its own.
+
+One exception, only when you click it: for a QMK/VIA keyboard without a layout, **Get the layout from
+VIA** downloads the keyboard's public definition from `usevia.app`. That request reveals the keyboard's
+USB vendor and product ID to usevia.app (and your IP address, as any web request does). Loading a file
+or using a matrix grid instead sends nothing.
 
 ## What the WebHID permission means
 

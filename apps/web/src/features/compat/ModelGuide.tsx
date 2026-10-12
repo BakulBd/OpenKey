@@ -5,7 +5,7 @@ import { useT } from '../../i18n/i18n.js';
 import type { MessageKey } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
 
-const GROUPS: GuideEntry['group'][] = ['bangladesh', 'asia', 'gaming', 'enthusiast'];
+const GROUPS: GuideEntry['group'][] = ['bangladesh', 'asia', 'via', 'gaming', 'enthusiast'];
 const LEVEL_CLASS: Record<GuideLevel, string> = {
   verified: 'cs-verified',
   adapter: 'cs-community',

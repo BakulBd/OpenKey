@@ -46,6 +46,27 @@ export function DefinitionPanel() {
     }
   };
 
+  /** Asks usevia.app for this keyboard's compiled definition. Only on the user's click. */
+  const fetchFromVia = async () => {
+    setError(null);
+    setPreview(null);
+    setBusy(true);
+    try {
+      const { via: v } = await import('@openkey/protocols');
+      for (const url of v.viaDefinitionUrls(id.vendorId, id.productId)) {
+        const r = await fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+        if (!r.ok || !(r.headers.get('content-type') ?? '').includes('json')) continue;
+        setPreview(v.parseDefinition(await r.text()));
+        return;
+      }
+      setError(t('def.viaMissing'));
+    } catch (e) {
+      setError(e instanceof Error ? `${t('def.viaFailed')} ${e.message}` : t('def.viaFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const use = async (fn: () => Promise<void>) => {
     setBusy(true);
     try {
@@ -84,8 +105,15 @@ export function DefinitionPanel() {
         </li>
       </ul>
       <div className="row wrap">
+        <button
+          type="button"
+          className="btn primary"
+          disabled={busy}
+          onClick={() => void fetchFromVia()}
+        >
+          <Icon name="search" /> {t('def.fetchVia')}
+        </button>
         <FileButton
-          variant="primary"
           accept=".json,application/json"
           label={
             <>
@@ -95,6 +123,7 @@ export function DefinitionPanel() {
           onFile={(f) => void load(f)}
         />
       </div>
+      <p className="small muted">{t('def.fetchViaNote')}</p>
       {error && (
         <p className="callout danger small" role="alert">
           {error}

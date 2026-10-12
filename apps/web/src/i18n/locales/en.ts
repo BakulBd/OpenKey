@@ -727,6 +727,7 @@ export const en = {
   'guide.none': 'Not in this list. Connect it or inspect it: OpenKey will tell you what it found.',
   'guide.group.bangladesh': 'Popular in Bangladesh',
   'guide.group.asia': 'Asia and custom boards',
+  'guide.group.via': 'QMK / VIA keyboards (from VIA’s catalogue)',
   'guide.group.gaming': 'Global gaming',
   'guide.group.enthusiast': 'Typing and enthusiast',
   'guide.level.verified': 'Verified',
@@ -1134,6 +1135,12 @@ export const en = {
   'def.whereVia': 'VIA definition (.json): from the keyboard maker’s support page or',
   'def.whereQmk': 'Or a QMK info.json / keyboard.json from the keyboard’s folder in',
   'def.load': 'Load definition file',
+  'def.fetchVia': 'Get the layout from VIA',
+  'def.fetchViaNote':
+    '“Get the layout from VIA” downloads this keyboard’s public definition from usevia.app, which learns the keyboard’s USB ID; nothing else is sent. About 2,000 keyboards are listed there.',
+  'def.viaMissing':
+    'VIA has no definition for this USB ID. Load the keyboard’s file, or use a matrix grid.',
+  'def.viaFailed': 'Could not reach usevia.app.',
   'def.facts': '{rows} × {cols} matrix, {keys} keys',
   'def.mismatch':
     'This file is for USB ID {file}, not this keyboard. Use it only if you know the layout matches.',

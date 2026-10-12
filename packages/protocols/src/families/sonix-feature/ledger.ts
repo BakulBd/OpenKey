@@ -317,9 +317,15 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     timing: '300 ms per chunk acknowledgement',
     evidence: Evidence.VERIFIED,
     testedOn: OWNER_UNIT,
-    sideEffects: 'replaces the stored animation; cannot be read back',
+    sideEffects:
+      'replaces the stored animation; cannot be read back. Beattrey/ajazz-ak820-config (MIT) reports that AK820 Pro firmware takes still images without the 256-byte header (sub-command 02, closed with F0), so this framing is verified for the AK820 MAX only.',
     usedBy: ['tft', 'tftGif'],
-    sources: [OWNER_TEST, 'FUN_00422980, FUN_0044f2d0', AULA],
+    sources: [
+      OWNER_TEST,
+      'FUN_00422980, FUN_0044f2d0',
+      AULA,
+      'Beattrey/ajazz-ak820-config src/protocol/image.ts (MIT, AK820 Pro)',
+    ],
     implemented: true,
   }),
   entry({

@@ -33,6 +33,11 @@
   detection via `0x80`, lighting read/write `0x87`/`0x07` with read-back; reset, erase and boot opcodes
   refused by the packet builder. The magnetic AJAZZ AK820 (`3151:4015`) and the AJAZZ "BY edition"
   (`258A:010C`, BY Tech adapter) are now community-supported.
+- **VIA layouts from usevia.app**: one click downloads a VIA keyboard's published definition (about
+  2,000 boards; compiled v2/v3 format parsed), so Keychron, GMMK, IDOBAO, KBDfans, MelGeek and other
+  VIA keyboards need no file. Opt-in only; documented in PRIVACY.md; `connect-src` allows usevia.app.
+- Model guide: Lingbao MK75, AULA F75 Max / F2088, AJAZZ AKS075, RK M75, more Fantech models and the VIA
+  catalogue families; AK820 Pro still-image framing difference recorded (Beattrey) with a warning.
 - **AULA F99 family** (docs/AULA_F99.md): F99, F99 Pro and F99 Wired identified by model code over
   the cable; new read-only **AULA receiver** adapter (`3554:FA09`: model, firmware/battery, lighting
   page; write, apply and reset opcodes refused). The F99 Max is not assumed compatible.

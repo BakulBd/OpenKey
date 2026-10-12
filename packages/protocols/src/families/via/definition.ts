@@ -198,6 +198,63 @@ function parseQmk(j: Record<string, unknown>): ViaDefinition {
   };
 }
 
+/**
+ * VIA's compiled definitions (as served by usevia.app/definitions/v2|v3/<id>.json): the KLE layout is
+ * already resolved into `layouts.keys[]` with `row`, `col`, `x`, `y`, `w`, `h` and `d` (decal).
+ * Layout options live in `optionKeys`; the default keys are in `keys`.
+ */
+function parseCompiled(j: Record<string, unknown>): ViaDefinition {
+  const layouts = j.layouts as Record<string, unknown>;
+  const items = (layouts.keys as unknown[])
+    .filter(isObj)
+    .filter((k) => k.d !== true && typeof k.row === 'number' && typeof k.col === 'number');
+  if (!items.length) throw new DefinitionError('The definition has no keys.');
+  const matrix = isObj(j.matrix) ? j.matrix : null;
+  const rows = num(matrix?.rows) ?? Math.max(...items.map((k) => Number(k.row))) + 1;
+  const cols = num(matrix?.cols) ?? Math.max(...items.map((k) => Number(k.col))) + 1;
+  if (!(rows >= 1 && rows <= 32 && cols >= 1 && cols <= 32))
+    throw new DefinitionError('matrix.rows and matrix.cols must be 1–32.');
+  const name = typeof j.name === 'string' ? j.name : 'VIA keyboard';
+  const keys = items
+    .filter((k) => Number(k.row) < rows && Number(k.col) < cols)
+    .map((k) =>
+      key(
+        Number(k.row),
+        Number(k.col),
+        cols,
+        Number(k.x ?? 0),
+        Number(k.y ?? 0),
+        Number(k.w ?? 1),
+        Number(k.h ?? 1),
+      ),
+    );
+  const menus = Array.isArray(j.menus)
+    ? j.menus.filter((m): m is string => typeof m === 'string')
+    : [];
+  const lighting =
+    menus.find((m) => m.startsWith('qmk_')) ??
+    (typeof j.lighting === 'string' ? j.lighting : undefined);
+  const vpid = num(j.vendorProductId);
+  return {
+    name,
+    ...(vpid !== undefined ? { vendorId: vpid >>> 16, productId: vpid & 0xffff } : {}),
+    rows,
+    cols,
+    layout: finish(`via-${name}`, name, keys, 'VIA definition'),
+    ...(lighting ? { lighting } : {}),
+    format: 'via',
+  };
+}
+
+/** Where VIA publishes the compiled definition for a USB identity (v3 first, then v2). */
+export function viaDefinitionUrls(vendorId: number, productId: number): string[] {
+  const id = ((vendorId << 16) | productId) >>> 0;
+  return [
+    `https://usevia.app/definitions/v3/${id}.json`,
+    `https://usevia.app/definitions/v2/${id}.json`,
+  ];
+}
+
 /** Parses a VIA definition or a QMK info.json/keyboard.json. Throws DefinitionError with a reason. */
 export function parseDefinition(text: string): ViaDefinition {
   let j: unknown;
@@ -208,6 +265,7 @@ export function parseDefinition(text: string): ViaDefinition {
   }
   if (!isObj(j)) throw new DefinitionError('The file is not a keyboard definition.');
   if (isObj(j.matrix) && isObj(j.layouts) && 'keymap' in j.layouts) return parseVia(j);
+  if (isObj(j.layouts) && Array.isArray(j.layouts.keys)) return parseCompiled(j);
   if (isObj(j.layouts)) return parseQmk(j);
   throw new DefinitionError('Not a VIA definition or QMK info.json.');
 }
