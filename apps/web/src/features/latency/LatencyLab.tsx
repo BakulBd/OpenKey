@@ -24,8 +24,16 @@ function StatsTable({ s, expected }: { s: CadenceStats | null; expected?: number
         [t('latency.min'), ms(s.minMs)],
         [t('latency.max'), ms(s.maxMs)],
         [t('latency.jitter'), ms(s.jitterMs)],
-        [t('latency.missed'), s.missed === null ? t('latency.noExpected') : `${s.missed}${expected ? ` (> ${(expected * 1.5).toFixed(1)} ms)` : ''}`],
-        [t('latency.measuredRate'), Number.isFinite(s.measuredRateHz) ? `${s.measuredRateHz.toFixed(0)} /s` : '—'],
+        [
+          t('latency.missed'),
+          s.missed === null
+            ? t('latency.noExpected')
+            : `${s.missed}${expected ? ` (> ${(expected * 1.5).toFixed(1)} ms)` : ''}`,
+        ],
+        [
+          t('latency.measuredRate'),
+          Number.isFinite(s.measuredRateHz) ? `${s.measuredRateHz.toFixed(0)} /s` : '—',
+        ],
       ]}
     />
   );
@@ -50,7 +58,10 @@ export default function LatencyLab() {
     if (mode === 'reports') {
       if (!device || device.demo) return setRunning(false);
       let alive = true;
-      void startReportMonitor(device.group.identity, (r) => alive && setStamps((s) => [...s.slice(-4999), r.at])).then((m) => {
+      void startReportMonitor(
+        device.group.identity,
+        (r) => alive && setStamps((s) => [...s.slice(-4999), r.at]),
+      ).then((m) => {
         setReportsAvailable(m.collections);
         stop.current = m.stop;
       });
@@ -82,7 +93,11 @@ export default function LatencyLab() {
       <PageHeader title={t('nav.latency')} lead={t('latency.lead')} />
       <div className="grid2">
         <Card title={t('latency.declared')}>
-          <p>{declared && declared.status !== 'UNKNOWN' ? declared.value : t('latency.declaredUnknown')}</p>
+          <p>
+            {declared && declared.status !== 'UNKNOWN'
+              ? declared.value
+              : t('latency.declaredUnknown')}
+          </p>
           <p className="small muted">{t('latency.declaredNote')}</p>
           <h3 className="h3">{t('latency.configurable')}</h3>
           <p>{declared?.write ? t('status.CONFIGURABLE') : t('latency.notConfigurable')}</p>
@@ -106,9 +121,19 @@ export default function LatencyLab() {
             ))}
           </div>
           <p className="small">{t(`latency.mode.${mode}.help`)}</p>
-          {mode === 'reports' && (!device || device.demo) && <p className="callout info small">{t('latency.reportsNeedDevice')}</p>}
-          {mode === 'reports' && reportsAvailable === 0 && <p className="callout info small">{t('latency.noVendorInput')}</p>}
-          <button type="button" className={`btn ${running ? 'danger' : 'primary'}`} aria-pressed={running} disabled={mode === 'reports' && (!device || device.demo)} onClick={() => setRunning(!running)}>
+          {mode === 'reports' && (!device || device.demo) && (
+            <p className="callout info small">{t('latency.reportsNeedDevice')}</p>
+          )}
+          {mode === 'reports' && reportsAvailable === 0 && (
+            <p className="callout info small">{t('latency.noVendorInput')}</p>
+          )}
+          <button
+            type="button"
+            className={`btn ${running ? 'danger' : 'primary'}`}
+            aria-pressed={running}
+            disabled={mode === 'reports' && (!device || device.demo)}
+            onClick={() => setRunning(!running)}
+          >
             {running ? t('latency.stop') : t('latency.start')}
           </button>
         </Card>

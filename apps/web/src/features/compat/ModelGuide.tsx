@@ -29,7 +29,12 @@ export function ModelGuide() {
       <p className="small muted">{t('guide.lead')}</p>
       <label className="search">
         <Icon name="search" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('guide.search')} aria-label={t('guide.search')} />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('guide.search')}
+          aria-label={t('guide.search')}
+        />
       </label>
       {GROUPS.map((g) => {
         const list = hits.filter((e) => e.group === g);
@@ -44,7 +49,9 @@ export function ModelGuide() {
                     <strong>
                       {e.brand} {e.model}
                     </strong>
-                    <span className={`pill ${LEVEL_CLASS[e.level]}`}>{t(`guide.level.${e.level}` as MessageKey)}</span>
+                    <span className={`pill ${LEVEL_CLASS[e.level]}`}>
+                      {t(`guide.level.${e.level}` as MessageKey)}
+                    </span>
                   </div>
                   <p className="small muted">{e.note}</p>
                 </li>

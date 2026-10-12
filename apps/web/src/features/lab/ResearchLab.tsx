@@ -1,11 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import { cadenceStats, compareDiagnostics, hexId, parseSupportBundle, supportBundleToIssue, toHex } from '@openkey/core';
+import {
+  cadenceStats,
+  compareDiagnostics,
+  hexId,
+  parseSupportBundle,
+  supportBundleToIssue,
+  toHex,
+} from '@openkey/core';
 import type { PacketRecord, ResearchNote, SupportBundle } from '@openkey/core';
-import { analyzeDiagnostic, createDefaultRegistry, formatDetectionReport } from '@openkey/protocols';
+import {
+  analyzeDiagnostic,
+  createDefaultRegistry,
+  formatDetectionReport,
+} from '@openkey/protocols';
 import type { DiagnosticAnalysis } from '@openkey/protocols';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
-import { Card, EmptyState, FileButton, KV, PageHeader, download, hex4 } from '../../components/ui.js';
+import {
+  Card,
+  EmptyState,
+  FileButton,
+  KV,
+  PageHeader,
+  download,
+  hex4,
+} from '../../components/ui.js';
 import type { MessageKey } from '../../i18n/i18n.js';
 import { CollectionsTable } from '../shared/CollectionsTable.js';
 import { sessionSupportBundle, supportIssueUrl } from '../../lib/support.js';
@@ -34,9 +53,18 @@ export default function ResearchLab() {
       <PageHeader title={t('nav.lab')} lead={t('lab.lead')} />
       <div className="tabs" role="tablist" aria-label={t('nav.lab')}>
         {TABS.map((x) => (
-          <button key={x} type="button" role="tab" aria-selected={tab === x} className={`tab ${tab === x ? 'on' : ''}`} onClick={() => setTab(x)}>
+          <button
+            key={x}
+            type="button"
+            role="tab"
+            aria-selected={tab === x}
+            className={`tab ${tab === x ? 'on' : ''}`}
+            onClick={() => setTab(x)}
+          >
             {t(`lab.tab.${x}` as MessageKey)}
-            {!session && !OFFLINE_TABS.includes(x) && <span className="sr-only"> ({t('lab.needsDevice')})</span>}
+            {!session && !OFFLINE_TABS.includes(x) && (
+              <span className="sr-only"> ({t('lab.needsDevice')})</span>
+            )}
           </button>
         ))}
       </div>
@@ -91,7 +119,11 @@ function Evidence() {
             <li key={c.protocol.id}>
               <div className="ev-head">
                 <strong>{c.protocol.name}</strong> <code className="muted">{c.protocol.id}</code>
-                {c.probe?.identified ? <span className="pill ev-verified">{t('lab.evidence.identified')}</span> : <span className="pill">{t('lab.evidence.notIdentified')}</span>}
+                {c.probe?.identified ? (
+                  <span className="pill ev-verified">{t('lab.evidence.identified')}</span>
+                ) : (
+                  <span className="pill">{t('lab.evidence.notIdentified')}</span>
+                )}
               </div>
               <dl className="kv">
                 <div className="kv-row">
@@ -113,7 +145,9 @@ function Evidence() {
                 <div className="kv-row">
                   <dt>{t('lab.evidence.probe')}</dt>
                   <dd>
-                    {c.probe ? `${c.probe.status} · ${t('lab.evidence.level', { level: c.probeLevel ?? d.level })} · ${c.probe.summary}` : '—'}
+                    {c.probe
+                      ? `${c.probe.status} · ${t('lab.evidence.level', { level: c.probeLevel ?? d.level })} · ${c.probe.summary}`
+                      : '—'}
                   </dd>
                 </div>
               </dl>
@@ -133,7 +167,12 @@ function Evidence() {
                         <td>{st.status}</td>
                         <td className="wrap-any">
                           {st.detail}
-                          {st.raw && <div className="muted">{st.raw.slice(0, 48)}{st.raw.length > 48 ? ' …' : ''}</div>}
+                          {st.raw && (
+                            <div className="muted">
+                              {st.raw.slice(0, 48)}
+                              {st.raw.length > 48 ? ' …' : ''}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -186,7 +225,12 @@ function Inspector() {
             [t('overview.product'), id.productName],
             [t('lab.backend'), session.group.backend],
             [t('lab.transportHint'), session.group.transportHint],
-            [t('lab.fingerprint'), <code key="f" className="wrap-any">{session.fingerprint.key}</code>],
+            [
+              t('lab.fingerprint'),
+              <code key="f" className="wrap-any">
+                {session.fingerprint.key}
+              </code>,
+            ],
           ]}
         />
       </Card>
@@ -211,12 +255,22 @@ function Trace() {
     return log.subscribe(() => setPackets([...log.all()]));
   }, [session]);
   const timing = useMemo(() => {
-    const d = packets.map((p) => p.durationMs).filter((x): x is number => x !== undefined).sort((a, b) => a - b);
-    return d.length ? { n: d.length, median: d[Math.floor(d.length / 2)]!, max: d[d.length - 1]! } : null;
+    const d = packets
+      .map((p) => p.durationMs)
+      .filter((x): x is number => x !== undefined)
+      .sort((a, b) => a - b);
+    return d.length
+      ? { n: d.length, median: d[Math.floor(d.length / 2)]!, max: d[d.length - 1]! }
+      : null;
   }, [packets]);
   if (!session) return null;
   const save = async () => {
-    await saveRecord({ id: newId(), kind: 'trace', name: `${session.group.identity.productName} — ${new Date().toLocaleString()}`, data: session.log.toJSON() });
+    await saveRecord({
+      id: newId(),
+      kind: 'trace',
+      name: `${session.group.identity.productName} — ${new Date().toLocaleString()}`,
+      data: session.log.toJSON(),
+    });
     notify({ kind: 'ok', title: t('lab.traceSaved') });
   };
   return (
@@ -230,14 +284,26 @@ function Trace() {
           <button type="button" className="btn small ghost" onClick={() => void save()}>
             {t('lab.saveLocal')}
           </button>
-          <button type="button" className="btn small" onClick={() => download('openkey-trace.json', session.log.toJSON())}>
+          <button
+            type="button"
+            className="btn small"
+            onClick={() => download('openkey-trace.json', session.log.toJSON())}
+          >
             {t('lab.download')}
           </button>
         </>
       }
     >
       <p className="small muted">{t('lab.traceNote')}</p>
-      {timing && <p className="small">{t('lab.timing', { n: timing.n, median: timing.median.toFixed(1), max: timing.max.toFixed(1) })}</p>}
+      {timing && (
+        <p className="small">
+          {t('lab.timing', {
+            n: timing.n,
+            median: timing.median.toFixed(1),
+            max: timing.max.toFixed(1),
+          })}
+        </p>
+      )}
       <div className="table-wrap trace">
         <table className="tbl small mono-cells">
           <thead>
@@ -264,7 +330,10 @@ function Trace() {
                 <td>{p.bytes.length}</td>
                 <td>{p.error ? `⚠ ${p.error}` : (p.decoded ?? '')}</td>
                 <td>{p.durationMs !== undefined ? p.durationMs.toFixed(1) : ''}</td>
-                <td className="hex">{toHex(p.bytes.subarray(0, 16))}{p.bytes.length > 16 ? ' …' : ''}</td>
+                <td className="hex">
+                  {toHex(p.bytes.subarray(0, 16))}
+                  {p.bytes.length > 16 ? ' …' : ''}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -299,7 +368,10 @@ function Monitor() {
     if (!on || !live) return;
     let stop = () => undefined as void;
     let alive = true;
-    void startReportMonitor(live.group.identity, (r) => alive && setReports((rs) => [...rs.slice(-(MONITOR_LIMIT - 1)), r])).then((m) => {
+    void startReportMonitor(
+      live.group.identity,
+      (r) => alive && setReports((rs) => [...rs.slice(-(MONITOR_LIMIT - 1)), r]),
+    ).then((m) => {
       setCollections(m.collections);
       if (alive) stop = m.stop;
       else m.stop();
@@ -316,9 +388,18 @@ function Monitor() {
     download(`openkey-capture-${hex4(id.vendorId)}-${hex4(id.productId)}.json`, {
       format: 'openkey-report-capture',
       version: 1,
-      device: { vendorId: hexId(id.vendorId), productId: hexId(id.productId), productName: id.productName },
+      device: {
+        vendorId: hexId(id.vendorId),
+        productId: hexId(id.productId),
+        productName: id.productName,
+      },
       note: 'Vendor-collection input reports with payloads, as captured. Review before sharing: a vendor collection can carry key or configuration data.',
-      reports: reports.map((r) => ({ ms: Math.round(r.at), usagePage: hexId(r.usagePage), reportId: r.reportId, hex: toHex(r.bytes) })),
+      reports: reports.map((r) => ({
+        ms: Math.round(r.at),
+        usagePage: hexId(r.usagePage),
+        reportId: r.reportId,
+        hex: toHex(r.bytes),
+      })),
     });
   };
   return (
@@ -326,13 +407,29 @@ function Monitor() {
       title={t('lab.tab.monitor')}
       actions={
         <>
-          <button type="button" className={`btn small ${on ? 'danger' : 'primary'}`} aria-pressed={on} disabled={!live} onClick={() => setOn(!on)}>
+          <button
+            type="button"
+            className={`btn small ${on ? 'danger' : 'primary'}`}
+            aria-pressed={on}
+            disabled={!live}
+            onClick={() => setOn(!on)}
+          >
             {on ? t('lab.monitorStop') : t('lab.monitorStart')}
           </button>
-          <button type="button" className="btn small ghost" disabled={on || reports.length === 0} onClick={() => setReports([])}>
+          <button
+            type="button"
+            className="btn small ghost"
+            disabled={on || reports.length === 0}
+            onClick={() => setReports([])}
+          >
             {t('lab.clear')}
           </button>
-          <button type="button" className="btn small" disabled={on || reports.length === 0} onClick={exportCapture}>
+          <button
+            type="button"
+            className="btn small"
+            disabled={on || reports.length === 0}
+            onClick={exportCapture}
+          >
             {t('lab.monitorExport')}
           </button>
         </>
@@ -341,13 +438,30 @@ function Monitor() {
       <p className="small muted">{t('lab.monitorNote', { n: MONITOR_LIMIT })}</p>
       {!live && <p className="callout info small">{t('latency.reportsNeedDevice')}</p>}
       {collections === 0 && <p className="callout info small">{t('latency.noVendorInput')}</p>}
-      {stats && <p className="small">{t('lab.monitorStats', { n: reports.length, median: stats.medianMs.toFixed(2) })}</p>}
-      <pre className="mono scroll">{reports.slice(-50).map((r) => `${r.at.toFixed(1).padStart(10)}  ${hex4(r.usagePage)} id=${r.reportId} len=${r.length}  ${toHex(r.bytes.subarray(0, 24))}`).join('\n') || '—'}</pre>
+      {stats && (
+        <p className="small">
+          {t('lab.monitorStats', { n: reports.length, median: stats.medianMs.toFixed(2) })}
+        </p>
+      )}
+      <pre className="mono scroll">
+        {reports
+          .slice(-50)
+          .map(
+            (r) =>
+              `${r.at.toFixed(1).padStart(10)}  ${hex4(r.usagePage)} id=${r.reportId} len=${r.length}  ${toHex(r.bytes.subarray(0, 24))}`,
+          )
+          .join('\n') || '—'}
+      </pre>
     </Card>
   );
 }
 
-const NOTE_KINDS: ResearchNote['evidence'][] = ['hardware', 'vendor-software', 'inferred', 'hypothesis'];
+const NOTE_KINDS: ResearchNote['evidence'][] = [
+  'hardware',
+  'vendor-software',
+  'inferred',
+  'hypothesis',
+];
 
 /**
  * Report: the sanitized diagnostic package, research notes kept in this browser, and an issue text.
@@ -364,13 +478,20 @@ function ExportPanel() {
   const [include, setInclude] = useState(false);
   const [copied, setCopied] = useState(false);
   const refresh = () =>
-    void listRecords<ResearchNote>('research-note').then((rs) => setNotes(rs.filter((r) => r.name === key).map((r) => ({ id: r.id, note: r.data }))));
+    void listRecords<ResearchNote>('research-note').then((rs) =>
+      setNotes(rs.filter((r) => r.name === key).map((r) => ({ id: r.id, note: r.data }))),
+    );
   useEffect(refresh, [key]);
   const shared = include ? notes.map((n) => n.note) : [];
   const issue = supportBundleToIssue(bundle, shared).split('<details>')[0]!.trim();
   const add = async () => {
     if (!draft.trim()) return;
-    await saveRecord<ResearchNote>({ id: newId(), kind: 'research-note', name: key, data: { text: draft.trim(), evidence: kind, at: new Date().toISOString() } });
+    await saveRecord<ResearchNote>({
+      id: newId(),
+      kind: 'research-note',
+      name: key,
+      data: { text: draft.trim(), evidence: kind, at: new Date().toISOString() },
+    });
     setDraft('');
     refresh();
   };
@@ -384,34 +505,66 @@ function ExportPanel() {
           ))}
         </ul>
         <div className="row wrap">
-          <button type="button" className="btn primary" onClick={() => download('openkey-diagnostics.json', include ? { ...bundle, notes: shared } : bundle)}>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() =>
+              download('openkey-diagnostics.json', include ? { ...bundle, notes: shared } : bundle)
+            }
+          >
             {t('unknown.export')}
           </button>
           {device && (
-            <button type="button" className="btn ghost" onClick={() => download('openkey-capabilities.json', { manifest: device.manifest, capabilities: device.caps })}>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() =>
+                download('openkey-capabilities.json', {
+                  manifest: device.manifest,
+                  capabilities: device.caps,
+                })
+              }
+            >
               {t('lab.report.capabilities')}
             </button>
           )}
         </div>
         <details className="small">
           <summary>{t('lab.preview')}</summary>
-          <pre className="mono scroll">{JSON.stringify(include ? { ...bundle, notes: shared } : bundle, null, 2)}</pre>
+          <pre className="mono scroll">
+            {JSON.stringify(include ? { ...bundle, notes: shared } : bundle, null, 2)}
+          </pre>
         </details>
       </Card>
 
       <Card title={t('lab.report.notes')}>
         <p className="small muted">{t('lab.report.notesLead')}</p>
         <div className="note-form">
-          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} aria-label={t('lab.report.noteText')} placeholder={t('lab.report.notePlaceholder')} />
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={3}
+            aria-label={t('lab.report.noteText')}
+            placeholder={t('lab.report.notePlaceholder')}
+          />
           <div className="row wrap">
-            <select value={kind} onChange={(e) => setKind(e.target.value as ResearchNote['evidence'])} aria-label={t('lab.report.noteEvidence')}>
+            <select
+              value={kind}
+              onChange={(e) => setKind(e.target.value as ResearchNote['evidence'])}
+              aria-label={t('lab.report.noteEvidence')}
+            >
               {NOTE_KINDS.map((k) => (
                 <option key={k} value={k}>
                   {t(`lab.report.ev.${k}` as MessageKey)}
                 </option>
               ))}
             </select>
-            <button type="button" className="btn" disabled={!draft.trim()} onClick={() => void add()}>
+            <button
+              type="button"
+              className="btn"
+              disabled={!draft.trim()}
+              onClick={() => void add()}
+            >
               {t('lab.report.addNote')}
             </button>
           </div>
@@ -421,9 +574,17 @@ function ExportPanel() {
             {notes.map((n) => (
               <li key={n.id}>
                 <span>
-                  <span className="pill tiny">{t(`lab.report.ev.${n.note.evidence}` as MessageKey)}</span> {n.note.text}
+                  <span className="pill tiny">
+                    {t(`lab.report.ev.${n.note.evidence}` as MessageKey)}
+                  </span>{' '}
+                  {n.note.text}
                 </span>
-                <button type="button" className="btn ghost tiny" aria-label={t('common.remove')} onClick={() => void deleteRecord(n.id).then(refresh)}>
+                <button
+                  type="button"
+                  className="btn ghost tiny"
+                  aria-label={t('common.remove')}
+                  onClick={() => void deleteRecord(n.id).then(refresh)}
+                >
                   ×
                 </button>
               </li>
@@ -452,7 +613,16 @@ function ExportPanel() {
           >
             {copied ? t('lab.report.copied') : t('lab.report.copy')}
           </button>
-          <a className="btn" href={supportIssueUrl(bundle, session?.kind === 'unknown' ? 'device-support' : 'bug', shared)} target="_blank" rel="noopener noreferrer">
+          <a
+            className="btn"
+            href={supportIssueUrl(
+              bundle,
+              session?.kind === 'unknown' ? 'device-support' : 'bug',
+              shared,
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {session?.kind === 'unknown' ? t('unknown.request') : t('footer.bug')}
           </a>
         </div>
@@ -472,9 +642,24 @@ function ExportPanel() {
 
 /** Sanitized samples from fixtures/diagnostics, loaded only when picked. */
 const SAMPLES = [
-  { id: 'ak820', label: 'lab.offline.sample.ak820', file: 'ak820-max-plus-descriptors.json', load: () => import('../../../../../fixtures/diagnostics/ak820-max-plus-descriptors.json?raw') },
-  { id: 'a', label: 'lab.offline.sample.a', file: 'unknown-a-258a-015e.json', load: () => import('../../../../../fixtures/diagnostics/unknown-a-258a-015e.json?raw') },
-  { id: 'b', label: 'lab.offline.sample.b', file: 'unknown-b-3151-6000.json', load: () => import('../../../../../fixtures/diagnostics/unknown-b-3151-6000.json?raw') },
+  {
+    id: 'ak820',
+    label: 'lab.offline.sample.ak820',
+    file: 'ak820-max-plus-descriptors.json',
+    load: () => import('../../../../../fixtures/diagnostics/ak820-max-plus-descriptors.json?raw'),
+  },
+  {
+    id: 'a',
+    label: 'lab.offline.sample.a',
+    file: 'unknown-a-258a-015e.json',
+    load: () => import('../../../../../fixtures/diagnostics/unknown-a-258a-015e.json?raw'),
+  },
+  {
+    id: 'b',
+    label: 'lab.offline.sample.b',
+    file: 'unknown-b-3151-6000.json',
+    load: () => import('../../../../../fixtures/diagnostics/unknown-b-3151-6000.json?raw'),
+  },
 ] as const;
 
 interface Loaded {
@@ -509,7 +694,11 @@ function OfflineAnalysis() {
   const analyse = async (slot: 'a' | 'b') => {
     if (!pending) return;
     const analysis = await analyzeDiagnostic(pending.bundle, createDefaultRegistry());
-    const loaded = { ...pending, analysis, report: formatDetectionReport(analysis.detection, true) };
+    const loaded = {
+      ...pending,
+      analysis,
+      report: formatDetectionReport(analysis.detection, true),
+    };
     if (slot === 'a') {
       setA(loaded);
       setB(null);
@@ -518,7 +707,9 @@ function OfflineAnalysis() {
   };
   const dev = pending?.bundle.device;
   const collections = dev ? dev.interfaces.reduce((n, i) => n + i.collections.length, 0) : 0;
-  const missing = dev ? dev.interfaces.flatMap((i) => i.collections).filter((c) => c.usage === null).length : 0;
+  const missing = dev
+    ? dev.interfaces.flatMap((i) => i.collections).filter((c) => c.usage === null).length
+    : 0;
   const cmp = a && b ? compareDiagnostics(a.bundle.device!, b.bundle.device!) : null;
 
   return (
@@ -526,10 +717,20 @@ function OfflineAnalysis() {
       <Card title={t('lab.tab.offline')}>
         <p>{t('lab.offline.lead')}</p>
         <div className="offline-drop">
-          <FileButton variant="primary" label={t('lab.offline.choose')} accept="application/json,.json" onFile={(f) => void f.text().then((text) => parse(f.name, text))} />
+          <FileButton
+            variant="primary"
+            label={t('lab.offline.choose')}
+            accept="application/json,.json"
+            onFile={(f) => void f.text().then((text) => parse(f.name, text))}
+          />
           <span className="small muted">{t('lab.offline.samples')}</span>
           {SAMPLES.map((x) => (
-            <button key={x.id} type="button" className="btn small" onClick={() => void x.load().then((m) => parse(x.file, m.default))}>
+            <button
+              key={x.id}
+              type="button"
+              className="btn small"
+              onClick={() => void x.load().then((m) => parse(x.file, m.default))}
+            >
               {t(x.label)}
             </button>
           ))}
@@ -547,8 +748,14 @@ function OfflineAnalysis() {
             rows={[
               ['VID:PID', <code key="v">{`${dev.vendorId}:${dev.productId}`}</code>],
               [t('overview.product'), dev.productName || '—'],
-              [t('lab.offline.contents'), t('lab.offline.counts', { i: dev.interfaces.length, c: collections })],
-              [t('lab.offline.notRecorded'), missing ? t('lab.offline.missingUsages', { n: missing }) : t('common.none')],
+              [
+                t('lab.offline.contents'),
+                t('lab.offline.counts', { i: dev.interfaces.length, c: collections }),
+              ],
+              [
+                t('lab.offline.notRecorded'),
+                missing ? t('lab.offline.missingUsages', { n: missing }) : t('common.none'),
+              ],
             ]}
           />
           <p className="small muted">{t('lab.offline.sanitized')}</p>
@@ -568,13 +775,19 @@ function OfflineAnalysis() {
         </Card>
       )}
 
-      {!a && !pending && <EmptyState title={t('lab.offline.emptyTitle')}>{t('lab.offline.emptyBody')}</EmptyState>}
+      {!a && !pending && (
+        <EmptyState title={t('lab.offline.emptyTitle')}>{t('lab.offline.emptyBody')}</EmptyState>
+      )}
 
       {a && (
         <>
           <div className="row wrap between">
             <p className="small muted">{t('lab.offline.file', { name: a.name })}</p>
-            <button type="button" className="btn small ghost" onClick={() => download(`sanitized-${a.name}`, a.bundle)}>
+            <button
+              type="button"
+              className="btn small ghost"
+              onClick={() => download(`sanitized-${a.name}`, a.bundle)}
+            >
               {t('lab.offline.downloadSanitized')}
             </button>
           </div>
@@ -582,9 +795,16 @@ function OfflineAnalysis() {
           {cmp && b && (
             <Card title={t('lab.offline.compareTitle', { a: a.name, b: b.name })}>
               <p>
-                <span className={`pill vd-${a.analysis.verdict.kind.toLowerCase()}`}>{t(`verdict.${a.analysis.verdict.kind}` as MessageKey)}</span> vs{' '}
-                <span className={`pill vd-${b.analysis.verdict.kind.toLowerCase()}`}>{t(`verdict.${b.analysis.verdict.kind}` as MessageKey)}</span>{' '}
-                {cmp.sameDescriptors ? t('lab.offline.sameDescriptors') : t('lab.offline.differentDescriptors')}
+                <span className={`pill vd-${a.analysis.verdict.kind.toLowerCase()}`}>
+                  {t(`verdict.${a.analysis.verdict.kind}` as MessageKey)}
+                </span>{' '}
+                vs{' '}
+                <span className={`pill vd-${b.analysis.verdict.kind.toLowerCase()}`}>
+                  {t(`verdict.${b.analysis.verdict.kind}` as MessageKey)}
+                </span>{' '}
+                {cmp.sameDescriptors
+                  ? t('lab.offline.sameDescriptors')
+                  : t('lab.offline.differentDescriptors')}
               </p>
               <div className="table-wrap">
                 <table className="tbl small">
@@ -609,14 +829,21 @@ function OfflineAnalysis() {
               <ul className="compare-list small mono">
                 {cmp.collections.map((c) => (
                   <li key={c.signature} className={`side-${c.side}`}>
-                    <span className="pill tiny">{c.side === 'both' ? 'A+B' : c.side.toUpperCase()}</span> {c.signature}
+                    <span className="pill tiny">
+                      {c.side === 'both' ? 'A+B' : c.side.toUpperCase()}
+                    </span>{' '}
+                    {c.signature}
                   </li>
                 ))}
               </ul>
             </Card>
           )}
           <Card title={t('unknown.collections')}>
-            {a.analysis.missingUsages > 0 && <p className="callout info small">{t('lab.offline.missingUsages', { n: a.analysis.missingUsages })}</p>}
+            {a.analysis.missingUsages > 0 && (
+              <p className="callout info small">
+                {t('lab.offline.missingUsages', { n: a.analysis.missingUsages })}
+              </p>
+            )}
             <CollectionsTable interfaces={a.analysis.group.interfaces} />
           </Card>
           <details className="card disclosure">

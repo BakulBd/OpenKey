@@ -1,7 +1,13 @@
 import type { DeviceIdentity } from '@openkey/core';
 import { MockHidDevice } from '@openkey/hid';
 import type { HidInterfaceInfo, MockBehavior } from '@openkey/hid';
-import { Cmd, HEADER_BYTES, INFO_IDENTITY, REPORT_BYTES, SETTINGS_PAGE_BYTES } from './constants.js';
+import {
+  Cmd,
+  HEADER_BYTES,
+  INFO_IDENTITY,
+  REPORT_BYTES,
+  SETTINGS_PAGE_BYTES,
+} from './constants.js';
 import { AULA_LAYOUT, slotOffset } from './page.js';
 import type { PageLayout } from './page.js';
 
@@ -24,19 +30,54 @@ export const F75_IDENTITY = Uint8Array.from([0x03, 0x00, 0x00, 0x00, 0x00, 0xcd]
 export const R75_IDENTITY = Uint8Array.from([0x0a, 0x00, 0x00, 0x00, 0x00, 0x00]);
 
 /** HID layout of the RK R75 RGB vendor interface (sysfs report descriptor, 258A:015E). */
-export function byTechInterfaces(reportId = 6): { keyboard: HidInterfaceInfo; vendor: HidInterfaceInfo } {
+export function byTechInterfaces(reportId = 6): {
+  keyboard: HidInterfaceInfo;
+  vendor: HidInterfaceInfo;
+} {
   return {
     keyboard: {
       interfaceNumber: 0,
-      collections: [{ usagePage: 0x0001, usage: 0x0006, inputReports: [{ reportId: 0, size: 8 }], outputReports: [{ reportId: 0, size: 1 }], featureReports: [] }],
+      collections: [
+        {
+          usagePage: 0x0001,
+          usage: 0x0006,
+          inputReports: [{ reportId: 0, size: 8 }],
+          outputReports: [{ reportId: 0, size: 1 }],
+          featureReports: [],
+        },
+      ],
     },
     vendor: {
       interfaceNumber: 1,
       collections: [
-        { usagePage: 0x000c, usage: 0x0001, inputReports: [{ reportId: 2, size: 2 }], outputReports: [], featureReports: [] },
-        { usagePage: 0xff00, usage: 0x0001, inputReports: [{ reportId: 3, size: 3 }], outputReports: [], featureReports: [] },
-        { usagePage: 0xff00, usage: 0x0001, inputReports: [], outputReports: [], featureReports: [{ reportId: 5, size: 5 }] },
-        { usagePage: 0xff00, usage: 0x0001, inputReports: [], outputReports: [], featureReports: [{ reportId, size: REPORT_BYTES }] },
+        {
+          usagePage: 0x000c,
+          usage: 0x0001,
+          inputReports: [{ reportId: 2, size: 2 }],
+          outputReports: [],
+          featureReports: [],
+        },
+        {
+          usagePage: 0xff00,
+          usage: 0x0001,
+          inputReports: [{ reportId: 3, size: 3 }],
+          outputReports: [],
+          featureReports: [],
+        },
+        {
+          usagePage: 0xff00,
+          usage: 0x0001,
+          inputReports: [],
+          outputReports: [],
+          featureReports: [{ reportId: 5, size: 5 }],
+        },
+        {
+          usagePage: 0xff00,
+          usage: 0x0001,
+          inputReports: [],
+          outputReports: [],
+          featureReports: [{ reportId, size: REPORT_BYTES }],
+        },
       ],
     },
   };
@@ -81,10 +122,18 @@ export class ByTechSimulator {
         return r;
       },
     };
-    this.device = new MockHidDevice(opts.identity ?? { vendorId: 0x258a, productId: 0x010c, productName: 'Gaming Keyboard', manufacturer: 'BY Tech' }, [
-      { info: ifs.keyboard, behavior: {} },
-      { info: ifs.vendor, behavior: vendor },
-    ]);
+    this.device = new MockHidDevice(
+      opts.identity ?? {
+        vendorId: 0x258a,
+        productId: 0x010c,
+        productName: 'Gaming Keyboard',
+        manufacturer: 'BY Tech',
+      },
+      [
+        { info: ifs.keyboard, behavior: {} },
+        { info: ifs.vendor, behavior: vendor },
+      ],
+    );
   }
 
   private answer(cmd: number, data: Uint8Array): void {
@@ -98,7 +147,8 @@ export class ByTechSimulator {
   }
 
   private onCommand(data: Uint8Array): void {
-    if (data.length !== REPORT_BYTES) throw new Error(`sim: command report must be ${REPORT_BYTES} bytes`);
+    if (data.length !== REPORT_BYTES)
+      throw new Error(`sim: command report must be ${REPORT_BYTES} bytes`);
     const [cmd, param] = [data[0]!, data[1]!];
     const len = data[5]! | (data[6]! << 8);
     if (cmd === Cmd.GET_INFO && param === INFO_IDENTITY) return this.answer(cmd, this.modelCode);
@@ -121,6 +171,8 @@ export class ByTechSimulator {
   /** The keyboard's own "brightness up" shortcut for the live effect. */
   pressBrightnessUp(): void {
     const at = slotOffset(this.layout, this.page[this.layout.effect]!);
-    if (at !== null) this.page[at] = Math.min(9, this.page[at]! + 1) === this.page[at] ? this.page[at]! - 1 : this.page[at]! + 1;
+    if (at !== null)
+      this.page[at] =
+        Math.min(9, this.page[at]! + 1) === this.page[at] ? this.page[at]! - 1 : this.page[at]! + 1;
   }
 }

@@ -20,7 +20,14 @@ export default function Settings() {
       <PageHeader title={t('nav.settings')} />
       <div className="grid2">
         <Card title={t('settings.appearance')}>
-          <Field label={t('settings.language')} hint={locale === 'en' ? undefined : t('settings.coverage', { pct: Math.round(coverage * 100) })}>
+          <Field
+            label={t('settings.language')}
+            hint={
+              locale === 'en'
+                ? undefined
+                : t('settings.coverage', { pct: Math.round(coverage * 100) })
+            }
+          >
             <select value={locale} onChange={(e) => setLocale(e.target.value)}>
               {LOCALES.map((l) => (
                 <option key={l.code} value={l.code} lang={l.code}>
@@ -46,7 +53,11 @@ export default function Settings() {
         </Card>
         <Card title={t('settings.safety')}>
           <label className="check">
-            <input type="checkbox" checked={experimental} onChange={(e) => setExperimental(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={experimental}
+              onChange={(e) => setExperimental(e.target.checked)}
+            />
             {t('settings.experimental')}
           </label>
           <p className="small muted">{t('settings.experimentalHelp')}</p>
@@ -54,7 +65,15 @@ export default function Settings() {
         <Card title={t('settings.data')}>
           <p className="small">{t('settings.dataHelp')}</p>
           <div className="row wrap">
-            <button type="button" className="btn" onClick={() => void exportAll().then((d) => download(`openkey-local-data-${new Date().toISOString().slice(0, 10)}.json`, d))}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() =>
+                void exportAll().then((d) =>
+                  download(`openkey-local-data-${new Date().toISOString().slice(0, 10)}.json`, d),
+                )
+              }
+            >
               {t('settings.exportAll')}
             </button>
             <label className="btn ghost file-btn">
@@ -67,9 +86,16 @@ export default function Settings() {
                   if (!f) return;
                   try {
                     const r = await importAll(JSON.parse(await f.text()));
-                    notify({ kind: 'ok', title: t('settings.imported', { records: r.records, mirror: r.mirror }) });
+                    notify({
+                      kind: 'ok',
+                      title: t('settings.imported', { records: r.records, mirror: r.mirror }),
+                    });
                   } catch (err) {
-                    notify({ kind: 'error', title: t('settings.importFailed'), detail: err instanceof Error ? err.message : String(err) });
+                    notify({
+                      kind: 'error',
+                      title: t('settings.importFailed'),
+                      detail: err instanceof Error ? err.message : String(err),
+                    });
                   }
                 }}
               />
@@ -85,7 +111,12 @@ export default function Settings() {
               [t('settings.version'), APP_VERSION],
               [t('settings.webhid'), support.available ? t('compat.yes') : t('compat.no')],
               [t('settings.telemetry'), t('settings.none')],
-              [t('settings.source'), <a key="r" href={REPO_URL} target="_blank" rel="noopener noreferrer">{REPO_URL.replace('https://', '')}</a>],
+              [
+                t('settings.source'),
+                <a key="r" href={REPO_URL} target="_blank" rel="noopener noreferrer">
+                  {REPO_URL.replace('https://', '')}
+                </a>,
+              ],
             ]}
           />
         </Card>

@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { collectBackup, diffBackups, formatDiffValue, planRestore, restoreBackup, validateBackup } from '@openkey/core';
+import {
+  collectBackup,
+  diffBackups,
+  formatDiffValue,
+  planRestore,
+  restoreBackup,
+  validateBackup,
+} from '@openkey/core';
 import type { Backup, BackupChange, BackupSection, RestorePlan, TxResult } from '@openkey/core';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
@@ -9,7 +16,10 @@ import { APP_VERSION } from '../../config.js';
 import { deleteRecord, listRecords, newId, saveRecord } from '../../state/db.js';
 import type { StoredRecord } from '../../state/db.js';
 
-const SECTION_FEATURE: Record<Exclude<BackupSection, 'tft'>, 'keymap' | 'fnLayer' | 'rgb' | 'perKeyRgb' | 'macros' | 'sleep'> = {
+const SECTION_FEATURE: Record<
+  Exclude<BackupSection, 'tft'>,
+  'keymap' | 'fnLayer' | 'rgb' | 'perKeyRgb' | 'macros' | 'sleep'
+> = {
   keymap: 'keymap',
   fnLayers: 'fnLayer',
   rgb: 'rgb',
@@ -31,20 +41,36 @@ export default function BackupRestore() {
   const [current, setCurrent] = useState<Backup | null>(null);
   const [messages, setMessages] = useState<{ kind: 'error' | 'warn'; text: string }[]>([]);
   const [confirm, setConfirm] = useState(false);
-  const [results, setResults] = useState<{ section: BackupSection; result: TxResult<unknown> }[]>([]);
+  const [results, setResults] = useState<{ section: BackupSection; result: TxResult<unknown> }[]>(
+    [],
+  );
   const [stored, setStored] = useState<StoredRecord<Backup>[]>([]);
 
   const refresh = () => void listRecords<Backup>('backup').then(setStored);
   useEffect(refresh, []);
   if (!device) return null;
 
-  const writer = { createdBy: 'OpenKey web', appVersion: APP_VERSION, descriptorSignature: device.fingerprint.descriptorSignature, adapter: { id: device.detection.selected!.protocolId, version: device.manifest.version, family: device.fingerprint.protocolFamily ?? 'unknown' } };
+  const writer = {
+    createdBy: 'OpenKey web',
+    appVersion: APP_VERSION,
+    descriptorSignature: device.fingerprint.descriptorSignature,
+    adapter: {
+      id: device.detection.selected!.protocolId,
+      version: device.manifest.version,
+      family: device.fingerprint.protocolFamily ?? 'unknown',
+    },
+  };
 
   const create = async (keepLocal: boolean) => {
     const b = await read(t('backup.create'), (d) => collectBackup(d, writer));
     if (!b) return null;
     if (keepLocal) {
-      await saveRecord({ id: newId(), kind: 'backup', name: `${b.device.model} — ${new Date(b.createdAt).toLocaleString()}`, data: b });
+      await saveRecord({
+        id: newId(),
+        kind: 'backup',
+        name: `${b.device.model} — ${new Date(b.createdAt).toLocaleString()}`,
+        data: b,
+      });
       refresh();
     }
     return b;
@@ -53,7 +79,10 @@ export default function BackupRestore() {
   const load = async (doc: unknown) => {
     setResults([]);
     const v = validateBackup(doc);
-    setMessages([...v.errors.map((text) => ({ kind: 'error' as const, text })), ...v.warnings.map((text) => ({ kind: 'warn' as const, text }))]);
+    setMessages([
+      ...v.errors.map((text) => ({ kind: 'error' as const, text })),
+      ...v.warnings.map((text) => ({ kind: 'warn' as const, text })),
+    ]);
     if (!v.backup) {
       setIncoming(null);
       setPlan(null);
@@ -74,13 +103,19 @@ export default function BackupRestore() {
     // Every section passes the same safety gate as a manual edit.
     for (const s of plan.sections) {
       if (s === 'tft') continue;
-      if (!(await confirmWrite(SECTION_FEATURE[s], t('backup.gate', { section: s })))) return notify({ kind: 'info', title: t('backup.cancelled') });
+      if (!(await confirmWrite(SECTION_FEATURE[s], t('backup.gate', { section: s }))))
+        return notify({ kind: 'info', title: t('backup.cancelled') });
     }
-    const r = await writing(t('backup.restore'), (d) => restoreBackup(d, incoming, plan, current ?? undefined));
+    const r = await writing(t('backup.restore'), (d) =>
+      restoreBackup(d, incoming, plan, current ?? undefined),
+    );
     if (r) setResults(r);
   };
 
-  const sectionOk = plan?.sections.filter((s) => s !== 'tft' && gate(SECTION_FEATURE[s]).decision.kind !== 'blocked') ?? [];
+  const sectionOk =
+    plan?.sections.filter(
+      (s) => s !== 'tft' && gate(SECTION_FEATURE[s]).decision.kind !== 'blocked',
+    ) ?? [];
 
   return (
     <div className="page">
@@ -89,10 +124,28 @@ export default function BackupRestore() {
         <Card title={t('backup.export')}>
           <p>{t('backup.exportHelp')}</p>
           <div className="row wrap">
-            <button type="button" className="btn primary" onClick={() => void create(false).then((b) => b && download(`openkey-${b.device.profileId}-${b.createdAt.slice(0, 10)}.json`, b))}>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() =>
+                void create(false).then(
+                  (b) =>
+                    b &&
+                    download(`openkey-${b.device.profileId}-${b.createdAt.slice(0, 10)}.json`, b),
+                )
+              }
+            >
               {t('backup.download')}
             </button>
-            <button type="button" className="btn" onClick={() => void create(true).then((b) => b && notify({ kind: 'ok', title: t('backup.savedLocal') }))}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() =>
+                void create(true).then(
+                  (b) => b && notify({ kind: 'ok', title: t('backup.savedLocal') }),
+                )
+              }
+            >
               {t('backup.saveLocal')}
             </button>
           </div>
@@ -115,13 +168,26 @@ export default function BackupRestore() {
               {stored.map((r) => (
                 <li key={r.id}>
                   <span>{r.name}</span>
-                  <button type="button" className="btn ghost tiny" onClick={() => void load(r.data)}>
+                  <button
+                    type="button"
+                    className="btn ghost tiny"
+                    onClick={() => void load(r.data)}
+                  >
                     {t('backup.use')}
                   </button>
-                  <button type="button" className="btn ghost tiny" onClick={() => download(`${r.name}.json`, r.data)}>
+                  <button
+                    type="button"
+                    className="btn ghost tiny"
+                    onClick={() => download(`${r.name}.json`, r.data)}
+                  >
                     {t('backup.downloadShort')}
                   </button>
-                  <button type="button" className="btn ghost tiny" onClick={() => void deleteRecord(r.id).then(refresh)} aria-label={t('common.remove')}>
+                  <button
+                    type="button"
+                    className="btn ghost tiny"
+                    onClick={() => void deleteRecord(r.id).then(refresh)}
+                    aria-label={t('common.remove')}
+                  >
                     ×
                   </button>
                 </li>
@@ -143,7 +209,13 @@ export default function BackupRestore() {
 
       {incoming && plan && (
         <Card title={t('backup.compare')}>
-          <p>{t('backup.summary', { model: incoming.device.model, date: new Date(incoming.createdAt).toLocaleString(), adapter: incoming.adapter.id })}</p>
+          <p>
+            {t('backup.summary', {
+              model: incoming.device.model,
+              date: new Date(incoming.createdAt).toLocaleString(),
+              adapter: incoming.adapter.id,
+            })}
+          </p>
           {plan.blocked.map((b) => (
             <p key={b} className="callout danger">
               {b}
@@ -159,7 +231,9 @@ export default function BackupRestore() {
           </p>
           <div className="table-wrap">
             <table className="tbl diff">
-              <caption className="small muted">{t('backup.changes', { n: changes.length })}</caption>
+              <caption className="small muted">
+                {t('backup.changes', { n: changes.length })}
+              </caption>
               <thead>
                 <tr>
                   <th scope="col">{t('backup.col.path')}</th>
@@ -180,7 +254,12 @@ export default function BackupRestore() {
               </tbody>
             </table>
           </div>
-          <button type="button" className="btn primary" disabled={!plan.compatible || sectionOk.length === 0} onClick={() => setConfirm(true)}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!plan.compatible || sectionOk.length === 0}
+            onClick={() => setConfirm(true)}
+          >
             {t('backup.restoreBtn')}
           </button>
         </Card>
@@ -191,7 +270,10 @@ export default function BackupRestore() {
           <ul className="results">
             {results.map((r) => (
               <li key={r.section}>
-                <span className={`pill tx-${r.result.outcome.toLowerCase()}`}>{t(`txshort.${r.result.outcome}`)}</span> {r.section} — <span className="small muted">{r.result.message}</span>
+                <span className={`pill tx-${r.result.outcome.toLowerCase()}`}>
+                  {t(`txshort.${r.result.outcome}`)}
+                </span>{' '}
+                {r.section} — <span className="small muted">{r.result.message}</span>
               </li>
             ))}
           </ul>

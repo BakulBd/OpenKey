@@ -61,9 +61,11 @@ const m: Partial<Messages> = {
   'notice.demoDetail': 'Clavier simulé — rien n’est envoyé au matériel.',
   'notice.unknownDevice': '{name} : aucun adaptateur vérifié. Mode d’inspection en lecture seule.',
   'notice.noDeviceSelected': 'Aucun appareil sélectionné',
-  'notice.noDeviceSelectedHint': 'Choisissez votre clavier dans la boîte de dialogue du navigateur. Utilisez un câble USB de données et le mode filaire.',
+  'notice.noDeviceSelectedHint':
+    'Choisissez votre clavier dans la boîte de dialogue du navigateur. Utilisez un câble USB de données et le mode filaire.',
   'notice.disconnected': 'Clavier déconnecté',
-  'notice.disconnectedHint': 'Les modifications locales sont conservées. Reconnectez-le pour continuer ; rien n’est écrit automatiquement.',
+  'notice.disconnectedHint':
+    'Les modifications locales sont conservées. Reconnectez-le pour continuer ; rien n’est écrit automatiquement.',
   'notice.replugged': 'Un clavier a été branché.',
   'notice.noDevice': 'Aucun clavier connecté.',
   'notice.blocked': '{label} : bloqué par la politique de sécurité',
@@ -85,46 +87,62 @@ const m: Partial<Messages> = {
   'browser.useDemo': 'Utilisez Chrome, Edge, Opera ou Brave sur ordinateur — ou essayez la démo.',
   'landing.eyebrow': 'Open source · Local d’abord · Sans compte',
   'landing.title': 'Configurez votre clavier dans le navigateur.',
-  'landing.lead': 'OpenKey communique directement avec votre clavier via WebHID. Pas d’installation, pas de cloud, pas de télémétrie — et il dit clairement ce qu’il sait et ce qu’il a vérifié.',
-  'landing.honest': 'OpenKey n’est pas encore universel : seuls les claviers disposant d’un adaptateur OpenKey sont configurables. Tout autre clavier peut être inspecté sans risque et signalé.',
+  'landing.lead':
+    'OpenKey communique directement avec votre clavier via WebHID. Pas d’installation, pas de cloud, pas de télémétrie — et il dit clairement ce qu’il sait et ce qu’il a vérifié.',
+  'landing.honest':
+    'OpenKey n’est pas encore universel : seuls les claviers disposant d’un adaptateur OpenKey sont configurables. Tout autre clavier peut être inspecté sans risque et signalé.',
   'landing.devices': 'Appareils pris en charge',
   'landing.pipelineTitle': 'Comment OpenKey identifie un clavier',
   'landing.pipe.transport': 'Transport',
   'landing.pipe.transport.d': 'WebHID dans votre navigateur ; rien ne passe par un serveur.',
   'landing.pipe.discovery': 'Découverte',
-  'landing.pipe.discovery.d': 'Collections HID, usages et tailles de rapports — pas seulement VID/PID.',
+  'landing.pipe.discovery.d':
+    'Collections HID, usages et tailles de rapports — pas seulement VID/PID.',
   'landing.pipe.detection': 'Détection du protocole',
-  'landing.pipe.detection.d': 'Signatures des descripteurs, puis une poignée de main documentée en lecture seule.',
+  'landing.pipe.detection.d':
+    'Signatures des descripteurs, puis une poignée de main documentée en lecture seule.',
   'landing.pipe.adapter': 'Adaptateur',
-  'landing.pipe.adapter.d': 'Un par famille de protocoles, avec ses preuves et sa politique de sécurité.',
+  'landing.pipe.adapter.d':
+    'Un par famille de protocoles, avec ses preuves et sa politique de sécurité.',
   'landing.pipe.capabilities': 'Capacités',
-  'landing.pipe.capabilities.d': 'Chaque fonction est prise en charge, en lecture seule, fixe, inconnue ou en cours d’étude.',
+  'landing.pipe.capabilities.d':
+    'Chaque fonction est prise en charge, en lecture seule, fixe, inconnue ou en cours d’étude.',
   'landing.pipe.ui': 'Interface',
   'landing.pipe.ui.d': 'Seul ce que votre clavier sait vraiment faire est affiché.',
   'landing.hardwareTitle': 'État du matériel',
-  'landing.countsNote': 'Les nombres sont des entrées du catalogue par état de vérification ; ils ne sont jamais additionnés en un seul total « pris en charge ».',
+  'landing.countsNote':
+    'Les nombres sont des entrées du catalogue par état de vérification ; ils ne sont jamais additionnés en un seul total « pris en charge ».',
   'landing.privacyTitle': 'Confidentialité par conception',
   'landing.privacy.noAccount': 'Pas de compte, pas d’analyse, pas de pistage.',
   'landing.privacy.local': 'Profils, sauvegardes et projets restent dans ce navigateur.',
-  'landing.privacy.typing': 'Votre frappe n’est jamais capturée ; le testeur n’enregistre que pendant que vous le lancez.',
-  'landing.privacy.permission': 'Le navigateur demande l’autorisation avant qu’OpenKey voie un appareil, un à la fois.',
+  'landing.privacy.typing':
+    'Votre frappe n’est jamais capturée ; le testeur n’enregistre que pendant que vous le lancez.',
+  'landing.privacy.permission':
+    'Le navigateur demande l’autorisation avant qu’OpenKey voie un appareil, un à la fois.',
   'landing.privacyLink': 'Lire la déclaration de confidentialité',
   'landing.unknownTitle': 'Un autre clavier ?',
-  'landing.unknownBody': 'Inspectez-le en lecture seule : OpenKey affiche ses interfaces HID et les familles de protocoles possibles, et vous aide à demander sa prise en charge. Rien n’est écrit.',
+  'landing.unknownBody':
+    'Inspectez-le en lecture seule : OpenKey affiche ses interfaces HID et les familles de protocoles possibles, et vous aide à demander sa prise en charge. Rien n’est écrit.',
   'landing.contributeTitle': 'Ajoutez votre clavier',
   'landing.contribute.1': 'Inspectez l’appareil et exportez un paquet de diagnostic.',
   'landing.contribute.2': 'Ouvrez une demande de prise en charge avec ce paquet.',
-  'landing.contribute.3': 'Recherche de protocole : captures, fixtures, adaptateur avec tests simulés.',
+  'landing.contribute.3':
+    'Recherche de protocole : captures, fixtures, adaptateur avec tests simulés.',
   'landing.contribute.4': 'Vérification sur le matériel réel, puis promotion de l’appareil.',
   'connect.title': 'Connecter un clavier',
-  'connect.lead': 'Cette page nécessite un clavier. Connectez-en un, essayez la démo simulée ou inspectez un périphérique HID en lecture seule.',
+  'connect.lead':
+    'Cette page nécessite un clavier. Connectez-en un, essayez la démo simulée ou inspectez un périphérique HID en lecture seule.',
   'connect.troubleTitle': 'Clavier introuvable ?',
-  'connect.trouble.cable': 'Utilisez un câble USB de données (certains câbles ne font que charger).',
-  'connect.trouble.wired': 'Passez le clavier en mode filaire ; la plupart des claviers ne se configurent pas en Bluetooth.',
-  'connect.trouble.linux': 'Sous Linux, installez la règle udev d’OpenKey puis rebranchez le clavier.',
+  'connect.trouble.cable':
+    'Utilisez un câble USB de données (certains câbles ne font que charger).',
+  'connect.trouble.wired':
+    'Passez le clavier en mode filaire ; la plupart des claviers ne se configurent pas en Bluetooth.',
+  'connect.trouble.linux':
+    'Sous Linux, installez la règle udev d’OpenKey puis rebranchez le clavier.',
   'connect.trouble.busy': 'Fermez le logiciel du fabricant et les autres onglets de configuration.',
   'research.title': 'Matériel détecté — recherche de protocole nécessaire',
-  'research.body': 'Ce clavier possède cette fonction, mais OpenKey ne connaît pas encore son protocole de configuration. Rien n’est envoyé. Vous pouvez aider en fournissant des captures du logiciel officiel.',
+  'research.body':
+    'Ce clavier possède cette fonction, mais OpenKey ne connaît pas encore son protocole de configuration. Rien n’est envoyé. Vous pouvez aider en fournissant des captures du logiciel officiel.',
   'research.lab': 'Ouvrir le labo de recherche',
   'status.SUPPORTED': 'Pris en charge',
   'status.CONFIGURABLE': 'Configurable',
@@ -147,13 +165,15 @@ const m: Partial<Messages> = {
   'write.allowed': 'Disponible',
   'write.experimental': 'Expérimental',
   'write.blocked': 'Bloqué',
-  'gate.optIn': 'Appliquer vous proposera d’activer les écritures expérimentales pour cette session.',
+  'gate.optIn':
+    'Appliquer vous proposera d’activer les écritures expérimentales pour cette session.',
   'gate.enabled': 'Les écritures expérimentales sont activées pour cette session.',
   'safety.title': 'Écrire dans le clavier : {label}',
   'safety.write': 'Écrire',
   'safety.never': 'OpenKey n’envoie jamais de commande de firmware, de bootloader ou d’effacement.',
   'safety.experimentalTitle': 'Écriture expérimentale',
-  'safety.experimentalBody': 'Cette commande reproduit une source documentée mais n’a pas encore été vérifiée sur le matériel par OpenKey. Si le résultat semble incorrect, restaurez une sauvegarde ou utilisez la réinitialisation d’usine du clavier.',
+  'safety.experimentalBody':
+    'Cette commande reproduit une source documentée mais n’a pas encore été vérifiée sur le matériel par OpenKey. Si le résultat semble incorrect, restaurez une sauvegarde ou utilisez la réinitialisation d’usine du clavier.',
   'safety.optIn': 'Activer les écritures expérimentales pour cette session du navigateur',
   'safety.level.READ_ONLY': 'Lecture seule',
   'safety.level.SAFE_VOLATILE': 'Temporaire',
@@ -182,7 +202,8 @@ const m: Partial<Messages> = {
   'settings.theme.dark': 'Sombre',
   'pwa.updateReady': 'Une nouvelle version d’OpenKey est prête.',
   'pwa.reload': 'Recharger',
-  'footer.cta': 'OpenKey est open source et porté par sa communauté. S’il vous est utile, pensez à ajouter une étoile au projet sur GitHub — cela aide d’autres personnes à le découvrir et soutient son développement.',
+  'footer.cta':
+    'OpenKey est open source et porté par sa communauté. S’il vous est utile, pensez à ajouter une étoile au projet sur GitHub — cela aide d’autres personnes à le découvrir et soutient son développement.',
   'footer.star': 'Étoile sur GitHub',
   'footer.contribute': 'Ajouter un clavier',
   'footer.bug': 'Signaler un bug',

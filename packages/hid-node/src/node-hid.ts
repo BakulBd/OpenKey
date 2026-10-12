@@ -25,7 +25,10 @@ export interface NodeHidDeviceGroup extends HidDeviceGroup {
  * but not report sizes, so every interface is marked `sizesKnown: false`: matchers then rely on the
  * identification probe instead of report sizes. Pure, so it is tested without hardware.
  */
-export function groupNodeHidDevices(list: NodeHidDeviceInfo[], opts: { vendorIds?: number[] } = {}): NodeHidDeviceGroup[] {
+export function groupNodeHidDevices(
+  list: NodeHidDeviceInfo[],
+  opts: { vendorIds?: number[] } = {},
+): NodeHidDeviceGroup[] {
   const byKey = new Map<string, NodeHidDeviceInfo[]>();
   for (const d of list) {
     if (!d.path) continue;
@@ -44,7 +47,13 @@ export function groupNodeHidDevices(list: NodeHidDeviceInfo[], opts: { vendorIds
         collections: [],
         sizesKnown: false,
       };
-      info.collections.push({ usagePage: e.usagePage ?? 0, usage: e.usage ?? 0, inputReports: [], outputReports: [], featureReports: [] });
+      info.collections.push({
+        usagePage: e.usagePage ?? 0,
+        usage: e.usage ?? 0,
+        inputReports: [],
+        outputReports: [],
+        featureReports: [],
+      });
       paths.set(e.path!, info);
     }
     const productName = first.product ?? '';
@@ -71,8 +80,13 @@ export function groupNodeHidDevices(list: NodeHidDeviceInfo[], opts: { vendorIds
 }
 
 /** Enumerates HID devices through node-hid (macOS, Windows; also works on Linux). */
-export async function enumerateNodeHid(opts: { vendorIds?: number[] } = {}): Promise<NodeHidDeviceGroup[]> {
-  const mod = (await import('node-hid')) as unknown as { devices?: () => NodeHidDeviceInfo[]; default?: { devices: () => NodeHidDeviceInfo[] } };
+export async function enumerateNodeHid(
+  opts: { vendorIds?: number[] } = {},
+): Promise<NodeHidDeviceGroup[]> {
+  const mod = (await import('node-hid')) as unknown as {
+    devices?: () => NodeHidDeviceInfo[];
+    default?: { devices: () => NodeHidDeviceInfo[] };
+  };
   const devices = mod.devices ?? mod.default?.devices;
   if (!devices) throw new Error('node-hid does not provide devices()');
   return groupNodeHidDevices(devices(), opts);

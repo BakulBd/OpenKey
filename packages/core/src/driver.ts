@@ -72,8 +72,16 @@ export interface KeyboardDriver {
   setPerKeyRgb(colors: PerKeyRgb): Promise<void>;
 
   getTftInfo(): Promise<TftInfo>;
-  uploadTftImage(frame: TftFrame, onProgress?: ProgressCallback, opts?: UploadOptions): Promise<void>;
-  uploadTftGif(frames: TftFrame[], onProgress?: ProgressCallback, opts?: UploadOptions): Promise<void>;
+  uploadTftImage(
+    frame: TftFrame,
+    onProgress?: ProgressCallback,
+    opts?: UploadOptions,
+  ): Promise<void>;
+  uploadTftGif(
+    frames: TftFrame[],
+    onProgress?: ProgressCallback,
+    opts?: UploadOptions,
+  ): Promise<void>;
   setTftMode(mode: string): Promise<void>;
   getTftStatus(): Promise<TftStatus>;
   syncClock(date?: Date): Promise<void>;
@@ -177,10 +185,18 @@ export abstract class BaseKeyboardDriver implements KeyboardDriver {
   async getTftInfo(): Promise<TftInfo> {
     return unsupported('tft');
   }
-  async uploadTftImage(_frame: TftFrame, _onProgress?: ProgressCallback, _opts?: UploadOptions): Promise<void> {
+  async uploadTftImage(
+    _frame: TftFrame,
+    _onProgress?: ProgressCallback,
+    _opts?: UploadOptions,
+  ): Promise<void> {
     unsupported('tft');
   }
-  async uploadTftGif(_frames: TftFrame[], _onProgress?: ProgressCallback, _opts?: UploadOptions): Promise<void> {
+  async uploadTftGif(
+    _frames: TftFrame[],
+    _onProgress?: ProgressCallback,
+    _opts?: UploadOptions,
+  ): Promise<void> {
     unsupported('tftGif');
   }
   async setTftMode(_mode: string): Promise<void> {

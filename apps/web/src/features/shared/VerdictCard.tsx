@@ -30,7 +30,9 @@ export function VerdictCard({
         <span className={`pill vd-${k.toLowerCase()}`}>{t(`verdict.${k}` as MessageKey)}</span>
         {/* A simulator answers like firmware, so its detection confidence would read as hardware evidence. */}
         {k !== 'SIMULATED' && (
-          <span className={`pill dc-${verdict.confidence.toLowerCase()}`}>{t(`detect.${verdict.confidence}` as MessageKey)}</span>
+          <span className={`pill dc-${verdict.confidence.toLowerCase()}`}>
+            {t(`detect.${verdict.confidence}` as MessageKey)}
+          </span>
         )}
         <span className={`pill ${verdict.writeEligible ? 'wd-experimental' : 'wd-blocked'}`}>
           {verdict.writeEligible ? t('verdict.configurable') : t('verdict.notConfigurable')}
@@ -77,7 +79,12 @@ export function VerdictCard({
       </details>
       <h3 className="h-sub">{t('verdict.next')}</h3>
       {next.kind === 'consent-probe' ? (
-        <ProbeConsent adapterId={next.adapterId} operations={next.operations} onIdentify={onIdentify} busy={busy} />
+        <ProbeConsent
+          adapterId={next.adapterId}
+          operations={next.operations}
+          onIdentify={onIdentify}
+          busy={busy}
+        />
       ) : next.kind === 'connect-device' ? (
         <p>{t('verdict.next.connect', { adapter: next.adapterId })}</p>
       ) : next.kind === 'switch-transport' ? (
@@ -128,7 +135,11 @@ function ProbeConsent({
           <tbody>
             {operations.map((o, i) => (
               <tr key={i}>
-                <td>{o.op === 'feature-set' || o.op === 'output' ? t('consent.sends', { op: o.op }) : t('consent.reads', { op: o.op })}</td>
+                <td>
+                  {o.op === 'feature-set' || o.op === 'output'
+                    ? t('consent.sends', { op: o.op })
+                    : t('consent.reads', { op: o.op })}
+                </td>
                 <td>{o.collection}</td>
                 <td>{o.reportId}</td>
                 <td className="hex">{o.payloadPrefix ? `${o.payloadPrefix} …` : '—'}</td>
@@ -144,7 +155,12 @@ function ProbeConsent({
       </div>
       <p className="small">{t('consent.never')}</p>
       {onIdentify && (
-        <button type="button" className="btn primary" disabled={busy} onClick={() => onIdentify(adapterId)}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={busy}
+          onClick={() => onIdentify(adapterId)}
+        >
           {t('consent.allow', { adapter: adapterId })}
         </button>
       )}

@@ -27,7 +27,12 @@ export interface ByTechModel {
 }
 
 const LEISIJI = 'leisiji/AulaSofwareLinux (MIT) README model table and vendor profiles';
-const fw24 = (identity: string, model: string, brightnessMax: number, layoutId: string): ByTechModel => ({
+const fw24 = (
+  identity: string,
+  model: string,
+  brightnessMax: number,
+  layoutId: string,
+): ByTechModel => ({
   identity,
   brand: 'AULA',
   model,
@@ -56,11 +61,13 @@ export const BY_TECH_MODELS: readonly ByTechModel[] = [
     pageLayout: null,
     effects: null,
     brightnessMax: 5,
-    source: 'RK driver configuration for USB 258A:015E (Dev/015E/KB.ini: Psd=a,0,0,0,0,0, Fw=1), as published by vinc3m1/kludgeknight (fact only)',
+    source:
+      'RK driver configuration for USB 258A:015E (Dev/015E/KB.ini: Psd=a,0,0,0,0,0, Fw=1), as published by vinc3m1/kludgeknight (fact only)',
   },
 ];
 
-export const identityHex = (b: Uint8Array): string => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(' ');
+export const identityHex = (b: Uint8Array): string =>
+  Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(' ');
 
 export function modelFor(identity: Uint8Array, productId?: number): ByTechModel | undefined {
   const hex = identityHex(identity);
@@ -94,12 +101,25 @@ const AULA_FW24_ROWS: readonly [number, string, number, number, number, number, 
 export const AULA_OFF_EFFECT = 21;
 
 export function effectCatalog(model: ByTechModel): EffectCatalog {
-  const effects: EffectDescriptor[] = AULA_FW24_ROWS.map(([id, name, speed, light, , random, color]) => ({
-    id,
-    name,
-    controls: { color: !!color, colorful: !!random, brightness: !!light, speed: !!speed, direction: [] },
-  }));
-  return { effects, brightness: { min: 0, max: model.brightnessMax }, speed: { min: 0, max: 4 }, offEffect: AULA_OFF_EFFECT };
+  const effects: EffectDescriptor[] = AULA_FW24_ROWS.map(
+    ([id, name, speed, light, , random, color]) => ({
+      id,
+      name,
+      controls: {
+        color: !!color,
+        colorful: !!random,
+        brightness: !!light,
+        speed: !!speed,
+        direction: [],
+      },
+    }),
+  );
+  return {
+    effects,
+    brightness: { min: 0, max: model.brightnessMax },
+    speed: { min: 0, max: 4 },
+    offEffect: AULA_OFF_EFFECT,
+  };
 }
 
 /** `SleepUI` seconds and the `SleepHW` value stored in the page (every Fw=24 profile). */

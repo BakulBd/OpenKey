@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { applyLoop, createImage, retime, slideshow } from '@openkey/tft';
 import type { AnimationFrame } from '@openkey/tft';
 
-const frames = (n: number, ms = 100): AnimationFrame[] => Array.from({ length: n }, (_, i) => ({ image: createImage(2, 2, [i * 10, 0, 0, 255]), delayMs: ms }));
+const frames = (n: number, ms = 100): AnimationFrame[] =>
+  Array.from({ length: n }, (_, i) => ({
+    image: createImage(2, 2, [i * 10, 0, 0, 255]),
+    delayMs: ms,
+  }));
 
 describe('screen animation tools', () => {
   it('changes speed without freezing still images', () => {

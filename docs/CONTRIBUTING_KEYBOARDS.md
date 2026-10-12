@@ -21,7 +21,7 @@ hides (interface numbers, endpoints, bInterval, bcdDevice).
 
 OpenKey shows a **verdict** for every device (verified match, unverified firmware, strong candidate,
 resembles a family, inspection only, unknown …) with the reasons, the conflicting evidence, what could
-not be observed, and the next safe step. If your device is a *strong candidate*, OpenKey offers to run
+not be observed, and the next safe step. If your device is a _strong candidate_, OpenKey offers to run
 one identification handshake and lists exactly what it sends; it never runs it without your click.
 
 ## 2. Export and report

@@ -115,7 +115,9 @@ export function transition(
 ): ConnectionState {
   // Global events, valid from any state.
   if (event.type === 'LOST')
-    return state.status === 'DISCONNECTED' ? state : { status: 'DISCONNECTED', error: event.reason };
+    return state.status === 'DISCONNECTED'
+      ? state
+      : { status: 'DISCONNECTED', error: event.reason };
   if (event.type === 'DISCONNECT')
     return state.status === 'DISCONNECTED' ? state : { status: 'DISCONNECTING' };
   if (event.type === 'FAIL') {
@@ -124,7 +126,12 @@ export function transition(
       status: 'ERROR',
       error: event.message,
       ...(state.mode ? { mode: state.mode } : {}),
-      ...(open ? { resumeTo: state.status === 'APPLYING' || state.status === 'VERIFYING' ? 'READY' : state.status } : {}),
+      ...(open
+        ? {
+            resumeTo:
+              state.status === 'APPLYING' || state.status === 'VERIFYING' ? 'READY' : state.status,
+          }
+        : {}),
     };
   }
   const next = TABLE[state.status](state, event);
@@ -141,5 +148,14 @@ export function canApply(state: ConnectionState): boolean {
 }
 
 export function isBusy(status: ConnectionStatus): boolean {
-  return ['REQUESTING_PERMISSION', 'CONNECTING', 'INSPECTING', 'DETECTING', 'READING', 'APPLYING', 'VERIFYING', 'DISCONNECTING'].includes(status);
+  return [
+    'REQUESTING_PERMISSION',
+    'CONNECTING',
+    'INSPECTING',
+    'DETECTING',
+    'READING',
+    'APPLYING',
+    'VERIFYING',
+    'DISCONNECTING',
+  ].includes(status);
 }

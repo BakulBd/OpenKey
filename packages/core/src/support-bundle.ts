@@ -55,7 +55,12 @@ export interface SupportBundle {
   environment: SupportEnvironment;
   device: SupportDevice | null;
   adapter: { id: string; family: string; evidence: Evidence } | null;
-  detection: { confidence: string; verdict?: string; reasons: string[]; candidates: string[] } | null;
+  detection: {
+    confidence: string;
+    verdict?: string;
+    reasons: string[];
+    candidates: string[];
+  } | null;
   capabilities: Partial<Record<FeatureId, FeatureStatus>>;
   connectionState: string;
   recentErrors: { at: string; kind: string; title: string }[];
@@ -104,12 +109,15 @@ export function buildSupportBundle(input: SupportBundleInput): SupportBundle {
     capabilities: caps,
     connectionState: input.connectionState,
     // Error titles only: details can echo packet bytes.
-    recentErrors: (input.recentErrors ?? []).slice(-20).map(({ at, kind, title }) => ({ at, kind, title })),
+    recentErrors: (input.recentErrors ?? [])
+      .slice(-20)
+      .map(({ at, kind, title }) => ({ at, kind, title })),
     excluded,
   };
 }
 
-const fmtReports = (r: SupportReport[]): string => r.map((x) => `${x.reportId}:${x.size}B`).join(',');
+const fmtReports = (r: SupportReport[]): string =>
+  r.map((x) => `${x.reportId}:${x.size}B`).join(',');
 
 /** A researcher's note, with how it is known. Never included in a package unless the user asks. */
 export interface ResearchNote {
@@ -130,7 +138,9 @@ export function supportBundleToIssue(b: SupportBundle, notes: ResearchNote[] = [
   const d = b.device;
   const lines = [
     `### Device`,
-    d ? `- ${d.manufacturer ?? '?'} ${d.productName} (${d.vendorId}:${d.productId})${d.transport ? `, ${d.transport}` : ''}` : '- none connected',
+    d
+      ? `- ${d.manufacturer ?? '?'} ${d.productName} (${d.vendorId}:${d.productId})${d.transport ? `, ${d.transport}` : ''}`
+      : '- none connected',
     ``,
     `### Interfaces`,
     ...(d?.interfaces.flatMap((i) =>
@@ -145,7 +155,15 @@ export function supportBundleToIssue(b: SupportBundle, notes: ResearchNote[] = [
       ? `- ${b.detection.verdict ? `${b.detection.verdict}, ` : ''}${b.detection.confidence}: ${b.detection.reasons.join('; ')}`
       : '- not run',
     ``,
-    ...(notes.length ? [`### Research notes`, ...notes.map((n) => `- (${NOTE_LABEL[n.evidence]}) ${n.text.replace(/\s+/g, ' ').trim()}`), ``] : []),
+    ...(notes.length
+      ? [
+          `### Research notes`,
+          ...notes.map(
+            (n) => `- (${NOTE_LABEL[n.evidence]}) ${n.text.replace(/\s+/g, ' ').trim()}`,
+          ),
+          ``,
+        ]
+      : []),
     `### Environment`,
     `- OpenKey ${b.environment.appVersion}, ${b.environment.platform}, WebHID ${b.environment.webHid ? 'available' : 'unavailable'}`,
     ``,
@@ -178,12 +196,14 @@ export class DiagnosticFormatError extends Error {
   }
 }
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
 
 function hexField(v: unknown, what: string, allowNull = false): string | null {
   if (v === null && allowNull) return null;
   if (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 0xffff) return hex(v);
-  if (typeof v === 'string' && /^(0x)?[0-9a-f]{1,4}$/i.test(v.trim())) return hex(parseInt(v.trim().replace(/^0x/i, ''), 16));
+  if (typeof v === 'string' && /^(0x)?[0-9a-f]{1,4}$/i.test(v.trim()))
+    return hex(parseInt(v.trim().replace(/^0x/i, ''), 16));
   throw new DiagnosticFormatError(`${what} must be a 16-bit hex value`);
 }
 
@@ -197,7 +217,8 @@ function parseReports(v: unknown, what: string): SupportReport[] {
     if (typeof r === 'string') {
       // v1 display form: "id 6: 519 B"
       const m = /^id\s+(\d+):\s*(\d+)\s*B$/.exec(r.trim());
-      if (!m) throw new DiagnosticFormatError(`${what}[${i}]: unreadable report "${r.slice(0, 40)}"`);
+      if (!m)
+        throw new DiagnosticFormatError(`${what}[${i}]: unreadable report "${r.slice(0, 40)}"`);
       reportId = Number(m[1]);
       size = Number(m[2]);
     } else if (isObj(r)) {
@@ -219,12 +240,15 @@ function parseDevice(v: unknown): SupportDevice {
   if (v.interfaces.length > MAX_INTERFACES) throw new DiagnosticFormatError('Too many interfaces');
   let total = 0;
   const interfaces = v.interfaces.map((raw, ii) => {
-    if (!isObj(raw) || !Array.isArray(raw.collections)) throw new DiagnosticFormatError(`interfaces[${ii}] has no collections`);
+    if (!isObj(raw) || !Array.isArray(raw.collections))
+      throw new DiagnosticFormatError(`interfaces[${ii}] has no collections`);
     total += raw.collections.length;
     if (total > MAX_COLLECTIONS) throw new DiagnosticFormatError('Too many collections');
     const n = raw.interfaceNumber;
     return {
-      ...(Number.isInteger(n) && (n as number) >= 0 && (n as number) < 256 ? { interfaceNumber: n as number } : {}),
+      ...(Number.isInteger(n) && (n as number) >= 0 && (n as number) < 256
+        ? { interfaceNumber: n as number }
+        : {}),
       collections: raw.collections.map((c, ci): SupportCollection => {
         const at = `interfaces[${ii}].collections[${ci}]`;
         if (!isObj(c)) throw new DiagnosticFormatError(`${at} is not an object`);
@@ -238,8 +262,11 @@ function parseDevice(v: unknown): SupportDevice {
       }),
     };
   });
-  const str = (x: unknown, max = 128): string | undefined => (typeof x === 'string' ? x.slice(0, max) : undefined);
-  const transport = ['usb', '2.4ghz', 'bluetooth', 'unknown'].includes(v.transport as string) ? (v.transport as TransportMode) : undefined;
+  const str = (x: unknown, max = 128): string | undefined =>
+    typeof x === 'string' ? x.slice(0, max) : undefined;
+  const transport = ['usb', '2.4ghz', 'bluetooth', 'unknown'].includes(v.transport as string)
+    ? (v.transport as TransportMode)
+    : undefined;
   const manufacturer = str(v.manufacturer);
   const release = v.release !== undefined ? hexField(v.release, 'release') : null;
   // Serial numbers are never imported: offline analysis does not need them.
@@ -260,7 +287,8 @@ function parseDevice(v: unknown): SupportDevice {
  * message for anything else.
  */
 export function parseSupportBundle(text: string): SupportBundle {
-  if (text.length > MAX_DIAGNOSTIC_CHARS) throw new DiagnosticFormatError('The file is too large for a diagnostic package');
+  if (text.length > MAX_DIAGNOSTIC_CHARS)
+    throw new DiagnosticFormatError('The file is too large for a diagnostic package');
   let json: unknown;
   try {
     json = JSON.parse(text);
@@ -270,7 +298,9 @@ export function parseSupportBundle(text: string): SupportBundle {
   if (!isObj(json) || json.format !== SUPPORT_BUNDLE_FORMAT)
     throw new DiagnosticFormatError('This is not an OpenKey diagnostic package');
   if (json.version !== 1 && json.version !== 2)
-    throw new DiagnosticFormatError(`Diagnostic format version ${String(json.version)} is not supported`);
+    throw new DiagnosticFormatError(
+      `Diagnostic format version ${String(json.version)} is not supported`,
+    );
   const env = isObj(json.environment) ? json.environment : {};
   return {
     format: SUPPORT_BUNDLE_FORMAT,
@@ -289,7 +319,9 @@ export function parseSupportBundle(text: string): SupportBundle {
     capabilities: {},
     connectionState: 'OFFLINE',
     recentErrors: [],
-    excluded: ['everything except device identity and HID descriptors (imported for offline analysis)'],
+    excluded: [
+      'everything except device identity and HID descriptors (imported for offline analysis)',
+    ],
   };
 }
 
@@ -310,12 +342,21 @@ export interface DiagnosticComparison {
 }
 
 const sig = (c: SupportCollection): string => {
-  const r = (l: SupportReport[]) => l.map((x) => `${x.reportId}:${x.size}`).sort().join(',');
+  const r = (l: SupportReport[]) =>
+    l
+      .map((x) => `${x.reportId}:${x.size}`)
+      .sort()
+      .join(',');
   return `${c.usagePage}:${c.usage ?? '?'} in[${r(c.inputReports)}] out[${r(c.outputReports)}] feature[${r(c.featureReports)}]`;
 };
 
 export function compareDiagnostics(a: SupportDevice, b: SupportDevice): DiagnosticComparison {
-  const field = (name: string, x: string | undefined, y: string | undefined) => ({ field: name, a: x ?? '—', b: y ?? '—', same: (x ?? '') === (y ?? '') });
+  const field = (name: string, x: string | undefined, y: string | undefined) => ({
+    field: name,
+    a: x ?? '—',
+    b: y ?? '—',
+    same: (x ?? '') === (y ?? ''),
+  });
   const identity = [
     field('VID', a.vendorId, b.vendorId),
     field('PID', a.productId, b.productId),
@@ -328,6 +369,9 @@ export function compareDiagnostics(a: SupportDevice, b: SupportDevice): Diagnost
   const sa = a.interfaces.flatMap((i) => i.collections.map(sig));
   const sb = b.interfaces.flatMap((i) => i.collections.map(sig));
   const all = [...new Set([...sa, ...sb])].sort();
-  const collections: CollectionDiff[] = all.map((s) => ({ signature: s, side: sa.includes(s) && sb.includes(s) ? 'both' : sa.includes(s) ? 'a' : 'b' }));
+  const collections: CollectionDiff[] = all.map((s) => ({
+    signature: s,
+    side: sa.includes(s) && sb.includes(s) ? 'both' : sa.includes(s) ? 'a' : 'b',
+  }));
   return { identity, collections, sameDescriptors: collections.every((c) => c.side === 'both') };
 }

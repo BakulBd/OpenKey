@@ -90,7 +90,8 @@ function keyboardGroup(u: number): KeycodeGroup {
   if (u >= 0x4a && u <= 0x52) return 'navigation';
   if (u >= 0x53 && u <= 0x63) return 'numpad';
   if (u >= 0xe0 && u <= 0xe7) return 'modifiers';
-  if ([0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x39, 0x49, 0x4c, 0x46, 0x47, 0x48, 0x65].includes(u)) return 'editing';
+  if ([0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x39, 0x49, 0x4c, 0x46, 0x47, 0x48, 0x65].includes(u))
+    return 'editing';
   return 'punctuation';
 }
 
@@ -138,8 +139,20 @@ let cache: KeycodeEntry[] | null = null;
 export function keycodeCatalog(): KeycodeEntry[] {
   if (cache) return cache;
   const out: KeycodeEntry[] = [
-    { id: 'default', action: { kind: 'default' }, name: 'Default', group: 'special', aliases: ['reset', 'factory', 'original'] },
-    { id: 'disabled', action: { kind: 'disabled' }, name: 'Disabled', group: 'special', aliases: ['none', 'off', 'block', 'KC_NO'] },
+    {
+      id: 'default',
+      action: { kind: 'default' },
+      name: 'Default',
+      group: 'special',
+      aliases: ['reset', 'factory', 'original'],
+    },
+    {
+      id: 'disabled',
+      action: { kind: 'disabled' },
+      name: 'Disabled',
+      group: 'special',
+      aliases: ['none', 'off', 'block', 'KC_NO'],
+    },
   ];
   for (const { usage, name } of keyboardUsages()) {
     const group = keyboardGroup(usage);
@@ -149,7 +162,14 @@ export function keycodeCatalog(): KeycodeEntry[] {
       group === 'digits' ? `number ${name}` : '',
       `0x${usage.toString(16).padStart(2, '0')}`,
     ].filter(Boolean);
-    out.push({ id: `kb-${usage}`, action: { kind: 'keyboard', usage, modifiers: 0 }, name, group, ...(qmk ? { qmk } : {}), aliases });
+    out.push({
+      id: `kb-${usage}`,
+      action: { kind: 'keyboard', usage, modifiers: 0 },
+      name,
+      group,
+      ...(qmk ? { qmk } : {}),
+      aliases,
+    });
   }
   for (const { usage, name } of consumerUsages()) {
     const qmk = QMK_CONSUMER[usage];
@@ -163,26 +183,65 @@ export function keycodeCatalog(): KeycodeEntry[] {
     });
   }
   for (const usage of [0x81, 0x82, 0x83])
-    out.push({ id: `sys-${usage}`, action: { kind: 'system', usage }, name: usageName(0x01, usage), group: 'system', aliases: ['power', 'sleep', 'system'] });
+    out.push({
+      id: `sys-${usage}`,
+      action: { kind: 'system', usage },
+      name: usageName(0x01, usage),
+      group: 'system',
+      aliases: ['power', 'sleep', 'system'],
+    });
   for (const [action, name, aliases] of MOUSE)
-    out.push({ id: `mouse-${action}`, action: { kind: 'mouse', action }, name, group: 'mouse', aliases: ['mouse', ...aliases] });
+    out.push({
+      id: `mouse-${action}`,
+      action: { kind: 'mouse', action },
+      name,
+      group: 'mouse',
+      aliases: ['mouse', ...aliases],
+    });
   for (const [name, usage, modifiers, aliases] of SHORTCUTS)
-    out.push({ id: `sc-${name}`, action: { kind: 'keyboard', usage, modifiers }, name, group: 'shortcuts', aliases: ['shortcut', ...aliases] });
+    out.push({
+      id: `sc-${name}`,
+      action: { kind: 'keyboard', usage, modifiers },
+      name,
+      group: 'shortcuts',
+      aliases: ['shortcut', ...aliases],
+    });
   for (let layer = 0; layer < 8; layer++) {
-    out.push({ id: `mo-${layer}`, action: { kind: 'layer', layer, mode: 'momentary' }, name: `Hold for layer ${layer}`, group: 'layers', qmk: `MO(${layer})`, aliases: ['layer', 'momentary', 'fn'] });
-    out.push({ id: `tg-${layer}`, action: { kind: 'layer', layer, mode: 'toggle' }, name: `Toggle layer ${layer}`, group: 'layers', qmk: `TG(${layer})`, aliases: ['layer', 'toggle'] });
+    out.push({
+      id: `mo-${layer}`,
+      action: { kind: 'layer', layer, mode: 'momentary' },
+      name: `Hold for layer ${layer}`,
+      group: 'layers',
+      qmk: `MO(${layer})`,
+      aliases: ['layer', 'momentary', 'fn'],
+    });
+    out.push({
+      id: `tg-${layer}`,
+      action: { kind: 'layer', layer, mode: 'toggle' },
+      name: `Toggle layer ${layer}`,
+      group: 'layers',
+      qmk: `TG(${layer})`,
+      aliases: ['layer', 'toggle'],
+    });
   }
   cache = out;
   return out;
 }
 
-const norm = (s: string): string => s.toLowerCase().replace(/[_\s]+/g, ' ').trim();
+const norm = (s: string): string =>
+  s
+    .toLowerCase()
+    .replace(/[_\s]+/g, ' ')
+    .trim();
 
 /**
  * Ranked search over names, QMK identifiers and aliases. Exact matches first ("A" finds the A key
  * before "Caps Lock"), then prefixes, then substrings.
  */
-export function searchKeycodes(query: string, entries: readonly KeycodeEntry[] = keycodeCatalog()): KeycodeEntry[] {
+export function searchKeycodes(
+  query: string,
+  entries: readonly KeycodeEntry[] = keycodeCatalog(),
+): KeycodeEntry[] {
   const q = norm(query);
   if (!q) return [...entries];
   const scored: [number, KeycodeEntry][] = [];

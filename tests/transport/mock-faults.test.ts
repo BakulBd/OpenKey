@@ -37,19 +37,29 @@ describe('AK820 adapter under injected HID faults', () => {
   it('an all-zero acknowledgement (no echo) is a PROTOCOL error', async () => {
     const { sim, driver } = await setup();
     sim.device.inject({ kind: 'corrupt', op: 'feature-get', mutate: mockCorruptions.zeros() });
-    expect(await errorCode(driver.syncClock(new Date(2026, 9, 8)))).toMatch(/PROTOCOL|MALFORMED_RESPONSE/);
+    expect(await errorCode(driver.syncClock(new Date(2026, 9, 8)))).toMatch(
+      /PROTOCOL|MALFORMED_RESPONSE/,
+    );
   });
 
   it('a truncated acknowledgement is rejected', async () => {
     const { sim, driver } = await setup();
     sim.device.inject({ kind: 'corrupt', op: 'feature-get', mutate: mockCorruptions.truncate(3) });
-    expect(await errorCode(driver.syncClock(new Date(2026, 9, 8)))).toMatch(/PROTOCOL|MALFORMED_RESPONSE/);
+    expect(await errorCode(driver.syncClock(new Date(2026, 9, 8)))).toMatch(
+      /PROTOCOL|MALFORMED_RESPONSE/,
+    );
   });
 
   it('an acknowledgement shifted by a stray report-ID byte is rejected', async () => {
     const { sim, driver } = await setup();
-    sim.device.inject({ kind: 'corrupt', op: 'feature-get', mutate: mockCorruptions.prependByte(0x06) });
-    expect(await errorCode(driver.syncClock(new Date(2026, 9, 8)))).toMatch(/PROTOCOL|MALFORMED_RESPONSE/);
+    sim.device.inject({
+      kind: 'corrupt',
+      op: 'feature-get',
+      mutate: mockCorruptions.prependByte(0x06),
+    });
+    expect(await errorCode(driver.syncClock(new Date(2026, 9, 8)))).toMatch(
+      /PROTOCOL|MALFORMED_RESPONSE/,
+    );
   });
 
   it('a corrupted per-key read surfaces as an error or differs, never as silent success', async () => {
@@ -96,7 +106,9 @@ describe('AK820 adapter under injected HID faults', () => {
   it('a dropped input report reads as silence, not as data', async () => {
     const { sim } = await setup();
     const t = await sim.device.group().openInterface(sim.device.specs[0]!.info);
-    sim.device.transportFor(sim.device.specs[0]!.info.collections[0]!.usagePage)!.queue.push(new Uint8Array([1, 2, 3]));
+    sim.device
+      .transportFor(sim.device.specs[0]!.info.collections[0]!.usagePage)!
+      .queue.push(new Uint8Array([1, 2, 3]));
     sim.device.inject({ kind: 'timeout', op: 'input' });
     expect(await t.readInputReport(5)).toBeNull();
   });

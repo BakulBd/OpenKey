@@ -15,11 +15,17 @@ export interface NameStyle {
 }
 
 const TAU = Math.PI * 2;
-const FONT = "800 {size}px system-ui, 'Segoe UI', 'Noto Sans', 'Noto Sans Bengali', 'Hind Siliguri', sans-serif";
+const FONT =
+  "800 {size}px system-ui, 'Segoe UI', 'Noto Sans', 'Noto Sans Bengali', 'Hind Siliguri', sans-serif";
 export const DEFAULT_NAME = 'Bakul';
 
 /** Largest font size (px) at which `text` fits `maxWidth`, capped at `maxSize`. */
-export function fitFont(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxSize: number): number {
+export function fitFont(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxSize: number,
+): number {
   let size = maxSize;
   for (; size > 8; size -= 1) {
     ctx.font = FONT.replace('{size}', String(size));
@@ -39,7 +45,14 @@ function seeded(seed: number): () => number {
   };
 }
 
-function centered(ctx: CanvasRenderingContext2D, text: string, w: number, h: number, maxSize: number, dy = 0): number {
+function centered(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  w: number,
+  h: number,
+  maxSize: number,
+  dy = 0,
+): number {
   const size = fitFont(ctx, text, w * 0.86, maxSize);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -47,7 +60,14 @@ function centered(ctx: CanvasRenderingContext2D, text: string, w: number, h: num
   return size;
 }
 
-function stars(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, n: number, seed: number): void {
+function stars(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  n: number,
+  seed: number,
+): void {
   const r = seeded(seed);
   for (let i = 0; i < n; i++) {
     const x = r() * w;
@@ -149,7 +169,13 @@ export const NAME_STYLES: readonly NameStyle[] = [
       ctx.fillStyle = '#b6f7c1';
       const x0 = (w - full) / 2;
       ctx.fillText(visible, x0, h / 2);
-      if (Math.floor(t * 12) % 2 === 0) ctx.fillRect(x0 + ctx.measureText(visible).width + 2, h / 2 - size * 0.42, Math.max(2, size * 0.1), size * 0.84);
+      if (Math.floor(t * 12) % 2 === 0)
+        ctx.fillRect(
+          x0 + ctx.measureText(visible).width + 2,
+          h / 2 - size * 0.42,
+          Math.max(2, size * 0.1),
+          size * 0.84,
+        );
     },
   },
   {
@@ -226,7 +252,13 @@ export const NAME_STYLES: readonly NameStyle[] = [
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = FONT.replace('{size}', String(Math.round(h * (0.16 + 0.05 * beat))));
-      for (const [x, y] of [[0.2, 0.2], [0.8, 0.2], [0.2, 0.82], [0.8, 0.82]] as const) ctx.fillText('♥', w * x, h * y);
+      for (const [x, y] of [
+        [0.2, 0.2],
+        [0.8, 0.2],
+        [0.2, 0.82],
+        [0.8, 0.82],
+      ] as const)
+        ctx.fillText('♥', w * x, h * y);
       ctx.fillStyle = '#ffffff';
       ctx.shadowColor = '#c2185b';
       ctx.shadowBlur = 4;
@@ -302,7 +334,7 @@ export const NAME_STYLES: readonly NameStyle[] = [
       ctx.textBaseline = 'top';
       for (let x = 0; x < w; x += 8) {
         const speed = 1 + Math.floor(r() * 2);
-        const head = (((r() + t * speed) % 1) * (h + 40)) - 20;
+        const head = ((r() + t * speed) % 1) * (h + 40) - 20;
         for (let k = 0; k < 6; k++) {
           const y = head - k * 9;
           ctx.fillStyle = k === 0 ? '#d7ffd9' : `rgba(0,255,90,${(0.8 - k * 0.13).toFixed(2)})`;
@@ -321,12 +353,21 @@ export const NAME_STYLES: readonly NameStyle[] = [
 ];
 
 function canvas(w: number, h: number): CanvasRenderingContext2D {
-  const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const c =
+    typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(w, h)
+      : Object.assign(document.createElement('canvas'), { width: w, height: h });
   return c.getContext('2d', { willReadFrequently: true }) as unknown as CanvasRenderingContext2D;
 }
 
 /** Renders a style for `text` at the screen's size, ready for the upload pipeline. */
-export function renderNameArt(styleId: string, text: string, w: number, h: number, frames?: number): AnimationFrame[] {
+export function renderNameArt(
+  styleId: string,
+  text: string,
+  w: number,
+  h: number,
+  frames?: number,
+): AnimationFrame[] {
   const style = NAME_STYLES.find((s) => s.id === styleId);
   if (!style) throw new Error(`Unknown style ${styleId}`);
   const name = text.trim() || DEFAULT_NAME;
@@ -338,6 +379,9 @@ export function renderNameArt(styleId: string, text: string, w: number, h: numbe
     style.draw(ctx, w, h, i / n, name);
     ctx.restore();
     const img = ctx.getImageData(0, 0, w, h);
-    return { image: { width: w, height: h, data: new Uint8ClampedArray(img.data) }, delayMs: style.delayMs };
+    return {
+      image: { width: w, height: h, data: new Uint8ClampedArray(img.data) },
+      delayMs: style.delayMs,
+    };
   });
 }

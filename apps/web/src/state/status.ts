@@ -21,7 +21,8 @@ export type SessionMode =
   /** The last attempt failed. */
   | 'error';
 
-export type IdentityLevel = 'verified' | 'identified' | 'candidate' | 'ambiguous' | 'unknown' | 'simulated';
+export type IdentityLevel =
+  'verified' | 'identified' | 'candidate' | 'ambiguous' | 'unknown' | 'simulated';
 
 export type Tone = 'ok' | 'info' | 'warn' | 'danger' | 'neutral';
 
@@ -78,24 +79,76 @@ export interface SessionLike {
   verdict: { kind: VerdictKind };
 }
 
-export function summarize(conn: ConnectionState, session: SessionLike | null, operation: Operation | null): StatusSummary {
+export function summarize(
+  conn: ConnectionState,
+  session: SessionLike | null,
+  operation: Operation | null,
+): StatusSummary {
   const base = { operation };
   if (!session) {
-    if (conn.status === 'ERROR') return { ...base, mode: 'error', identity: null, configurable: false, headline: 'status.error', tone: 'danger' };
+    if (conn.status === 'ERROR')
+      return {
+        ...base,
+        mode: 'error',
+        identity: null,
+        configurable: false,
+        headline: 'status.error',
+        tone: 'danger',
+      };
     if (conn.status === 'DISCONNECTED' || conn.status === 'DISCONNECTING')
-      return { ...base, mode: 'none', identity: null, configurable: false, headline: 'status.none', tone: 'neutral' };
+      return {
+        ...base,
+        mode: 'none',
+        identity: null,
+        configurable: false,
+        headline: 'status.none',
+        tone: 'neutral',
+      };
     const headline: StatusKey =
-      conn.status === 'DETECTING' || conn.status === 'INSPECTING' ? 'status.identifying' : conn.status === 'READING' ? 'status.reading' : 'status.connecting';
-    return { ...base, mode: 'connecting', identity: null, configurable: false, headline, tone: 'info' };
+      conn.status === 'DETECTING' || conn.status === 'INSPECTING'
+        ? 'status.identifying'
+        : conn.status === 'READING'
+          ? 'status.reading'
+          : 'status.connecting';
+    return {
+      ...base,
+      mode: 'connecting',
+      identity: null,
+      configurable: false,
+      headline,
+      tone: 'info',
+    };
   }
   const identity = identityOf(session.verdict.kind);
   // Re-identification after consent runs while the old unknown session is still shown.
-  if (conn.status === 'DETECTING') return { ...base, mode: 'connecting', identity, configurable: false, headline: 'status.identifying', tone: 'info' };
+  if (conn.status === 'DETECTING')
+    return {
+      ...base,
+      mode: 'connecting',
+      identity,
+      configurable: false,
+      headline: 'status.identifying',
+      tone: 'info',
+    };
   if (session.kind === 'device' && session.demo)
-    return { ...base, mode: 'simulated', identity: 'simulated', configurable: true, headline: 'status.simulated', tone: 'info' };
+    return {
+      ...base,
+      mode: 'simulated',
+      identity: 'simulated',
+      configurable: true,
+      headline: 'status.simulated',
+      tone: 'info',
+    };
   if (session.kind === 'device') {
     const verified = identity === 'verified';
-    return { ...base, mode: 'hardware', identity, configurable: true, headline: verified ? 'status.verified' : 'status.identified', tone: verified ? 'ok' : 'info' };
+    return {
+      ...base,
+      mode: 'hardware',
+      identity,
+      configurable: true,
+      headline: verified ? 'status.verified' : 'status.identified',
+      tone: verified ? 'ok' : 'info',
+    };
   }
   const headline: StatusKey =
     session.verdict.kind === 'TRANSPORT_UNSUPPORTED'
@@ -105,5 +158,12 @@ export function summarize(conn: ConnectionState, session: SessionLike | null, op
         : identity === 'ambiguous'
           ? 'status.ambiguous'
           : 'status.unknown';
-  return { ...base, mode: 'inspect', identity, configurable: false, headline, tone: identity === 'unknown' ? 'neutral' : 'warn' };
+  return {
+    ...base,
+    mode: 'inspect',
+    identity,
+    configurable: false,
+    headline,
+    tone: identity === 'unknown' ? 'neutral' : 'warn',
+  };
 }

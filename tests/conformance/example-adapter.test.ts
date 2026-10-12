@@ -32,21 +32,37 @@ describe('example adapter (template)', () => {
   });
 
   it('identifies its device, and nothing else gets a packet', async () => {
-    const ok = await registry().detect(new example.ExampleSimulator().device.group(), { level: 'handshake' });
+    const ok = await registry().detect(new example.ExampleSimulator().device.group(), {
+      level: 'handshake',
+    });
     expect(ok.selected?.identification).toBe('identified');
-    const other = new example.ExampleSimulator({ vendorId: 0x1234, productId: 0x0001, productName: 'Other' });
+    const other = new example.ExampleSimulator({
+      vendorId: 0x1234,
+      productId: 0x0001,
+      productName: 'Other',
+    });
     await registry().detect(other.device.group(), { level: 'handshake' });
     expect(other.device.traffic).toEqual([]);
   });
 
   it('writes a key and proves it by reading it back from the device', async () => {
     const sim = new example.ExampleSimulator();
-    const { driver, detection } = await connectKeyboard(sim.device.group(), { registry: registry() });
+    const { driver, detection } = await connectKeyboard(sim.device.group(), {
+      registry: registry(),
+    });
     expect(detectionVerdict(detection, registry()).kind).toBe('SIMULATED');
     const before = await driver.getKeymap();
-    const next: KeymapState = { ...before, slots: { ...before.slots, 2: { kind: 'keyboard', usage: 0x29, modifiers: 0 } } };
+    const next: KeymapState = {
+      ...before,
+      slots: { ...before.slots, 2: { kind: 'keyboard', usage: 0x29, modifiers: 0 } },
+    };
     const result = await runTransaction(
-      { label: 'keymap', acknowledged: true, apply: (k) => driver.setKeymap(k), readbackFromDevice: () => driver.getKeymap() },
+      {
+        label: 'keymap',
+        acknowledged: true,
+        apply: (k) => driver.setKeymap(k),
+        readbackFromDevice: () => driver.getKeymap(),
+      },
       before,
       next,
     );
@@ -58,7 +74,9 @@ describe('example adapter (template)', () => {
     const sim = new example.ExampleSimulator();
     const { driver } = await connectKeyboard(sim.device.group(), { registry: registry() });
     const sentBefore = sim.device.traffic.length;
-    await expect(driver.setKeymap({ layer: 'base', provenance: 'mirror', slots: { 9: { kind: 'disabled' } } })).rejects.toThrow(/slot 9/);
+    await expect(
+      driver.setKeymap({ layer: 'base', provenance: 'mirror', slots: { 9: { kind: 'disabled' } } }),
+    ).rejects.toThrow(/slot 9/);
     expect(sim.device.traffic.length).toBe(sentBefore);
   });
 

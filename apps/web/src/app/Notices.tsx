@@ -9,8 +9,16 @@ export function Notices() {
   return (
     <div className="notices" role="status" aria-live="polite">
       {notices.map((n) => (
-        <div key={n.id} className={`notice n-${n.kind}`} role={n.kind === 'error' ? 'alert' : undefined}>
-          <Icon name={n.kind === 'ok' ? 'check' : n.kind === 'error' || n.kind === 'warn' ? 'warn' : 'info'} />
+        <div
+          key={n.id}
+          className={`notice n-${n.kind}`}
+          role={n.kind === 'error' ? 'alert' : undefined}
+        >
+          <Icon
+            name={
+              n.kind === 'ok' ? 'check' : n.kind === 'error' || n.kind === 'warn' ? 'warn' : 'info'
+            }
+          />
           <div className="notice-body">
             <strong>{n.title}</strong>
             {n.reason && (
@@ -42,7 +50,12 @@ export function Notices() {
               </button>
             )}
           </div>
-          <button type="button" className="btn ghost icon-only" onClick={() => dismiss(n.id)} aria-label={t('common.dismiss')}>
+          <button
+            type="button"
+            className="btn ghost icon-only"
+            onClick={() => dismiss(n.id)}
+            aria-label={t('common.dismiss')}
+          >
             <Icon name="x" />
           </button>
         </div>

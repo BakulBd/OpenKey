@@ -18,7 +18,8 @@ export function frame(
   payload: Uint8Array = new Uint8Array(0),
   length = payload.length,
 ): Uint8Array {
-  if (payload.length > PAGE_BYTES) throw new ProtocolError(`payload of ${payload.length} bytes does not fit one package`);
+  if (payload.length > PAGE_BYTES)
+    throw new ProtocolError(`payload of ${payload.length} bytes does not fit one package`);
   const buf = new Uint8Array(REPORT_BYTES);
   buf[0] = command;
   buf[1] = parameter;
@@ -35,7 +36,8 @@ export function frame(
 export function writeFrames(command: number, parameter: number, data: Uint8Array): Uint8Array[] {
   const n = packageCount(data.length);
   const out: Uint8Array[] = [];
-  for (let i = 0; i < n; i++) out.push(frame(command, parameter, n, i, data.subarray(i * PAGE_BYTES, (i + 1) * PAGE_BYTES)));
+  for (let i = 0; i < n; i++)
+    out.push(frame(command, parameter, n, i, data.subarray(i * PAGE_BYTES, (i + 1) * PAGE_BYTES)));
   return out;
 }
 

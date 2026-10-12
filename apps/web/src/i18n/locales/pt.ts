@@ -61,9 +61,11 @@ const m: Partial<Messages> = {
   'notice.demoDetail': 'Teclado simulado — nada é enviado ao hardware.',
   'notice.unknownDevice': '{name}: nenhum adaptador verificado. Modo de inspeção somente leitura.',
   'notice.noDeviceSelected': 'Nenhum dispositivo selecionado',
-  'notice.noDeviceSelectedHint': 'Escolha seu teclado na janela do navegador. Use um cabo USB de dados e o modo com fio.',
+  'notice.noDeviceSelectedHint':
+    'Escolha seu teclado na janela do navegador. Use um cabo USB de dados e o modo com fio.',
   'notice.disconnected': 'Teclado desconectado',
-  'notice.disconnectedHint': 'As edições locais foram mantidas. Reconecte para continuar; nada é gravado automaticamente.',
+  'notice.disconnectedHint':
+    'As edições locais foram mantidas. Reconecte para continuar; nada é gravado automaticamente.',
   'notice.replugged': 'Um teclado foi conectado.',
   'notice.noDevice': 'Nenhum teclado conectado.',
   'notice.blocked': '{label}: bloqueado pela política de segurança',
@@ -85,8 +87,10 @@ const m: Partial<Messages> = {
   'browser.useDemo': 'Use Chrome, Edge, Opera ou Brave em um computador — ou experimente a demo.',
   'landing.eyebrow': 'Código aberto · Local primeiro · Sem conta',
   'landing.title': 'Configure seu teclado no navegador.',
-  'landing.lead': 'O OpenKey conversa diretamente com seu teclado via WebHID. Sem instalador, sem nuvem, sem telemetria — e diz com clareza o que sabe e o que já verificou.',
-  'landing.honest': 'O OpenKey ainda não é universal: só é possível configurar teclados que têm um adaptador OpenKey. Qualquer outro teclado pode ser inspecionado com segurança e reportado.',
+  'landing.lead':
+    'O OpenKey conversa diretamente com seu teclado via WebHID. Sem instalador, sem nuvem, sem telemetria — e diz com clareza o que sabe e o que já verificou.',
+  'landing.honest':
+    'O OpenKey ainda não é universal: só é possível configurar teclados que têm um adaptador OpenKey. Qualquer outro teclado pode ser inspecionado com segurança e reportado.',
   'landing.devices': 'Dispositivos compatíveis',
   'landing.pipelineTitle': 'Como o OpenKey identifica um teclado',
   'landing.pipe.transport': 'Transporte',
@@ -94,37 +98,47 @@ const m: Partial<Messages> = {
   'landing.pipe.discovery': 'Descoberta',
   'landing.pipe.discovery.d': 'Coleções HID, usos e tamanhos de relatório — não apenas VID/PID.',
   'landing.pipe.detection': 'Detecção de protocolo',
-  'landing.pipe.detection.d': 'Assinaturas de descritores e depois um handshake documentado somente leitura.',
+  'landing.pipe.detection.d':
+    'Assinaturas de descritores e depois um handshake documentado somente leitura.',
   'landing.pipe.adapter': 'Adaptador',
   'landing.pipe.adapter.d': 'Um por família de protocolos, com evidências e política de segurança.',
   'landing.pipe.capabilities': 'Recursos',
-  'landing.pipe.capabilities.d': 'Cada recurso é compatível, somente leitura, fixo, desconhecido ou em pesquisa.',
+  'landing.pipe.capabilities.d':
+    'Cada recurso é compatível, somente leitura, fixo, desconhecido ou em pesquisa.',
   'landing.pipe.ui': 'Interface',
   'landing.pipe.ui.d': 'Só é mostrado o que seu teclado realmente consegue fazer.',
   'landing.hardwareTitle': 'Status do hardware',
-  'landing.countsNote': 'Os números são entradas do catálogo por estado de verificação; nunca são somados em um único número de “compatíveis”.',
+  'landing.countsNote':
+    'Os números são entradas do catálogo por estado de verificação; nunca são somados em um único número de “compatíveis”.',
   'landing.privacyTitle': 'Privacidade desde o projeto',
   'landing.privacy.noAccount': 'Sem conta, sem análises, sem rastreamento.',
   'landing.privacy.local': 'Perfis, backups e projetos ficam neste navegador.',
-  'landing.privacy.typing': 'O que você digita nunca é capturado; o testador só registra enquanto você o executa.',
-  'landing.privacy.permission': 'O navegador pede permissão antes que o OpenKey veja um dispositivo, um por vez.',
+  'landing.privacy.typing':
+    'O que você digita nunca é capturado; o testador só registra enquanto você o executa.',
+  'landing.privacy.permission':
+    'O navegador pede permissão antes que o OpenKey veja um dispositivo, um por vez.',
   'landing.privacyLink': 'Ler a declaração de privacidade',
   'landing.unknownTitle': 'Tem outro teclado?',
-  'landing.unknownBody': 'Inspecione-o em modo somente leitura: o OpenKey mostra as interfaces HID e as possíveis famílias de protocolos e ajuda você a pedir suporte. Nada é gravado.',
+  'landing.unknownBody':
+    'Inspecione-o em modo somente leitura: o OpenKey mostra as interfaces HID e as possíveis famílias de protocolos e ajuda você a pedir suporte. Nada é gravado.',
   'landing.contributeTitle': 'Adicione seu teclado',
   'landing.contribute.1': 'Inspecione o dispositivo e exporte um pacote de diagnóstico.',
   'landing.contribute.2': 'Abra com ele uma issue de suporte a dispositivo.',
-  'landing.contribute.3': 'Pesquisa de protocolo: capturas, fixtures e um adaptador com testes simulados.',
+  'landing.contribute.3':
+    'Pesquisa de protocolo: capturas, fixtures e um adaptador com testes simulados.',
   'landing.contribute.4': 'Verificação em hardware real e, então, o dispositivo é promovido.',
   'connect.title': 'Conecte um teclado',
-  'connect.lead': 'Esta página precisa de um teclado. Conecte um, experimente a demo simulada ou inspecione qualquer dispositivo HID em modo somente leitura.',
+  'connect.lead':
+    'Esta página precisa de um teclado. Conecte um, experimente a demo simulada ou inspecione qualquer dispositivo HID em modo somente leitura.',
   'connect.troubleTitle': 'O teclado não aparece?',
   'connect.trouble.cable': 'Use um cabo USB de dados (alguns cabos só carregam).',
-  'connect.trouble.wired': 'Coloque o teclado no modo com fio; a maioria não pode ser configurada por Bluetooth.',
+  'connect.trouble.wired':
+    'Coloque o teclado no modo com fio; a maioria não pode ser configurada por Bluetooth.',
   'connect.trouble.linux': 'No Linux, instale a regra udev do OpenKey e reconecte o teclado.',
   'connect.trouble.busy': 'Feche o software do fabricante e outras abas de configuradores.',
   'research.title': 'Hardware detectado — é preciso pesquisar o protocolo',
-  'research.body': 'Este teclado tem este recurso, mas o OpenKey ainda não conhece o protocolo de configuração. Nada é enviado. Você pode ajudar enviando capturas do software oficial.',
+  'research.body':
+    'Este teclado tem este recurso, mas o OpenKey ainda não conhece o protocolo de configuração. Nada é enviado. Você pode ajudar enviando capturas do software oficial.',
   'research.lab': 'Abrir o laboratório de pesquisa',
   'status.SUPPORTED': 'Compatível',
   'status.CONFIGURABLE': 'Configurável',
@@ -153,7 +167,8 @@ const m: Partial<Messages> = {
   'safety.write': 'Gravar',
   'safety.never': 'O OpenKey nunca envia comandos de firmware, bootloader ou apagamento.',
   'safety.experimentalTitle': 'Gravação experimental',
-  'safety.experimentalBody': 'Este comando reproduz uma fonte documentada, mas ainda não foi verificado no hardware pelo OpenKey. Se o resultado parecer errado, restaure um backup ou use a redefinição de fábrica do teclado.',
+  'safety.experimentalBody':
+    'Este comando reproduz uma fonte documentada, mas ainda não foi verificado no hardware pelo OpenKey. Se o resultado parecer errado, restaure um backup ou use a redefinição de fábrica do teclado.',
   'safety.optIn': 'Ativar gravações experimentais nesta sessão do navegador',
   'safety.level.READ_ONLY': 'Somente leitura',
   'safety.level.SAFE_VOLATILE': 'Temporário',
@@ -182,7 +197,8 @@ const m: Partial<Messages> = {
   'settings.theme.dark': 'Escuro',
   'pwa.updateReady': 'Uma nova versão do OpenKey está pronta.',
   'pwa.reload': 'Recarregar',
-  'footer.cta': 'O OpenKey é de código aberto e movido pela comunidade. Se ele for útil para você, considere dar uma estrela ao projeto no GitHub — isso ajuda outras pessoas a encontrá-lo e apoia o desenvolvimento.',
+  'footer.cta':
+    'O OpenKey é de código aberto e movido pela comunidade. Se ele for útil para você, considere dar uma estrela ao projeto no GitHub — isso ajuda outras pessoas a encontrá-lo e apoia o desenvolvimento.',
   'footer.star': 'Estrela no GitHub',
   'footer.contribute': 'Contribuir com um teclado',
   'footer.bug': 'Relatar um bug',

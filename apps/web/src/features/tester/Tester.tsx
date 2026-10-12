@@ -45,15 +45,40 @@ export default function Tester() {
       }
       const usage = domCodeToUsage(e.code);
       if (e.repeat) {
-        setRows((rs) => rs.map((r, i) => (i === 0 && r.code === e.code && r.upAt === undefined ? { ...r, repeats: r.repeats + 1 } : r)));
+        setRows((rs) =>
+          rs.map((r, i) =>
+            i === 0 && r.code === e.code && r.upAt === undefined
+              ? { ...r, repeats: r.repeats + 1 }
+              : r,
+          ),
+        );
         return;
       }
       if (usage !== undefined) {
         setHeld((h) => new Set(h).add(usage));
         setSeen((s) => new Set(s).add(usage));
       }
-      const mods = [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt', e.metaKey && 'Meta'].filter(Boolean).join('+');
-      setRows((rs) => [{ code: e.code, key: e.key, ...(usage !== undefined ? { usage } : {}), downAt: e.timeStamp, repeats: 0, mods }, ...rs].slice(0, MAX_ROWS));
+      const mods = [
+        e.ctrlKey && 'Ctrl',
+        e.shiftKey && 'Shift',
+        e.altKey && 'Alt',
+        e.metaKey && 'Meta',
+      ]
+        .filter(Boolean)
+        .join('+');
+      setRows((rs) =>
+        [
+          {
+            code: e.code,
+            key: e.key,
+            ...(usage !== undefined ? { usage } : {}),
+            downAt: e.timeStamp,
+            repeats: 0,
+            mods,
+          },
+          ...rs,
+        ].slice(0, MAX_ROWS),
+      );
     };
     const up = (e: KeyboardEvent) => {
       e.preventDefault();
@@ -97,7 +122,12 @@ export default function Tester() {
         lead={t('tester.lead')}
         actions={
           <>
-            <button type="button" className={`btn ${active ? 'danger' : 'primary'}`} aria-pressed={active} onClick={() => setActive(!active)}>
+            <button
+              type="button"
+              className={`btn ${active ? 'danger' : 'primary'}`}
+              aria-pressed={active}
+              onClick={() => setActive(!active)}
+            >
               {active ? t('tester.stop') : t('tester.start')}
             </button>
             <button
@@ -130,7 +160,7 @@ export default function Tester() {
       )}
       <Card>
         <KeyboardView
-            scrollHint={t('kb.scrollHint')}
+          scrollHint={t('kb.scrollHint')}
           layout={layout}
           label={t('tester.boardLabel')}
           pressed={(k) => k.usage != null && held.has(k.usage)}
@@ -157,9 +187,17 @@ export default function Tester() {
                     <td>
                       <code>{r.code}</code>
                     </td>
-                    <td>{r.usage !== undefined ? `0x${r.usage.toString(16).padStart(2, '0')} ${usageName(0x07, r.usage)}` : '—'}</td>
+                    <td>
+                      {r.usage !== undefined
+                        ? `0x${r.usage.toString(16).padStart(2, '0')} ${usageName(0x07, r.usage)}`
+                        : '—'}
+                    </td>
                     <td>{r.mods || '—'}</td>
-                    <td>{r.upAt !== undefined ? `${(r.upAt - r.downAt).toFixed(1)} ms` : t('tester.down')}</td>
+                    <td>
+                      {r.upAt !== undefined
+                        ? `${(r.upAt - r.downAt).toFixed(1)} ms`
+                        : t('tester.down')}
+                    </td>
                     <td>{r.repeats || '—'}</td>
                   </tr>
                 ))}
@@ -172,7 +210,12 @@ export default function Tester() {
             rows={[
               [t('tester.presses'), String(rows.length)],
               [t('tester.avgHeld'), Number.isNaN(avg) ? '—' : `${avg.toFixed(1)} ms`],
-              [t('tester.analog'), device?.caps.analog.read === 'device' ? t('status.SUPPORTED') : t('tester.noAnalog')],
+              [
+                t('tester.analog'),
+                device?.caps.analog.read === 'device'
+                  ? t('status.SUPPORTED')
+                  : t('tester.noAnalog'),
+              ],
             ]}
           />
           <p className="small muted">{t('tester.note')}</p>

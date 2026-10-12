@@ -28,7 +28,18 @@ export type UiState =
   /** No evidence either way. */
   | 'unknown';
 
-const ORDER: UiState[] = ['ready', 'experimental', 'readOnly', 'fixed', 'hardwareOnly', 'research', 'transport', 'firmware', 'unsupported', 'unknown'];
+const ORDER: UiState[] = [
+  'ready',
+  'experimental',
+  'readOnly',
+  'fixed',
+  'hardwareOnly',
+  'research',
+  'transport',
+  'firmware',
+  'unsupported',
+  'unknown',
+];
 
 export function featureUiState(s: FeatureSupport, ctx: SafetyContext): UiState {
   if (s.write) {
@@ -57,8 +68,16 @@ export function featureUiState(s: FeatureSupport, ctx: SafetyContext): UiState {
 }
 
 /** The most useful state among several features (a page is as available as its best feature). */
-export function bestUiState(caps: Capabilities, features: FeatureId[], ctx: SafetyContext): UiState {
-  return features.map((f) => featureUiState(caps[f], ctx)).sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b))[0] ?? 'unknown';
+export function bestUiState(
+  caps: Capabilities,
+  features: FeatureId[],
+  ctx: SafetyContext,
+): UiState {
+  return (
+    features
+      .map((f) => featureUiState(caps[f], ctx))
+      .sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b))[0] ?? 'unknown'
+  );
 }
 
 /** Whether a task with this state belongs in the "what you can do" list (rather than "not available"). */

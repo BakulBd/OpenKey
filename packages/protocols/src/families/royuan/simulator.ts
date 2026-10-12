@@ -11,12 +11,20 @@ export class RoyuanSimulator {
   led = [4, 3, 4, 0x07, 255, 0, 128];
   readonly sent: number[] = [];
   private reply = new Uint8Array(REPORT_BYTES);
+  /** Base and Fn slot tables (128 × 4 bytes) of the active profile. */
+  readonly base = new Uint8Array(512);
+  readonly fn = new Uint8Array(512);
+  /** Some yc500 firmware drops single-slot writes; set to emulate it. */
+  dropSlotWrites = false;
 
   constructor(
     readonly family: RoyuanFamily = 'yc500',
     readonly deviceId = 3056,
     identity: DeviceIdentity = { vendorId: 0x3151, productId: 0x4015, productName: 'AK820 MAX HE' },
   ) {
+    // A small board: slots 0..29 type A, B, C …; slot 30 is volume up; the rest are empty.
+    for (let i = 0; i < 30; i++) this.base.set([0x00, 0x00, 0x04 + (i % 26), 0x00], i * 4);
+    this.base.set([0x03, 0x00, 0xe9, 0x00], 30 * 4);
     const behavior: MockBehavior = {
       onFeatureSet: (_id, d) => {
         this.sent.push(d[0]!);
@@ -24,7 +32,13 @@ export class RoyuanSimulator {
         switch (d[0]) {
           case Cmd.IDENTIFY:
             r.fill(0);
-            r.set([0x8f, deviceId & 0xff, (deviceId >> 8) & 0xff, (deviceId >> 16) & 0xff, deviceId >>> 24]);
+            r.set([
+              0x8f,
+              deviceId & 0xff,
+              (deviceId >> 8) & 0xff,
+              (deviceId >> 16) & 0xff,
+              deviceId >>> 24,
+            ]);
             if (family === 'gen2') r.set([0x13, 0x01], 7);
             break;
           case Cmd.REVISION:
@@ -38,6 +52,36 @@ export class RoyuanSimulator {
           case Cmd.SET_LEDPARAM:
             this.led = Array.from(d.subarray(1, 8));
             break;
+          case Cmd.GET_PROFILE_YC500:
+          case Cmd.GET_PROFILE_GEN2:
+            r.fill(0);
+            r.set([d[0]!, 1]);
+            break;
+          case Cmd.GET_KEYMAP_YC500:
+          case Cmd.GET_FN_YC500:
+            if (family !== 'yc500') break;
+            r.set(
+              (d[0] === Cmd.GET_FN_YC500 ? this.fn : this.base).subarray(
+                d[2]! * 64,
+                d[2]! * 64 + 64,
+              ),
+            );
+            break;
+          case Cmd.GET_KEYMAP_GEN2:
+            if (family === 'yc500') {
+              r.fill(0xff);
+              break;
+            }
+            r.set(this.base.subarray(d[3]! * 64, d[3]! * 64 + 64));
+            break;
+          case Cmd.SET_KEY_YC500:
+          case Cmd.SET_FN_KEY_YC500:
+            if (family === 'yc500' && !this.dropSlotWrites)
+              (d[0] === Cmd.SET_FN_KEY_YC500 ? this.fn : this.base).set(
+                d.subarray(8, 12),
+                d[2]! * 4,
+              );
+            break;
           default:
             // Unknown command: the previous reply stays.
             break;
@@ -47,8 +91,36 @@ export class RoyuanSimulator {
       onFeatureGet: () => this.reply.slice(),
     };
     this.device = new MockHidDevice(identity, [
-      { info: { interfaceNumber: 0, collections: [{ usagePage: 1, usage: 6, inputReports: [{ reportId: 0, size: 8 }], outputReports: [], featureReports: [] }] }, behavior: {} },
-      { info: { interfaceNumber: 2, collections: [{ usagePage: USAGE_PAGE, usage: 2, inputReports: [], outputReports: [], featureReports: [{ reportId: 0, size: REPORT_BYTES }] }] }, behavior },
+      {
+        info: {
+          interfaceNumber: 0,
+          collections: [
+            {
+              usagePage: 1,
+              usage: 6,
+              inputReports: [{ reportId: 0, size: 8 }],
+              outputReports: [],
+              featureReports: [],
+            },
+          ],
+        },
+        behavior: {},
+      },
+      {
+        info: {
+          interfaceNumber: 2,
+          collections: [
+            {
+              usagePage: USAGE_PAGE,
+              usage: 2,
+              inputReports: [],
+              outputReports: [],
+              featureReports: [{ reportId: 0, size: REPORT_BYTES }],
+            },
+          ],
+        },
+        behavior,
+      },
     ]);
   }
 }

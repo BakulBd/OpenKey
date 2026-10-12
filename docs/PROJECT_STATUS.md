@@ -8,14 +8,14 @@ Test hardware: one AJAZZ AK820 MAX PLUS TFT (`0C45:8009` "AK820 MAX", bcdDevice 
 
 ## Works (verified on the physical keyboard)
 
-| Item | Evidence |
-|---|---|
-| Dynamic detection from HID descriptors (no VID/PID or hidraw shortcuts) | `openkey detect --verbose`, five families evaluated |
-| Protocol confirmation via the official START handshake (`04 18` → `04 18 00 01`) | `fixtures/device-info/ak820-max-plus-start-handshake-hw.json` |
-| Per-key colour table read (`F5`) | `fixtures/rgb/ak820-max-plus-read-per-key-hw.json` |
-| Device identity (VID, PID, product, manufacturer, bcdDevice, interfaces, endpoints, report sizes) | `pnpm inspect` |
-| No unsolicited vendor reports over USB (8 s passive listen on FF13, FF68, FFFF) | research log |
-| USB endpoint interval: bInterval 1 on all four interfaces (declared 1 ms; report cadence not measured) | `lsusb -v`, sysfs |
+| Item                                                                                                   | Evidence                                                      |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Dynamic detection from HID descriptors (no VID/PID or hidraw shortcuts)                                | `openkey detect --verbose`, five families evaluated           |
+| Protocol confirmation via the official START handshake (`04 18` → `04 18 00 01`)                       | `fixtures/device-info/ak820-max-plus-start-handshake-hw.json` |
+| Per-key colour table read (`F5`)                                                                       | `fixtures/rgb/ak820-max-plus-read-per-key-hw.json`            |
+| Device identity (VID, PID, product, manufacturer, bcdDevice, interfaces, endpoints, report sizes)      | `pnpm inspect`                                                |
+| No unsolicited vendor reports over USB (8 s passive listen on FF13, FF68, FFFF)                        | research log                                                  |
+| USB endpoint interval: bInterval 1 on all four interfaces (declared 1 ms; report cadence not measured) | `lsusb -v`, sysfs                                             |
 
 ## Implemented from official code, waiting for hardware confirmation
 
@@ -27,12 +27,12 @@ read back (see `docs/security.md`).
 
 ## Partial
 
-| Item | State |
-|---|---|
-| Battery | Official software reads it only through the 2.4 GHz receiver (ping `20 01`, byte 3 = %). Not readable over USB on this firmware. Receiver not available for testing. |
-| 2.4 GHz receiver | Detection, ping, battery, lighting packet implemented; untested. |
-| Online-driver AK820 Pro family | Complete driver, simulator-tested only. |
-| CRS / SinoWealth / YiChip variants | Identified by the catalogue; no configuration. |
+| Item                               | State                                                                                                                                                                |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Battery                            | Official software reads it only through the 2.4 GHz receiver (ping `20 01`, byte 3 = %). Not readable over USB on this firmware. Receiver not available for testing. |
+| 2.4 GHz receiver                   | Detection, ping, battery, lighting packet implemented; untested.                                                                                                     |
+| Online-driver AK820 Pro family     | Complete driver, simulator-tested only.                                                                                                                              |
+| CRS / SinoWealth / YiChip variants | Identified by the catalogue; no configuration.                                                                                                                       |
 
 ## Mocked / simulated only
 
@@ -41,23 +41,23 @@ the official driver's expectations; they are not evidence about the firmware.
 
 ## Unverified assumptions
 
-* Lighting direction codes (left 0 / right 1 / up 2 / down 3).
-* Macro trigger-mode byte values (borrowed from the online driver).
-* bcdDevice = firmware version.
-* Which controls each lighting effect honours.
+- Lighting direction codes (left 0 / right 1 / up 2 / down 3).
+- Macro trigger-mode byte values (borrowed from the online driver).
+- bcdDevice = firmware version.
+- Which controls each lighting effect honours.
 
 ## Facts established (no longer assumptions)
 
-* No knob remapping, polling-rate setting or game-mode command exists in the official MAX software.
+- No knob remapping, polling-rate setting or game-mode command exists in the official MAX software.
   The knob sends standard Consumer Control usages (volume up/down, mute) handled by the OS.
-* Bluetooth: no configuration (official message).
-* Battery: shown on the keyboard's TFT; the PC can read it only through the 2.4 GHz receiver.
+- Bluetooth: no configuration (official message).
+- Battery: shown on the keyboard's TFT; the PC can read it only through the 2.4 GHz receiver.
 
 ## UI limitations
 
-* The browser cannot see USB endpoint intervals or bcdDevice (WebHID hides them); the CLI/diagnostics show them on Linux.
-* Two identical keyboards plugged in at the same time are merged by WebHID.
-* WebHID with a real keyboard was not exercised automatically (it needs the browser's permission dialog).
+- The browser cannot see USB endpoint intervals or bcdDevice (WebHID hides them); the CLI/diagnostics show them on Linux.
+- Two identical keyboards plugged in at the same time are merged by WebHID.
+- WebHID with a real keyboard was not exercised automatically (it needs the browser's permission dialog).
 
 ## Next tasks
 

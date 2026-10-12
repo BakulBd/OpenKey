@@ -52,7 +52,10 @@ export function guardWrites<D extends KeyboardDriver>(driver: D, context: () => 
           // settings packet is judged by the settings it actually carries.
           if (features.length > 1 && !caps[f].write) continue;
           if (decision.kind === 'blocked')
-            throw new SafetyBlockedError(`${String(prop)} (${f}) is blocked: ${decision.reason}`, { feature: f, decision: decision.kind });
+            throw new SafetyBlockedError(`${String(prop)} (${f}) is blocked: ${decision.reason}`, {
+              feature: f,
+              decision: decision.kind,
+            });
           if (!mayWrite(decision, ctx))
             throw new SafetyBlockedError(
               `${String(prop)} (${f}) is experimental: ${decision.kind === 'experimental' ? decision.reason : ''} Enable experimental writes to proceed.`,

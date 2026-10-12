@@ -11,13 +11,13 @@ against).
 
 ## 1. What needs code and what is data
 
-| Piece | Kind | Where | Can it enable a write? |
-| ----- | ---- | ----- | ---------------------- |
-| Device catalogue entry (brand, model, identity, hardware facts) | data | `packages/devices/src/catalog.ts` | no: it names devices, never selects a protocol |
-| Device definition and layout (key geometry, slots, LED indices) | data | `devices/*.json`, `packages/devices/src/layouts/` | no: a layout is never proof that writing is safe |
-| Diagnostic package | data | exported by users, `fixtures/diagnostics/` | no: analysed offline, cannot open a transport |
-| Protocol adapter (match, probe plan, probe, driver, capabilities) | **code** | `packages/protocols/src/families/<family>/` | yes, after review, conformance tests and evidence |
-| Protocol evidence ledger | code (typed data) | `families/<family>/ledger.ts` | constrains what the adapter may claim |
+| Piece                                                             | Kind              | Where                                             | Can it enable a write?                            |
+| ----------------------------------------------------------------- | ----------------- | ------------------------------------------------- | ------------------------------------------------- |
+| Device catalogue entry (brand, model, identity, hardware facts)   | data              | `packages/devices/src/catalog.ts`                 | no: it names devices, never selects a protocol    |
+| Device definition and layout (key geometry, slots, LED indices)   | data              | `devices/*.json`, `packages/devices/src/layouts/` | no: a layout is never proof that writing is safe  |
+| Diagnostic package                                                | data              | exported by users, `fixtures/diagnostics/`        | no: analysed offline, cannot open a transport     |
+| Protocol adapter (match, probe plan, probe, driver, capabilities) | **code**          | `packages/protocols/src/families/<family>/`       | yes, after review, conformance tests and evidence |
+| Protocol evidence ledger                                          | code (typed data) | `families/<family>/ledger.ts`                     | constrains what the adapter may claim             |
 
 Adapters are reviewed TypeScript shipped with releases. OpenKey does not load adapter code at runtime
 from a URL or a file, and does not use `eval`; see
@@ -28,18 +28,18 @@ from a URL or a file, and does not use `eval`; see
 `ProtocolDefinition` in [`registry.ts`](../packages/protocols/src/registry.ts); `apiVersion` must equal
 `ADAPTER_API_VERSION` or the registry refuses the adapter.
 
-| Member | Rule |
-| ------ | ---- |
-| `id` | kebab-case, stable, never reused for another protocol |
-| `manifest.status` | `planned` → `research` → `community` → `experimental` → `verified`; only hardware runs move it right |
-| `manifest.transports` | `input` (links the keyboard types over) and `configuration` (links that carry configuration) are declared separately and never inferred from each other |
-| `manifest.provenance`, `license`, `limitations`, `fixtures` | required; limitations may be empty only for `verified` |
-| `manifest.verifiedIdentities` | units the adapter was verified on, each with its evidence; drives the VERIFIED_MATCH verdict |
-| `match(group)` | descriptors only, pure and deterministic, returns reasons **and** rejections. Never trust VID/PID alone |
-| `probePlan.operations` | every report the probe may send or read, at which level, its identifying bytes, purpose, effect and evidence |
-| `probePlan.autoConsent(group)` | `auto: true` only for identities where the handshake is known to be harmless (verified on hardware, or sent to that identity by the vendor's own software), or a public-specification read on a reserved collection. Everything else waits for the user |
-| `probe(ctx)` | only declared operations; passive level sends nothing; set `identified: true` only when the answer is specific to your family (an echo, a magic value, a matching ID) |
-| `createDriver` | called only after `identified`; the driver extends `BaseKeyboardDriver`, whose default for every method is `UnsupportedFeatureError` |
+| Member                                                      | Rule                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                                                        | kebab-case, stable, never reused for another protocol                                                                                                                                                                                                   |
+| `manifest.status`                                           | `planned` → `research` → `community` → `experimental` → `verified`; only hardware runs move it right                                                                                                                                                    |
+| `manifest.transports`                                       | `input` (links the keyboard types over) and `configuration` (links that carry configuration) are declared separately and never inferred from each other                                                                                                 |
+| `manifest.provenance`, `license`, `limitations`, `fixtures` | required; limitations may be empty only for `verified`                                                                                                                                                                                                  |
+| `manifest.verifiedIdentities`                               | units the adapter was verified on, each with its evidence; drives the VERIFIED_MATCH verdict                                                                                                                                                            |
+| `match(group)`                                              | descriptors only, pure and deterministic, returns reasons **and** rejections. Never trust VID/PID alone                                                                                                                                                 |
+| `probePlan.operations`                                      | every report the probe may send or read, at which level, its identifying bytes, purpose, effect and evidence                                                                                                                                            |
+| `probePlan.autoConsent(group)`                              | `auto: true` only for identities where the handshake is known to be harmless (verified on hardware, or sent to that identity by the vendor's own software), or a public-specification read on a reserved collection. Everything else waits for the user |
+| `probe(ctx)`                                                | only declared operations; passive level sends nothing; set `identified: true` only when the answer is specific to your family (an echo, a magic value, a matching ID)                                                                                   |
+| `createDriver`                                              | called only after `identified`; the driver extends `BaseKeyboardDriver`, whose default for every method is `UnsupportedFeatureError`                                                                                                                    |
 
 Optional operations are optional by construction: implement the methods your firmware supports and
 describe them in `getCapabilities()`. Do not add stub implementations that pretend to succeed.

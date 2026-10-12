@@ -18,9 +18,14 @@ export default function Lighting() {
   const t = useT();
   const { device } = useKeyboard();
   const tabs: Tab[] = device
-    ? ([device.caps.rgb.write || device.caps.rgb.read !== 'none' ? 'effects' : null, navigationMode(device.caps.perKeyRgb) === 'show' ? 'perkey' : null].filter(Boolean) as Tab[])
+    ? ([
+        device.caps.rgb.write || device.caps.rgb.read !== 'none' ? 'effects' : null,
+        navigationMode(device.caps.perKeyRgb) === 'show' ? 'perkey' : null,
+      ].filter(Boolean) as Tab[])
     : [];
-  const [tab, setTab] = useState<Tab>(() => (readRoute() === 'perkey' && tabs.includes('perkey') ? 'perkey' : (tabs[0] ?? 'effects')));
+  const [tab, setTab] = useState<Tab>(() =>
+    readRoute() === 'perkey' && tabs.includes('perkey') ? 'perkey' : (tabs[0] ?? 'effects'),
+  );
   if (!device) return null;
   return (
     <div className="page">
@@ -28,7 +33,16 @@ export default function Lighting() {
       {tabs.length > 1 && (
         <div className="tabs" role="tablist" aria-label={t('nav.rgb')}>
           {tabs.map((x) => (
-            <button key={x} type="button" role="tab" id={`tab-${x}`} aria-selected={tab === x} aria-controls={`panel-${x}`} className={`tab ${tab === x ? 'on' : ''}`} onClick={() => setTab(x)}>
+            <button
+              key={x}
+              type="button"
+              role="tab"
+              id={`tab-${x}`}
+              aria-selected={tab === x}
+              aria-controls={`panel-${x}`}
+              className={`tab ${tab === x ? 'on' : ''}`}
+              onClick={() => setTab(x)}
+            >
               {t(x === 'perkey' ? 'nav.perkey' : 'rgb.effects')}
             </button>
           ))}
@@ -36,7 +50,14 @@ export default function Lighting() {
       )}
       {/* Both editors stay mounted so switching tabs never discards a local draft. */}
       {tabs.map((x) => (
-        <div key={x} id={`panel-${x}`} role="tabpanel" aria-labelledby={`tab-${x}`} hidden={tab !== x} className="stack-page">
+        <div
+          key={x}
+          id={`panel-${x}`}
+          role="tabpanel"
+          aria-labelledby={`tab-${x}`}
+          hidden={tab !== x}
+          className="stack-page"
+        >
           {x === 'perkey' ? <PerKeyStudio /> : <RgbStudio />}
         </div>
       ))}

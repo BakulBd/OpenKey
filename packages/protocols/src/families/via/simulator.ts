@@ -1,7 +1,16 @@
 import type { DeviceIdentity } from '@openkey/core';
 import { MockHidDevice } from '@openkey/hid';
 import type { MockBehavior, MockContext } from '@openkey/hid';
-import { Channel, Cmd, KeyboardValue, LightValue, RAW_USAGE, RAW_USAGE_PAGE, REPORT_SIZE, UNHANDLED } from './constants.js';
+import {
+  Channel,
+  Cmd,
+  KeyboardValue,
+  LightValue,
+  RAW_USAGE,
+  RAW_USAGE_PAGE,
+  REPORT_SIZE,
+  UNHANDLED,
+} from './constants.js';
 import type { LightingChannel } from './constants.js';
 
 export interface ViaSimulatorOptions {
@@ -45,21 +54,35 @@ export class ViaSimulator {
     this.macroCount = opts.macroCount ?? 16;
     this.keymap = new Uint8Array(this.layers * this.rows * this.cols * 2);
     this.macros = new Uint8Array(opts.macroSize ?? 512);
-    const base = [0x29, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x2d, 0x2e, 0x2a, 0x4c];
+    const base = [
+      0x29, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x2d, 0x2e, 0x2a, 0x4c,
+    ];
     for (let c = 0; c < this.cols; c++) this.setCode(0, 0, c, base[c] ?? 0x04);
-    for (let r = 1; r < this.rows; r++) for (let c = 0; c < this.cols; c++) this.setCode(0, r, c, 0x04 + ((r * this.cols + c) % 26));
-    for (let l = 1; l < this.layers; l++) for (let i = 0; i < this.rows * this.cols; i++) this.setCode(l, Math.floor(i / this.cols), i % this.cols, 0x0001);
+    for (let r = 1; r < this.rows; r++)
+      for (let c = 0; c < this.cols; c++) this.setCode(0, r, c, 0x04 + ((r * this.cols + c) % 26));
+    for (let l = 1; l < this.layers; l++)
+      for (let i = 0; i < this.rows * this.cols; i++)
+        this.setCode(l, Math.floor(i / this.cols), i % this.cols, 0x0001);
     const behavior: MockBehavior = { onOutput: (_id, d, ctx) => this.onCommand(d, ctx) };
-    this.device = new MockHidDevice(opts.identity ?? { vendorId: 0xfeed, productId: 0x6060, productName: 'OpenKey VIA demo 60%' }, [
-      {
-        info: {
-          collections: [
-            { usagePage: RAW_USAGE_PAGE, usage: RAW_USAGE, inputReports: [{ reportId: 0, size: REPORT_SIZE }], outputReports: [{ reportId: 0, size: REPORT_SIZE }], featureReports: [] },
-          ],
+    this.device = new MockHidDevice(
+      opts.identity ?? { vendorId: 0xfeed, productId: 0x6060, productName: 'OpenKey VIA demo 60%' },
+      [
+        {
+          info: {
+            collections: [
+              {
+                usagePage: RAW_USAGE_PAGE,
+                usage: RAW_USAGE,
+                inputReports: [{ reportId: 0, size: REPORT_SIZE }],
+                outputReports: [{ reportId: 0, size: REPORT_SIZE }],
+                featureReports: [],
+              },
+            ],
+          },
+          behavior,
         },
-        behavior,
-      },
-    ]);
+      ],
+    );
   }
 
   code(layer: number, row: number, col: number): number {

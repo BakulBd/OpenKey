@@ -36,7 +36,10 @@ const h = (n: number, w = 4): string => n.toString(16).toUpperCase().padStart(w,
 
 function collectionSignature(c: HidCollection): string {
   const r = (list: { reportId: number; size: number }[]) =>
-    list.map((x) => `${x.reportId}:${x.size}`).sort().join(',');
+    list
+      .map((x) => `${x.reportId}:${x.size}`)
+      .sort()
+      .join(',');
   return `${h(c.usagePage)}:${h(c.usage)}[i${r(c.inputReports)}|o${r(c.outputReports)}|f${r(c.featureReports)}]`;
 }
 
@@ -66,12 +69,15 @@ export function buildFingerprint(report: DetectionReport): DeviceFingerprint {
     { kind: 'identity', name: 'VID:PID', value: `${h(d.vendorId)}:${h(d.productId)}` },
     { kind: 'identity', name: 'product', value: d.productName },
   ];
-  if (d.manufacturer) signals.push({ kind: 'identity', name: 'manufacturer', value: d.manufacturer });
-  if (d.release !== undefined) signals.push({ kind: 'identity', name: 'bcdDevice', value: `0x${h(d.release)}` });
+  if (d.manufacturer)
+    signals.push({ kind: 'identity', name: 'manufacturer', value: d.manufacturer });
+  if (d.release !== undefined)
+    signals.push({ kind: 'identity', name: 'bcdDevice', value: `0x${h(d.release)}` });
   for (const i of report.interfaces)
     for (const c of i.collections)
       signals.push({ kind: 'descriptor', name: 'collection', value: collectionSignature(c) });
-  if (report.catalog) signals.push({ kind: 'catalog', name: 'catalogue', value: report.catalog.model });
+  if (report.catalog)
+    signals.push({ kind: 'catalog', name: 'catalogue', value: report.catalog.model });
 
   const sel = report.selected;
   const cand = sel ? report.candidates.find((c) => c.protocol.id === sel.protocolId) : undefined;
@@ -95,7 +101,10 @@ export function buildFingerprint(report: DetectionReport): DeviceFingerprint {
   } else {
     explanation.push('No adapter or known protocol family matches these descriptors.');
   }
-  if (report.catalog) explanation.push(`Catalogue: ${report.catalog.model} — names the device only; it never selects a protocol.`);
+  if (report.catalog)
+    explanation.push(
+      `Catalogue: ${report.catalog.model} — names the device only; it never selects a protocol.`,
+    );
 
   return {
     key: `${h(d.vendorId)}:${h(d.productId)}#${sig}`,

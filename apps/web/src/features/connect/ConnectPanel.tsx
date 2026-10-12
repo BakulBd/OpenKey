@@ -13,7 +13,8 @@ function platform(): { mobile: boolean; linux: boolean } {
   const nav = navigator as Navigator & { userAgentData?: { mobile?: boolean; platform?: string } };
   const ua = navigator.userAgent;
   const mobile = nav.userAgentData?.mobile ?? /Android|iPhone|iPad|Mobile/i.test(ua);
-  const linux = /Linux/i.test(nav.userAgentData?.platform ?? navigator.platform ?? '') && !/Android/i.test(ua);
+  const linux =
+    /Linux/i.test(nav.userAgentData?.platform ?? navigator.platform ?? '') && !/Android/i.test(ua);
   return { mobile, linux };
 }
 
@@ -26,35 +27,79 @@ const STEPS = ['REQUESTING_PERMISSION', 'CONNECTING', 'DETECTING', 'READING', 'R
  */
 export function ConnectPanel({ compact = false }: { compact?: boolean }) {
   const t = useT();
-  const { support, connect, connectDemo, inspect, conn, status, authorized, openAuthorized, accessProblem } = useKeyboard();
+  const {
+    support,
+    connect,
+    connectDemo,
+    inspect,
+    conn,
+    status,
+    authorized,
+    openAuthorized,
+    accessProblem,
+  } = useKeyboard();
   const busy = conn.status !== 'DISCONNECTED';
   const p = platform();
   const checks: Check[] = [
-    { ok: support.available, label: support.available ? 'connect.check.webhid' : 'connect.check.noWebhid', help: support.available ? undefined : p.mobile ? 'connect.check.mobile' : 'browser.useDemo' },
-    { ok: support.secureContext, label: support.secureContext ? 'connect.check.secure' : 'connect.check.insecure' },
+    {
+      ok: support.available,
+      label: support.available ? 'connect.check.webhid' : 'connect.check.noWebhid',
+      help: support.available ? undefined : p.mobile ? 'connect.check.mobile' : 'browser.useDemo',
+    },
+    {
+      ok: support.secureContext,
+      label: support.secureContext ? 'connect.check.secure' : 'connect.check.insecure',
+    },
   ];
-  if (p.linux && support.available) checks.push({ ok: null, label: 'connect.check.linux', help: 'connect.check.linuxHelp' });
-  const failed = conn.status === 'DISCONNECTED' && conn.error && conn.error !== 'no device selected' ? conn.error : null;
-  const stepIndex = STEPS.indexOf((conn.status === 'INSPECTING' ? 'DETECTING' : conn.status) as (typeof STEPS)[number]);
+  if (p.linux && support.available)
+    checks.push({ ok: null, label: 'connect.check.linux', help: 'connect.check.linuxHelp' });
+  const failed =
+    conn.status === 'DISCONNECTED' && conn.error && conn.error !== 'no device selected'
+      ? conn.error
+      : null;
+  const stepIndex = STEPS.indexOf(
+    (conn.status === 'INSPECTING' ? 'DETECTING' : conn.status) as (typeof STEPS)[number],
+  );
 
   return (
     <div className={`connect-panel ${compact ? 'compact' : ''}`}>
       {accessProblem && !busy && <AccessHelp problem={accessProblem} />}
       <div className="hero-actions">
-        <button type="button" className="btn primary large" disabled={!support.available || busy} onClick={() => void connect()}>
+        <button
+          type="button"
+          className="btn primary large"
+          disabled={!support.available || busy}
+          onClick={() => void connect()}
+        >
           <Icon name="plug" /> {t('action.connect')}
         </button>
-        <button type="button" className="btn large" disabled={busy} onClick={() => void connectDemo()}>
+        <button
+          type="button"
+          className="btn large"
+          disabled={busy}
+          onClick={() => void connectDemo()}
+        >
           <Icon name="play" /> {t('action.demo')}
         </button>
-        <button type="button" className="btn ghost large" disabled={!support.available || busy} onClick={() => void inspect()}>
+        <button
+          type="button"
+          className="btn ghost large"
+          disabled={!support.available || busy}
+          onClick={() => void inspect()}
+        >
           <Icon name="lab" /> {t('action.inspect')}
         </button>
       </div>
       <div className="demo-picker" role="group" aria-label={t('demo.pick')}>
         <span className="small muted">{t('demo.pick')}</span>
         {DEMO_KINDS.map((k) => (
-          <button key={k} type="button" className="chip" disabled={busy} onClick={() => void connectDemo(k)}>
+          <button
+            key={k}
+            type="button"
+            className="chip"
+            disabled={busy}
+            onClick={() => void connectDemo(k)}
+          >
             {t(`demo.${k}` as MessageKey)}
           </button>
         ))}
@@ -64,7 +109,13 @@ export function ConnectPanel({ compact = false }: { compact?: boolean }) {
         <ol className="connect-steps" aria-label={t('connect.progress')}>
           {STEPS.slice(0, 4).map((s, i) => (
             <li key={s} className={i < stepIndex ? 'done' : i === stepIndex ? 'now' : ''}>
-              {i === stepIndex ? <Spinner /> : i < stepIndex ? <Icon name="check" size={14} /> : <span className="step-dot" aria-hidden="true" />}
+              {i === stepIndex ? (
+                <Spinner />
+              ) : i < stepIndex ? (
+                <Icon name="check" size={14} />
+              ) : (
+                <span className="step-dot" aria-hidden="true" />
+              )}
               {t(`connect.step.${s}` as MessageKey)}
             </li>
           ))}
@@ -100,10 +151,15 @@ export function ConnectPanel({ compact = false }: { compact?: boolean }) {
                 <span>
                   <strong>{d.productName || t('dev.unnamed')}</strong>{' '}
                   <code className="muted">
-                    {d.vendorId.toString(16).toUpperCase().padStart(4, '0')}:{d.productId.toString(16).toUpperCase().padStart(4, '0')}
+                    {d.vendorId.toString(16).toUpperCase().padStart(4, '0')}:
+                    {d.productId.toString(16).toUpperCase().padStart(4, '0')}
                   </code>
                 </span>
-                <button type="button" className="btn small" onClick={() => void openAuthorized(d.key)}>
+                <button
+                  type="button"
+                  className="btn small"
+                  onClick={() => void openAuthorized(d.key)}
+                >
                   {t('connect.open')}
                 </button>
               </li>

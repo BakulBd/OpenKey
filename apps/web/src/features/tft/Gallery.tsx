@@ -9,7 +9,8 @@ import type { PublicGif } from './public-gifs.js';
 /** Thumbnails are rendered small; "Use" renders at the panel's real size. */
 const THUMB = 64;
 
-const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducedMotion = () =>
+  typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function Thumb({ a, label, order }: { a: GalleryAnimation; label: string; order: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -20,7 +21,9 @@ function Thumb({ a, label, order }: { a: GalleryAnimation; label: string; order:
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setVisible(!!e?.isIntersecting), { rootMargin: '100px' });
+    const io = new IntersectionObserver(([e]) => setVisible(!!e?.isIntersecting), {
+      rootMargin: '100px',
+    });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -28,7 +31,10 @@ function Thumb({ a, label, order }: { a: GalleryAnimation; label: string; order:
   // page stays responsive); only animation waits for visibility.
   useEffect(() => {
     if (frames) return;
-    const id = setTimeout(() => setFrames(renderGallery(a.id, THUMB, THUMB)), visible ? 0 : 150 + order * 60);
+    const id = setTimeout(
+      () => setFrames(renderGallery(a.id, THUMB, THUMB)),
+      visible ? 0 : 150 + order * 60,
+    );
     return () => clearTimeout(id);
   }, [visible, frames, a.id, order]);
 
@@ -37,7 +43,12 @@ function Thumb({ a, label, order }: { a: GalleryAnimation; label: string; order:
     const ctx = ref.current?.getContext('2d');
     if (!ctx || !frames) return;
     let i = 0;
-    const draw = () => ctx.putImageData(new ImageData(new Uint8ClampedArray(frames[i]!.image.data), THUMB, THUMB), 0, 0);
+    const draw = () =>
+      ctx.putImageData(
+        new ImageData(new Uint8ClampedArray(frames[i]!.image.data), THUMB, THUMB),
+        0,
+        0,
+      );
     draw();
     if (!visible || reducedMotion()) return;
     const timer = setInterval(() => {
@@ -47,7 +58,16 @@ function Thumb({ a, label, order }: { a: GalleryAnimation; label: string; order:
     return () => clearInterval(timer);
   }, [frames, visible, a.delayMs]);
 
-  return <canvas ref={ref} width={THUMB} height={THUMB} className={`gallery-canvas ${frames ? '' : 'loading'}`} role="img" aria-label={label} />;
+  return (
+    <canvas
+      ref={ref}
+      width={THUMB}
+      height={THUMB}
+      className={`gallery-canvas ${frames ? '' : 'loading'}`}
+      role="img"
+      aria-label={label}
+    />
+  );
 }
 
 /** A public-domain GIF: the browser animates the file itself; reduced motion shows it paused. */
@@ -64,15 +84,34 @@ function GifThumb({ g, label }: { g: PublicGif; label: string }) {
         const f = decodeGif(new Uint8Array(b))[0];
         const ctx = ref.current?.getContext('2d');
         if (!alive || !f || !ctx) return;
-        ctx.putImageData(new ImageData(new Uint8ClampedArray(f.image.data), f.image.width, f.image.height), 0, 0);
+        ctx.putImageData(
+          new ImageData(new Uint8ClampedArray(f.image.data), f.image.width, f.image.height),
+          0,
+          0,
+        );
       })
       .catch(() => undefined);
     return () => void (alive = false);
   }, [g, still]);
   return still ? (
-    <canvas ref={ref} width={128} height={128} className="gallery-canvas" role="img" aria-label={label} />
+    <canvas
+      ref={ref}
+      width={128}
+      height={128}
+      className="gallery-canvas"
+      role="img"
+      aria-label={label}
+    />
   ) : (
-    <img src={gifUrl(g)} width={THUMB} height={THUMB} loading="lazy" decoding="async" className="gallery-canvas" alt={label} />
+    <img
+      src={gifUrl(g)}
+      width={THUMB}
+      height={THUMB}
+      loading="lazy"
+      decoding="async"
+      className="gallery-canvas"
+      alt={label}
+    />
   );
 }
 
@@ -83,7 +122,17 @@ type Source = 'made' | 'name' | 'public';
  * public-domain GIFs from Wikimedia Commons. Both are free to use. Choosing one only loads it into
  * the local preview; nothing reaches the keyboard until Upload.
  */
-export function Gallery({ width, height, selected, onUse }: { width: number; height: number; selected: string | null; onUse: (id: string, frames: AnimationFrame[]) => void }) {
+export function Gallery({
+  width,
+  height,
+  selected,
+  onUse,
+}: {
+  width: number;
+  height: number;
+  selected: string | null;
+  onUse: (id: string, frames: AnimationFrame[]) => void;
+}) {
   const t = useT();
   const [tab, setTab] = useState<Source>('made');
   const [loading, setLoading] = useState<string | null>(null);
@@ -107,12 +156,21 @@ export function Gallery({ width, height, selected, onUse }: { width: number; hei
     <div>
       <div className="tabs" role="tablist" aria-label={t('gallery.title')}>
         {(['made', 'name', 'public'] as const).map((x) => (
-          <button key={x} type="button" role="tab" aria-selected={tab === x} className={`tab ${tab === x ? 'on' : ''}`} onClick={() => setTab(x)}>
+          <button
+            key={x}
+            type="button"
+            role="tab"
+            aria-selected={tab === x}
+            className={`tab ${tab === x ? 'on' : ''}`}
+            onClick={() => setTab(x)}
+          >
             {t(`gallery.tab.${x}`)}
           </button>
         ))}
       </div>
-      {tab !== 'name' && <p className="small muted">{t(tab === 'made' ? 'gallery.lead' : 'gallery.publicLead')}</p>}
+      {tab !== 'name' && (
+        <p className="small muted">{t(tab === 'made' ? 'gallery.lead' : 'gallery.publicLead')}</p>
+      )}
       {tab === 'name' ? (
         <NameStudio width={width} height={height} selected={selected} onUse={onUse} />
       ) : tab === 'made' ? (
@@ -126,9 +184,20 @@ export function Gallery({ width, height, selected, onUse }: { width: number; hei
                 <div className="gallery-meta">
                   <strong>{a.name}</strong>
                   <span className="small muted">{a.description}</span>
-                  <span className="small muted">{t('gallery.facts', { frames: a.frames, s: ((a.frames * a.delayMs) / 1000).toFixed(1), kib: kib.toFixed(0) })}</span>
+                  <span className="small muted">
+                    {t('gallery.facts', {
+                      frames: a.frames,
+                      s: ((a.frames * a.delayMs) / 1000).toFixed(1),
+                      kib: kib.toFixed(0),
+                    })}
+                  </span>
                 </div>
-                <button type="button" className={`btn small ${on ? 'primary' : ''}`} aria-pressed={on} onClick={() => onUse(a.id, renderGallery(a.id, width, height))}>
+                <button
+                  type="button"
+                  className={`btn small ${on ? 'primary' : ''}`}
+                  aria-pressed={on}
+                  onClick={() => onUse(a.id, renderGallery(a.id, width, height))}
+                >
                   {on ? t('gallery.selected') : t('gallery.use')}
                 </button>
               </li>
@@ -151,10 +220,22 @@ export function Gallery({ width, height, selected, onUse }: { width: number; hei
                       {t('gallery.source')}
                     </a>
                   </span>
-                  <span className="small muted">{t('gallery.facts', { frames: g.frames, s: (g.loopMs / 1000).toFixed(1), kib: kib.toFixed(0) })}</span>
+                  <span className="small muted">
+                    {t('gallery.facts', {
+                      frames: g.frames,
+                      s: (g.loopMs / 1000).toFixed(1),
+                      kib: kib.toFixed(0),
+                    })}
+                  </span>
                   {failed === g.id && <span className="small">{t('gallery.loadFailed')}</span>}
                 </div>
-                <button type="button" className={`btn small ${on ? 'primary' : ''}`} aria-pressed={on} disabled={loading === g.id} onClick={() => void pickGif(g)}>
+                <button
+                  type="button"
+                  className={`btn small ${on ? 'primary' : ''}`}
+                  aria-pressed={on}
+                  disabled={loading === g.id}
+                  onClick={() => void pickGif(g)}
+                >
                   {on ? t('gallery.selected') : t('gallery.use')}
                 </button>
               </li>

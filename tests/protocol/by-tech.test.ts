@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { Evidence, FeatureStatus, MemoryStateStore, PacketLog, guardWrites, isOpenKeyError, toHex, writeDecision } from '@openkey/core';
+import {
+  Evidence,
+  FeatureStatus,
+  MemoryStateStore,
+  PacketLog,
+  guardWrites,
+  isOpenKeyError,
+  toHex,
+  writeDecision,
+} from '@openkey/core';
 import { byTech, createDefaultRegistry, openDriver } from '@openkey/protocols';
 import { noSleep } from '../helpers.js';
 
@@ -7,7 +16,11 @@ const { ByTechSimulator, F75_PAGE, R75_IDENTITY } = byTech;
 const R75 = { vendorId: 0x258a, productId: 0x015e, productName: 'Gaming Keyboard' };
 const fast = { cmdDelayMs: 0, sleep: noSleep };
 
-async function connect(sim: InstanceType<typeof ByTechSimulator>, consent: string[] = ['by-tech'], store = new MemoryStateStore()) {
+async function connect(
+  sim: InstanceType<typeof ByTechSimulator>,
+  consent: string[] = ['by-tech'],
+  store = new MemoryStateStore(),
+) {
   const registry = createDefaultRegistry();
   const group = sim.device.group();
   const detection = await registry.detect(group, { level: 'handshake', consent });
@@ -42,11 +55,18 @@ describe('BY Tech OEM protocol: detection', () => {
   it('identifies an AULA F75 on 258A:010C after consent', async () => {
     const sim = new ByTechSimulator();
     const before = await createDefaultRegistry().detect(sim.device.group(), { level: 'handshake' });
-    expect(before.candidates.find((c) => c.protocol.id === 'by-tech')!.consent).toMatchObject({ required: true });
+    expect(before.candidates.find((c) => c.protocol.id === 'by-tech')!.consent).toMatchObject({
+      required: true,
+    });
     expect(sim.device.traffic).toEqual([]);
-    const r = await createDefaultRegistry().detect(sim.device.group(), { level: 'handshake', consent: ['by-tech'] });
+    const r = await createDefaultRegistry().detect(sim.device.group(), {
+      level: 'handshake',
+      consent: ['by-tech'],
+    });
     expect(r.selected).toMatchObject({ protocolId: 'by-tech', identification: 'identified' });
-    expect(r.candidates.find((c) => c.protocol.id === 'by-tech')!.probe!.facts.model).toBe('AULA F75');
+    expect(r.candidates.find((c) => c.protocol.id === 'by-tech')!.probe!.facts.model).toBe(
+      'AULA F75',
+    );
   });
 
   it('asks before the identity read on the RK R75 and sends nothing until allowed', async () => {
@@ -56,11 +76,19 @@ describe('BY Tech OEM protocol: detection', () => {
     expect(cand.consent).toMatchObject({ required: true, granted: false });
     expect(r.selected?.identification ?? 'descriptor').toBe('descriptor');
     expect(sim.device.traffic).toEqual([]);
-    const ok = await createDefaultRegistry().detect(sim.device.group(), { level: 'handshake', consent: ['by-tech'] });
+    const ok = await createDefaultRegistry().detect(sim.device.group(), {
+      level: 'handshake',
+      consent: ['by-tech'],
+    });
     expect(ok.selected?.protocolId).toBe('by-tech');
-    expect(ok.candidates.find((c) => c.protocol.id === 'by-tech')!.probe!.facts.model).toBe('RK R75 RGB (wired)');
+    expect(ok.candidates.find((c) => c.protocol.id === 'by-tech')!.probe!.facts.model).toBe(
+      'RK R75 RGB (wired)',
+    );
     // Only the declared read: one SET (82 01) and one GET.
-    expect(sim.device.traffic.map((t) => `${t.op}:${t.data[0]?.toString(16) ?? ''}`)).toEqual(['feature-set:82', 'feature-get:82']);
+    expect(sim.device.traffic.map((t) => `${t.op}:${t.data[0]?.toString(16) ?? ''}`)).toEqual([
+      'feature-set:82',
+      'feature-get:82',
+    ]);
   });
 
   it('never selects the family from descriptors alone', async () => {
@@ -74,7 +102,13 @@ describe('BY Tech OEM protocol: AULA lighting', () => {
   it('decodes the settings page of an F75', async () => {
     const { driver } = await connect(new ByTechSimulator());
     expect(driver.displayName).toBe('AULA F75');
-    expect(await driver.getRgbConfig()).toMatchObject({ effect: 1, brightness: 9, speed: 4, colorful: false, color: { r: 255, g: 0, b: 0 } });
+    expect(await driver.getRgbConfig()).toMatchObject({
+      effect: 1,
+      brightness: 9,
+      speed: 4,
+      colorful: false,
+      color: { r: 255, g: 0, b: 0 },
+    });
     expect(driver.getRgbEffects().effects.find((e) => e.id === 21)?.name).toBe('Off');
     expect((await driver.getSystemSettings()).sleepTime).toBe(10);
   });
@@ -88,7 +122,12 @@ describe('BY Tech OEM protocol: AULA lighting', () => {
     expect(byTech.diffPages(F75_PAGE, sim.page).map((d) => d.offset)).toEqual([0x0a, 0x3c, 0x3d]);
     expect(sim.page[0x3c]).toBe(5);
     expect(sim.page[0x3d]).toBe(0x27);
-    expect(await driver.getRgbConfig()).toMatchObject({ effect: 2, brightness: 5, speed: 2, colorful: true });
+    expect(await driver.getRgbConfig()).toMatchObject({
+      effect: 2,
+      brightness: 5,
+      speed: 2,
+      colorful: true,
+    });
   });
 
   it('does not write when nothing changed, and never without the 5A A5 marker', async () => {
@@ -96,8 +135,9 @@ describe('BY Tech OEM protocol: AULA lighting', () => {
     const { driver } = await connect(sim);
     await driver.setRgbConfig(await driver.getRgbConfig());
     expect(sim.writes).toHaveLength(0);
-    sim.page[127] = 0;
-    await expect(driver.setRgbConfig({ ...(await driver.getRgbConfig().catch(() => ({ effect: 1, brightness: 1, speed: 1, colorful: false, color: { r: 0, g: 0, b: 0 }, direction: 'right' as const }))), brightness: 2 })).rejects.toThrow(/5A A5/);
+    const config = await driver.getRgbConfig();
+    sim.page[127] = 0; // the keyboard's end marker is gone: the page must not be written back
+    await expect(driver.setRgbConfig({ ...config, brightness: 2 })).rejects.toThrow(/5A A5/);
     expect(sim.writes).toHaveLength(0);
   });
 
@@ -111,19 +151,24 @@ describe('BY Tech OEM protocol: AULA lighting', () => {
       queueMicrotask(() => (sim.page = original.slice()));
       return orig(...p);
     };
-    await expect(driver.setRgbConfig({ ...(await driver.getRgbConfig()), brightness: 3 })).rejects.toSatisfy(
-      (e) => isOpenKeyError(e) && e.code === 'READBACK_MISMATCH',
-    );
+    await expect(
+      driver.setRgbConfig({ ...(await driver.getRgbConfig()), brightness: 3 }),
+    ).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'READBACK_MISMATCH');
   });
 
   it('keeps lighting writes behind the experimental opt-in (third-party evidence only)', async () => {
     const { driver } = await connect(new ByTechSimulator());
     const caps = driver.getCapabilities();
     expect(caps.rgb.confidence).toBe(Evidence.INFERRED);
-    expect(writeDecision(caps.rgb, { simulated: false, experimentalEnabled: false }).kind).toBe('experimental');
+    expect(writeDecision(caps.rgb, { simulated: false, experimentalEnabled: false }).kind).toBe(
+      'experimental',
+    );
     const guarded = guardWrites(driver, () => ({ simulated: false, experimentalEnabled: false }));
-    await expect(guarded.setRgbConfig(await driver.getRgbConfig())).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED');
-    for (const f of ['keymap', 'perKeyRgb', 'macros'] as const) expect(caps[f].status).toBe(FeatureStatus.NOT_YET_REVERSE_ENGINEERED);
+    await expect(guarded.setRgbConfig(await driver.getRgbConfig())).rejects.toSatisfy(
+      (e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED',
+    );
+    for (const f of ['keymap', 'perKeyRgb', 'macros'] as const)
+      expect(caps[f].status).toBe(FeatureStatus.NOT_YET_REVERSE_ENGINEERED);
   });
 });
 

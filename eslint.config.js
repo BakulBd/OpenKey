@@ -2,9 +2,23 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 const browser = Object.fromEntries(
-  ['self', 'caches', 'fetch', 'URL', 'navigator', 'Navigator', 'setTimeout', 'console', 'location', 'document', 'window'].map((g) => [g, 'readonly']),
+  [
+    'self',
+    'caches',
+    'fetch',
+    'URL',
+    'navigator',
+    'Navigator',
+    'setTimeout',
+    'console',
+    'location',
+    'document',
+    'window',
+  ].map((g) => [g, 'readonly']),
 );
-const node = Object.fromEntries(['process', 'console', 'URL', 'setTimeout'].map((g) => [g, 'readonly']));
+const node = Object.fromEntries(
+  ['process', 'console', 'URL', 'setTimeout'].map((g) => [g, 'readonly']),
+);
 
 export default tseslint.config(
   {
@@ -23,7 +37,10 @@ export default tseslint.config(
     },
   },
   // Plain-JS files are not type-checked; declare the globals of their runtime.
-  { files: ['apps/web/src/sw-template.js'], languageOptions: { globals: { ...browser, __PRECACHE__: 'readonly' } } },
+  {
+    files: ['apps/web/src/sw-template.js'],
+    languageOptions: { globals: { ...browser, __PRECACHE__: 'readonly' } },
+  },
   { files: ['tools/**/*.mjs'], languageOptions: { globals: { ...node, ...browser } } },
   {
     // Protocol code must never touch platform HID APIs directly; those belong to transports.

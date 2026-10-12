@@ -42,7 +42,11 @@ describe('backup format', () => {
       version: 1,
       createdAt: '2026-10-07T00:00:00Z',
       createdBy: 'openak820-cli',
-      device: { model: 'AJAZZ AK820 MAX / MAX PLUS', profileId: 'ak820-max-plus', identity: { vendorId: 3141, productId: 32777, productName: 'AK820 MAX' } },
+      device: {
+        model: 'AJAZZ AK820 MAX / MAX PLUS',
+        profileId: 'ak820-max-plus',
+        identity: { vendorId: 3141, productId: 32777, productName: 'AK820 MAX' },
+      },
       firmware: { version: '1.07' },
       protocol: { id: 'sonix-feature', name: 'x' },
       transport: 'usb',
@@ -96,13 +100,18 @@ describe('restore across models', () => {
   it('skips slot-indexed sections when the backup comes from another model, unless explicitly allowed', async () => {
     const { driver } = await setup();
     const backup = await collectBackup(driver);
-    const otherModel = { ...backup, device: { ...backup.device, profileId: 'ak820-pro', model: 'AK820 Pro (TFT)' } };
+    const otherModel = {
+      ...backup,
+      device: { ...backup.device, profileId: 'ak820-pro', model: 'AK820 Pro (TFT)' },
+    };
     const info = await driver.getDeviceInfo();
     const plan = planRestore(otherModel, info, driver.getCapabilities());
     expect(plan.sections).not.toContain('keymap');
     expect(plan.sections).not.toContain('perKeyRgb');
     expect(plan.warnings.join(' ')).toMatch(/key positions differ between models/);
-    const forced = planRestore(otherModel, info, driver.getCapabilities(), { allowOtherModel: true });
+    const forced = planRestore(otherModel, info, driver.getCapabilities(), {
+      allowOtherModel: true,
+    });
     expect(forced.sections).toContain('perKeyRgb');
   });
 });

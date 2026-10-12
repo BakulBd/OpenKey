@@ -10,7 +10,9 @@ const implemented = ledger.filter((e) => e.implemented && e.code.startsWith('04 
 
 describe('sonix-feature evidence ledger', () => {
   it('lists every command constant, with the same code, and nothing the code does not have', () => {
-    const fromCode = Object.entries(sonixFeature.Cmd).map(([name, v]) => `${name}=04 ${v.toString(16).toUpperCase().padStart(2, '0')}`);
+    const fromCode = Object.entries(sonixFeature.Cmd).map(
+      ([name, v]) => `${name}=04 ${v.toString(16).toUpperCase().padStart(2, '0')}`,
+    );
     expect(implemented.map((e) => `${e.name}=${e.code}`).sort()).toEqual(fromCode.sort());
   });
 
@@ -36,7 +38,11 @@ describe('sonix-feature evidence ledger', () => {
   });
 
   it('no capability claims more evidence than the commands it depends on', () => {
-    const caps = sonixFeature.sonixFeatureCapabilities(sonixFeature.resolveVariant('AK820 MAX'), 'usb', 0x8009);
+    const caps = sonixFeature.sonixFeatureCapabilities(
+      sonixFeature.resolveVariant('AK820 MAX'),
+      'usb',
+      0x8009,
+    );
     for (const [feature, c] of Object.entries(caps)) {
       if (!c.write) continue;
       const deps = ledger.filter((e) => e.implemented && e.usedBy.includes(feature as never));

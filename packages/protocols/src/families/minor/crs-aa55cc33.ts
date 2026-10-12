@@ -121,12 +121,25 @@ class CrsDriver extends BaseKeyboardDriver {
   }
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
-    c.deviceInfo = { status: FeatureStatus.READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
-    c.rgb = { status: FeatureStatus.WRITE_ONLY, read: 'none', write: true, safety: SafetyLevel.CAUTION,
+    c.deviceInfo = {
+      status: FeatureStatus.READ_ONLY,
+      read: 'device',
+      write: false,
+      confidence: Evidence.VERIFIED,
+    };
+    c.rgb = {
+      status: FeatureStatus.WRITE_ONLY,
+      read: 'none',
+      write: true,
+      safety: SafetyLevel.CAUTION,
       confidence: Evidence.INFERRED,
       note: 'Experimental (community protocol).',
     };
-    c.perKeyRgb = { status: FeatureStatus.WRITE_ONLY, read: 'none', write: true, safety: SafetyLevel.CAUTION,
+    c.perKeyRgb = {
+      status: FeatureStatus.WRITE_ONLY,
+      read: 'none',
+      write: true,
+      safety: SafetyLevel.CAUTION,
       confidence: Evidence.INFERRED,
       note: 'Experimental (community protocol).',
     };
@@ -212,7 +225,11 @@ export const crsProtocol: ProtocolDefinition = {
     safety:
       'Descriptor match only. No read-only identification command is documented, so OpenKey never creates a driver for it and nothing is written.',
     provenance: [
-      { source: 'public-reverse-engineering', reference: 'armoredvortex/ajazz-ak820-max-plus', status: Evidence.INFERRED },
+      {
+        source: 'public-reverse-engineering',
+        reference: 'armoredvortex/ajazz-ak820-max-plus',
+        status: Evidence.INFERRED,
+      },
     ],
     license: 'MIT',
     limitations: [
@@ -250,7 +267,10 @@ export const crsProtocol: ProtocolDefinition = {
   },
   probePlan: {
     operations: [],
-    autoConsent: () => ({ auto: false, reason: 'no read-only identification command is documented for this family' }),
+    autoConsent: () => ({
+      auto: false,
+      reason: 'no read-only identification command is documented for this family',
+    }),
   },
   async probe(_ctx: ProbeContext): Promise<ProbeResult> {
     return {

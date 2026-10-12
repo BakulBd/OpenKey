@@ -137,15 +137,26 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
     const S = Evidence.OBSERVED;
-    c.deviceInfo = feature(FeatureStatus.READ_ONLY, { read: 'device', confidence: S, source: 'GET_DEVICE_INFO (_n)' });
+    c.deviceInfo = feature(FeatureStatus.READ_ONLY, {
+      read: 'device',
+      confidence: S,
+      source: 'GET_DEVICE_INFO (_n)',
+    });
     c.keymap = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
     c.fnLayer = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
     c.macros = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
     c.rgb = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
     c.perKeyRgb = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
-    c.battery = feature(FeatureStatus.READ_ONLY, { read: 'device', confidence: S, source: 'GET_DEVICE_INFO byte 17' });
+    c.battery = feature(FeatureStatus.READ_ONLY, {
+      read: 'device',
+      confidence: S,
+      source: 'GET_DEVICE_INFO byte 17',
+    });
     c.sleep = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
-    c.gameMode = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT, source: 'game-mode struct byte 1' });
+    c.gameMode = configurable('device', true, S, {
+      safety: SafetyLevel.SAFE_PERSISTENT,
+      source: 'game-mode struct byte 1',
+    });
     c.pollingRate = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
       read: 'device',
       confidence: Evidence.INFERRED,
@@ -157,12 +168,23 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
       note: 'wheelKeys is empty for the AK820 Pro in the online driver.',
     });
     if (this.tftLink) {
-      c.tft = configurable('none', true, Evidence.INFERRED, { safety: SafetyLevel.HIGH_RISK, note: 'Chunk format from the online driver; not hardware-verified by OpenKey (experimental).' });
+      c.tft = configurable('none', true, Evidence.INFERRED, {
+        safety: SafetyLevel.HIGH_RISK,
+        note: 'Chunk format from the online driver; not hardware-verified by OpenKey (experimental).',
+      });
       c.tftGif = { ...c.tft };
-      c.tftClock = configurable('none', true, Evidence.INFERRED, { safety: SafetyLevel.SAFE_PERSISTENT });
-      c.tftBuiltIn = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, { confidence: Evidence.INFERRED, note: 'SET_TFT_BUILT_IN_INDEX exists; built-in count unknown.' });
+      c.tftClock = configurable('none', true, Evidence.INFERRED, {
+        safety: SafetyLevel.SAFE_PERSISTENT,
+      });
+      c.tftBuiltIn = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
+        confidence: Evidence.INFERRED,
+        note: 'SET_TFT_BUILT_IN_INDEX exists; built-in count unknown.',
+      });
     }
-    c.factoryDefaults = configurable('none', true, S, { safety: SafetyLevel.HIGH_RISK, note: 'Writes the firmware default matrix read from the keyboard. The factory-reset command is blocked by policy.' });
+    c.factoryDefaults = configurable('none', true, S, {
+      safety: SafetyLevel.HIGH_RISK,
+      note: 'Writes the firmware default matrix read from the keyboard. The factory-reset command is blocked by policy.',
+    });
     return c;
   }
 
@@ -408,11 +430,19 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
     };
   }
 
-  override async uploadTftImage(frame: TftFrame, onProgress?: ProgressCallback, opts?: UploadOptions): Promise<void> {
+  override async uploadTftImage(
+    frame: TftFrame,
+    onProgress?: ProgressCallback,
+    opts?: UploadOptions,
+  ): Promise<void> {
     return this.uploadTftGif([frame], onProgress, opts);
   }
 
-  override async uploadTftGif(frames: TftFrame[], onProgress?: ProgressCallback, opts: UploadOptions = {}): Promise<void> {
+  override async uploadTftGif(
+    frames: TftFrame[],
+    onProgress?: ProgressCallback,
+    opts: UploadOptions = {},
+  ): Promise<void> {
     if (!this.opts.allowExperimental) {
       throw new UnsupportedFeatureError(
         'tft',

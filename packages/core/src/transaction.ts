@@ -75,16 +75,25 @@ export async function runTransaction<T>(
     steps.push(s);
     onStep?.(s);
   };
-  const norm = (v: T | undefined): unknown => (v === undefined ? undefined : tx.normalize ? tx.normalize(v) : v);
+  const norm = (v: T | undefined): unknown =>
+    v === undefined ? undefined : tx.normalize ? tx.normalize(v) : v;
 
   let t = now();
   const errors = tx.validate?.(next) ?? [];
   step('validate', errors.length === 0, errors.length ? errors.join('; ') : 'valid', t);
   if (errors.length)
-    return { outcome: 'REJECTED', message: `${tx.label}: not sent — ${errors.join('; ')}`, changes: [], steps };
+    return {
+      outcome: 'REJECTED',
+      message: `${tx.label}: not sent — ${errors.join('; ')}`,
+      changes: [],
+      steps,
+    };
 
   t = now();
-  const changes = previous === undefined ? diffValues(undefined, norm(next)) : diffValues(norm(previous), norm(next));
+  const changes =
+    previous === undefined
+      ? diffValues(undefined, norm(next))
+      : diffValues(norm(previous), norm(next));
   step('diff', true, `${changes.length} change(s)`, t);
   if (previous !== undefined && changes.length === 0)
     return { outcome: 'NO_CHANGES', message: `${tx.label}: nothing to apply.`, changes, steps };
@@ -104,7 +113,12 @@ export async function runTransaction<T>(
       error: { title: x.title, detail: x.detail },
     };
   }
-  step('ack', tx.acknowledged, tx.acknowledged ? 'device acknowledged' : 'protocol has no acknowledgement', now());
+  step(
+    'ack',
+    tx.acknowledged,
+    tx.acknowledged ? 'device acknowledged' : 'protocol has no acknowledgement',
+    now(),
+  );
 
   if (!tx.readbackFromDevice) {
     return {
@@ -134,7 +148,12 @@ export async function runTransaction<T>(
 
   t = now();
   const mismatches = diffValues(norm(next), norm(readback));
-  step('verify', mismatches.length === 0, mismatches.length ? `${mismatches.length} difference(s)` : 'read-back matches', t);
+  step(
+    'verify',
+    mismatches.length === 0,
+    mismatches.length ? `${mismatches.length} difference(s)` : 'read-back matches',
+    t,
+  );
   if (mismatches.length)
     return {
       outcome: 'MISMATCH',
@@ -144,5 +163,11 @@ export async function runTransaction<T>(
       mismatches,
       readback,
     };
-  return { outcome: 'VERIFIED', message: `${tx.label}: verified by read-back.`, changes, steps, readback };
+  return {
+    outcome: 'VERIFIED',
+    message: `${tx.label}: verified by read-back.`,
+    changes,
+    steps,
+    readback,
+  };
 }

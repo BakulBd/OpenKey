@@ -9,22 +9,22 @@ Working tree clean on `main` at `e33c16a`. The machine had no Node.js; Node 24.2
 locally under `~/.local/opt` (checksum verified, no system changes) and pnpm 10.0.0 used via corepack,
 as pinned by `packageManager`.
 
-| Check | Command | Result |
-| ----- | ------- | ------ |
-| Lint | `pnpm lint` | pass |
-| Types | `pnpm typecheck` | pass |
-| Tests | `pnpm test` | pass, 16 files, 147 tests |
-| Build | `pnpm build` (CLI + web) | pass |
-| Browser smoke test | `pnpm e2e` | not run at baseline; run after the changes (pass) |
+| Check              | Command                  | Result                                            |
+| ------------------ | ------------------------ | ------------------------------------------------- |
+| Lint               | `pnpm lint`              | pass                                              |
+| Types              | `pnpm typecheck`         | pass                                              |
+| Tests              | `pnpm test`              | pass, 16 files, 147 tests                         |
+| Build              | `pnpm build` (CLI + web) | pass                                              |
+| Browser smoke test | `pnpm e2e`               | not run at baseline; run after the changes (pass) |
 
 ## 2. Repository facts that differ from the brief
 
-| Brief assumed | Repository shows |
-| ------------- | ---------------- |
-| Project identity "OpenAK820"; rename later | The user-facing product, packages (`@openkey/*`) and docs were already renamed to OpenKey on 2026-10-08 (commit `5ded1ff`); the repository and CLI alias keep OpenAK820. Left as is: see [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md#decisions-taken-in-this-session). |
-| The all-zero `HIDIOCGFEATURE` reads are unexplained | Resolved on 2026-10-07: GET_FEATURE returns the echo of the last command; START `04 18` was acknowledged as `04 18 00 01` on the hardware ([AK820_INVESTIGATION.md](AK820_INVESTIGATION.md#4-the-all-zero-feature-reads-resolved)). |
-| Next.js static export | Vite + React SPA; same static deployment model ([ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md#framework-and-build)). |
-| Fixtures A and B may exist | They did not; created from the brief's sanitized records as `fixtures/diagnostics/unknown-a-258a-015e.json` and `unknown-b-3151-6000.json`, with unrecorded fields left null. |
+| Brief assumed                                       | Repository shows                                                                                                                                                                                                                                                               |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Project identity "OpenAK820"; rename later          | The user-facing product, packages (`@openkey/*`) and docs were already renamed to OpenKey on 2026-10-08 (commit `5ded1ff`); the repository and CLI alias keep OpenAK820. Left as is: see [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md#decisions-taken-in-this-session). |
+| The all-zero `HIDIOCGFEATURE` reads are unexplained | Resolved on 2026-10-07: GET_FEATURE returns the echo of the last command; START `04 18` was acknowledged as `04 18 00 01` on the hardware ([AK820_INVESTIGATION.md](AK820_INVESTIGATION.md#4-the-all-zero-feature-reads-resolved)).                                            |
+| Next.js static export                               | Vite + React SPA; same static deployment model ([ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md#framework-and-build)).                                                                                                                                                     |
+| Fixtures A and B may exist                          | They did not; created from the brief's sanitized records as `fixtures/diagnostics/unknown-a-258a-015e.json` and `unknown-b-3151-6000.json`, with unrecorded fields left null.                                                                                                  |
 
 ## 3. Inventory by proof
 
@@ -57,15 +57,15 @@ declared bInterval. Fixtures: `fixtures/device-info/*-hw.json`, `fixtures/rgb/*-
 
 ### Defects found in this audit (all fixed in this session)
 
-| # | Defect | Risk | Fix |
-| - | ------ | ---- | --- |
-| 1 | An adapter whose probe was *skipped* could still be selected and get a driver; CRS lighting writes were reachable from VID + one collection | write path from descriptor similarity | drivers now require `ProbeResult.identified` (`openDriver`); CRS is identification-only |
-| 2 | At handshake level, START was sent automatically to any device with an FF13:0001 64-byte feature collection, and GET_DEVICE_INFO to any small FF00/FF01/FF68 in/out collection, whatever the identity | unconsented packets to unknown hardware | `ProbePlan.autoConsent` + explicit consent; identities limited to those the vendor software targets |
-| 3 | The AA/55 matcher ignored report IDs; fixture B (report ID 186) would have received AA/55 frames under report ID 186 | guessed framing | matcher requires unnumbered reports, as every documented AA/55 device uses |
-| 4 | CLI writes ignored the experimental policy (y/N only) | unverified writes without opt-in | `guardWrites` driver proxy in CLI and web; `--experimental` required |
-| 5 | Restoring a backup from another model applied slot-indexed tables with only a warning | keys/LEDs land on wrong positions | slot-indexed sections skipped unless explicitly allowed |
-| 6 | Unknown-device page claimed "no probes are sent" although probes had run before reaching it | misleading UI | text now reflects the number of reports actually sent |
-| 7 | The demo overview showed "Verified (hardware-verified handshake)" for a simulator | simulation shown as hardware evidence | SIMULATED verdict; no hardware badge for simulators |
+| #   | Defect                                                                                                                                                                                                | Risk                                    | Fix                                                                                                 |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 1   | An adapter whose probe was _skipped_ could still be selected and get a driver; CRS lighting writes were reachable from VID + one collection                                                           | write path from descriptor similarity   | drivers now require `ProbeResult.identified` (`openDriver`); CRS is identification-only             |
+| 2   | At handshake level, START was sent automatically to any device with an FF13:0001 64-byte feature collection, and GET_DEVICE_INFO to any small FF00/FF01/FF68 in/out collection, whatever the identity | unconsented packets to unknown hardware | `ProbePlan.autoConsent` + explicit consent; identities limited to those the vendor software targets |
+| 3   | The AA/55 matcher ignored report IDs; fixture B (report ID 186) would have received AA/55 frames under report ID 186                                                                                  | guessed framing                         | matcher requires unnumbered reports, as every documented AA/55 device uses                          |
+| 4   | CLI writes ignored the experimental policy (y/N only)                                                                                                                                                 | unverified writes without opt-in        | `guardWrites` driver proxy in CLI and web; `--experimental` required                                |
+| 5   | Restoring a backup from another model applied slot-indexed tables with only a warning                                                                                                                 | keys/LEDs land on wrong positions       | slot-indexed sections skipped unless explicitly allowed                                             |
+| 6   | Unknown-device page claimed "no probes are sent" although probes had run before reaching it                                                                                                           | misleading UI                           | text now reflects the number of reports actually sent                                               |
+| 7   | The demo overview showed "Verified (hardware-verified handshake)" for a simulator                                                                                                                     | simulation shown as hardware evidence   | SIMULATED verdict; no hardware badge for simulators                                                 |
 
 ### Remaining risks
 

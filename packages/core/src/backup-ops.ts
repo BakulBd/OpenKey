@@ -100,7 +100,10 @@ function sectionTransaction(
   section: Exclude<BackupSection, 'tft'>,
 ): Transaction<unknown> {
   const fromDevice = caps[SECTION_FEATURE[section]].read === 'device';
-  const io: Record<Exclude<BackupSection, 'tft'>, { write(v: unknown): Promise<void>; read(): Promise<unknown> }> = {
+  const io: Record<
+    Exclude<BackupSection, 'tft'>,
+    { write(v: unknown): Promise<void>; read(): Promise<unknown> }
+  > = {
     keymap: {
       write: (v) => driver.setKeymap({ ...(v as NonNullable<Backup['keymap']>), layer: 'base' }),
       read: () => driver.getKeymap('base'),
@@ -109,12 +112,18 @@ function sectionTransaction(
       write: (v) => driver.setKeymap({ ...(v as NonNullable<Backup['fnLayers']>), layer: 'fn' }),
       read: () => driver.getKeymap('fn'),
     },
-    rgb: { write: (v) => driver.setRgbConfig(v as NonNullable<Backup['rgb']>), read: () => driver.getRgbConfig() },
+    rgb: {
+      write: (v) => driver.setRgbConfig(v as NonNullable<Backup['rgb']>),
+      read: () => driver.getRgbConfig(),
+    },
     perKeyRgb: {
       write: (v) => driver.setPerKeyRgb(v as NonNullable<Backup['perKeyRgb']>),
       read: () => driver.getPerKeyRgb(),
     },
-    macros: { write: (v) => driver.setMacros(v as NonNullable<Backup['macros']>), read: () => driver.getMacros() },
+    macros: {
+      write: (v) => driver.setMacros(v as NonNullable<Backup['macros']>),
+      read: () => driver.getMacros(),
+    },
     settings: {
       write: (v) => driver.setSystemSettings(v as NonNullable<Backup['settings']>),
       read: () => driver.getSystemSettings(),
@@ -146,7 +155,11 @@ export async function restoreBackup(
   const results: { section: BackupSection; result: TxResult<unknown> }[] = [];
   for (const s of p.sections) {
     if (s === 'tft' || backup[s] === undefined) continue;
-    const result = await runTransaction(sectionTransaction(driver, caps, s), current?.[s], backup[s]);
+    const result = await runTransaction(
+      sectionTransaction(driver, caps, s),
+      current?.[s],
+      backup[s],
+    );
     results.push({ section: s, result });
     if (result.outcome === 'FAILED') break;
   }

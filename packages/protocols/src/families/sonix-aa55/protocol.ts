@@ -48,7 +48,11 @@ function match(group: HidDeviceGroup): CandidateMatch {
  * shared by countless unrelated devices, so GET_DEVICE_INFO is never sent to anything else
  * without the user's consent.
  */
-const ONLINE_DRIVER_IDENTITIES: readonly { vendorId: number; productId: number; productName: string }[] = [
+const ONLINE_DRIVER_IDENTITIES: readonly {
+  vendorId: number;
+  productId: number;
+  productName: string;
+}[] = [
   { vendorId: 0x0c45, productId: 0x8009, productName: 'AK820' },
   { vendorId: 0x0c45, productId: 0x8009, productName: 'AK980 PRO' },
   { vendorId: 0x0c45, productId: 0x8009, productName: 'AJAZZ KEYBOARD' },
@@ -80,11 +84,21 @@ const probePlan: ProbePlan = {
   autoConsent(group) {
     const id = group.identity;
     const listed = ONLINE_DRIVER_IDENTITIES.some(
-      (o) => o.vendorId === id.vendorId && o.productId === id.productId && o.productName === id.productName.trim(),
+      (o) =>
+        o.vendorId === id.vendorId &&
+        o.productId === id.productId &&
+        o.productName === id.productName.trim(),
     );
     return listed
-      ? { auto: true, reason: 'the official online driver has a configuration for this exact identity' }
-      : { auto: false, reason: 'the command-pipe signature is shared by unrelated devices; identity not in the online driver configuration' };
+      ? {
+          auto: true,
+          reason: 'the official online driver has a configuration for this exact identity',
+        }
+      : {
+          auto: false,
+          reason:
+            'the command-pipe signature is shared by unrelated devices; identity not in the online driver configuration',
+        };
   },
 };
 
@@ -133,8 +147,16 @@ export const sonixAa55Protocol: ProtocolDefinition = {
     verification: 'Simulator-tested only; never run on hardware by OpenKey.',
     safety: 'Writes need the experimental opt-in.',
     provenance: [
-      { source: 'official-driver', reference: 'AJAZZ online driver bundle 2026-09-11', status: Evidence.OBSERVED },
-      { source: 'public-reverse-engineering', reference: 'wsclx/ak820pro-modder', status: Evidence.INFERRED },
+      {
+        source: 'official-driver',
+        reference: 'AJAZZ online driver bundle 2026-09-11',
+        status: Evidence.OBSERVED,
+      },
+      {
+        source: 'public-reverse-engineering',
+        reference: 'wsclx/ak820pro-modder',
+        status: Evidence.INFERRED,
+      },
     ],
     license: 'MIT',
     limitations: [

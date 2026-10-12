@@ -8,7 +8,8 @@ import { DEFAULT_NAME, NAME_STYLES, renderNameArt } from './nameArt.js';
 import type { NameStyle } from './nameArt.js';
 
 const THUMB = 64;
-const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducedMotion = () =>
+  typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function StyleThumb({ style, text, label }: { style: NameStyle; text: string; label: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -17,16 +18,33 @@ function StyleThumb({ style, text, label }: { style: NameStyle; text: string; la
     if (!ctx) return;
     const frames = renderNameArt(style.id, text, THUMB, THUMB, Math.min(style.frames, 24));
     let i = 0;
-    const draw = () => ctx.putImageData(new ImageData(new Uint8ClampedArray(frames[i]!.image.data), THUMB, THUMB), 0, 0);
+    const draw = () =>
+      ctx.putImageData(
+        new ImageData(new Uint8ClampedArray(frames[i]!.image.data), THUMB, THUMB),
+        0,
+        0,
+      );
     draw();
     if (reducedMotion()) return;
-    const timer = setInterval(() => {
-      i = (i + 1) % frames.length;
-      draw();
-    }, (style.delayMs * style.frames) / frames.length);
+    const timer = setInterval(
+      () => {
+        i = (i + 1) % frames.length;
+        draw();
+      },
+      (style.delayMs * style.frames) / frames.length,
+    );
     return () => clearInterval(timer);
   }, [style, text]);
-  return <canvas ref={ref} width={THUMB} height={THUMB} className="gallery-canvas" role="img" aria-label={label} />;
+  return (
+    <canvas
+      ref={ref}
+      width={THUMB}
+      height={THUMB}
+      className="gallery-canvas"
+      role="img"
+      aria-label={label}
+    />
+  );
 }
 
 const STATUS_KEY: Record<string, MessageKey> = {
@@ -51,7 +69,8 @@ export function ScreenSupport() {
               {e.brand} {e.model}
             </strong>{' '}
             <code className="muted">
-              {e.vendorId.toString(16).toUpperCase().padStart(4, '0')}:{e.productId.toString(16).toUpperCase().padStart(4, '0')}
+              {e.vendorId.toString(16).toUpperCase().padStart(4, '0')}:
+              {e.productId.toString(16).toUpperCase().padStart(4, '0')}
             </code>{' '}
             — {t(STATUS_KEY[e.status] ?? 'name.screen.research')}
             {e.link !== 'usb' ? ` (${e.link})` : ''}
@@ -64,7 +83,17 @@ export function ScreenSupport() {
 }
 
 /** Animated name cards: type a name, pick a style, load it into the preview, then upload. */
-export function NameStudio({ width, height, selected, onUse }: { width: number; height: number; selected: string | null; onUse: (id: string, frames: AnimationFrame[]) => void }) {
+export function NameStudio({
+  width,
+  height,
+  selected,
+  onUse,
+}: {
+  width: number;
+  height: number;
+  selected: string | null;
+  onUse: (id: string, frames: AnimationFrame[]) => void;
+}) {
   const t = useT();
   const { device } = useKeyboard();
   const [text, setText] = useState(DEFAULT_NAME);
@@ -80,7 +109,13 @@ export function NameStudio({ width, height, selected, onUse }: { width: number; 
       <p className="small muted">{t('name.lead')}</p>
       <label className="name-input">
         <span>{t('name.label')}</span>
-        <input type="text" value={text} maxLength={24} onChange={(e) => setText(e.target.value)} placeholder={DEFAULT_NAME} />
+        <input
+          type="text"
+          value={text}
+          maxLength={24}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={DEFAULT_NAME}
+        />
       </label>
       {!canUpload && <p className="callout info small">{t('name.noScreen')}</p>}
       <ul className="gallery">
@@ -89,13 +124,28 @@ export function NameStudio({ width, height, selected, onUse }: { width: number; 
           const on = selected === id;
           return (
             <li key={s.id} className={`gallery-item ${on ? 'on' : ''}`}>
-              <StyleThumb style={s} text={shown} label={t('gallery.preview', { name: `${s.name}: ${shown}` })} />
+              <StyleThumb
+                style={s}
+                text={shown}
+                label={t('gallery.preview', { name: `${s.name}: ${shown}` })}
+              />
               <div className="gallery-meta">
                 <strong>{s.name}</strong>
                 <span className="small muted">{s.description}</span>
-                <span className="small muted">{t('gallery.facts', { frames: s.frames, s: ((s.frames * s.delayMs) / 1000).toFixed(1), kib: ((s.frames * width * height * 2) / 1024).toFixed(0) })}</span>
+                <span className="small muted">
+                  {t('gallery.facts', {
+                    frames: s.frames,
+                    s: ((s.frames * s.delayMs) / 1000).toFixed(1),
+                    kib: ((s.frames * width * height * 2) / 1024).toFixed(0),
+                  })}
+                </span>
               </div>
-              <button type="button" className={`btn small ${on ? 'primary' : ''}`} aria-pressed={on} onClick={() => onUse(id, renderNameArt(s.id, shown, width, height))}>
+              <button
+                type="button"
+                className={`btn small ${on ? 'primary' : ''}`}
+                aria-pressed={on}
+                onClick={() => onUse(id, renderNameArt(s.id, shown, width, height))}
+              >
                 {on ? t('gallery.selected') : t('gallery.use')}
               </button>
             </li>

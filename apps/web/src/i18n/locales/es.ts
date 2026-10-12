@@ -59,11 +59,14 @@ const m: Partial<Messages> = {
   'palette.empty': 'Sin coincidencias.',
   'notice.connected': 'Conectado: {model}',
   'notice.demoDetail': 'Teclado simulado: no se envía nada al hardware.',
-  'notice.unknownDevice': '{name}: no hay un adaptador verificado. Modo de inspección de solo lectura.',
+  'notice.unknownDevice':
+    '{name}: no hay un adaptador verificado. Modo de inspección de solo lectura.',
   'notice.noDeviceSelected': 'Ningún dispositivo seleccionado',
-  'notice.noDeviceSelectedHint': 'Elige tu teclado en el diálogo del navegador. Usa un cable USB de datos y el modo con cable.',
+  'notice.noDeviceSelectedHint':
+    'Elige tu teclado en el diálogo del navegador. Usa un cable USB de datos y el modo con cable.',
   'notice.disconnected': 'Teclado desconectado',
-  'notice.disconnectedHint': 'Los cambios locales se conservan. Vuelve a conectarlo para continuar; no se escribe nada automáticamente.',
+  'notice.disconnectedHint':
+    'Los cambios locales se conservan. Vuelve a conectarlo para continuar; no se escribe nada automáticamente.',
   'notice.replugged': 'Se conectó un teclado.',
   'notice.noDevice': 'No hay ningún teclado conectado.',
   'notice.blocked': '{label}: bloqueado por la política de seguridad',
@@ -82,11 +85,14 @@ const m: Partial<Messages> = {
   'browser.ok': 'Este navegador es compatible con WebHID.',
   'browser.noWebHid': 'Este navegador no es compatible con WebHID.',
   'browser.insecure': 'WebHID requiere un contexto seguro (HTTPS).',
-  'browser.useDemo': 'Usa Chrome, Edge, Opera o Brave en un sistema de escritorio, o prueba la demo.',
+  'browser.useDemo':
+    'Usa Chrome, Edge, Opera o Brave en un sistema de escritorio, o prueba la demo.',
   'landing.eyebrow': 'Código abierto · Local primero · Sin cuenta',
   'landing.title': 'Configura tu teclado en el navegador.',
-  'landing.lead': 'OpenKey se comunica directamente con tu teclado mediante WebHID. Sin instalador, sin nube, sin telemetría, y dice con claridad qué sabe y qué ha verificado.',
-  'landing.honest': 'OpenKey aún no es universal: solo se pueden configurar los teclados que tienen un adaptador de OpenKey. Cualquier otro teclado se puede inspeccionar con seguridad y reportar.',
+  'landing.lead':
+    'OpenKey se comunica directamente con tu teclado mediante WebHID. Sin instalador, sin nube, sin telemetría, y dice con claridad qué sabe y qué ha verificado.',
+  'landing.honest':
+    'OpenKey aún no es universal: solo se pueden configurar los teclados que tienen un adaptador de OpenKey. Cualquier otro teclado se puede inspeccionar con seguridad y reportar.',
   'landing.devices': 'Dispositivos compatibles',
   'landing.pipelineTitle': 'Cómo identifica OpenKey un teclado',
   'landing.pipe.transport': 'Transporte',
@@ -94,37 +100,50 @@ const m: Partial<Messages> = {
   'landing.pipe.discovery': 'Descubrimiento',
   'landing.pipe.discovery.d': 'Colecciones HID, usos y tamaños de informe, no solo VID/PID.',
   'landing.pipe.detection': 'Detección de protocolo',
-  'landing.pipe.detection.d': 'Firmas de descriptores y después un saludo documentado de solo lectura.',
+  'landing.pipe.detection.d':
+    'Firmas de descriptores y después un saludo documentado de solo lectura.',
   'landing.pipe.adapter': 'Adaptador',
-  'landing.pipe.adapter.d': 'Uno por familia de protocolos, con su evidencia y su política de seguridad.',
+  'landing.pipe.adapter.d':
+    'Uno por familia de protocolos, con su evidencia y su política de seguridad.',
   'landing.pipe.capabilities': 'Capacidades',
-  'landing.pipe.capabilities.d': 'Cada función es compatible, de solo lectura, fija, desconocida o en investigación.',
+  'landing.pipe.capabilities.d':
+    'Cada función es compatible, de solo lectura, fija, desconocida o en investigación.',
   'landing.pipe.ui': 'Interfaz',
   'landing.pipe.ui.d': 'Solo se muestra lo que tu teclado realmente puede hacer.',
   'landing.hardwareTitle': 'Estado del hardware',
-  'landing.countsNote': 'Los números son entradas del catálogo por estado de verificación; nunca se suman en una única cifra de «compatibles».',
+  'landing.countsNote':
+    'Los números son entradas del catálogo por estado de verificación; nunca se suman en una única cifra de «compatibles».',
   'landing.privacyTitle': 'Privacidad desde el diseño',
   'landing.privacy.noAccount': 'Sin cuenta, sin analítica, sin rastreo.',
   'landing.privacy.local': 'Perfiles, copias y proyectos se quedan en este navegador.',
-  'landing.privacy.typing': 'Nunca se registra lo que escribes; el probador solo registra mientras lo ejecutas.',
-  'landing.privacy.permission': 'El navegador pide permiso antes de que OpenKey vea un dispositivo, de uno en uno.',
+  'landing.privacy.typing':
+    'Nunca se registra lo que escribes; el probador solo registra mientras lo ejecutas.',
+  'landing.privacy.permission':
+    'El navegador pide permiso antes de que OpenKey vea un dispositivo, de uno en uno.',
   'landing.privacyLink': 'Leer la declaración de privacidad',
   'landing.unknownTitle': '¿Tienes otro teclado?',
-  'landing.unknownBody': 'Inspecciónalo en solo lectura: OpenKey muestra sus interfaces HID y las posibles familias de protocolos, y te ayuda a pedir soporte. No se escribe nada.',
+  'landing.unknownBody':
+    'Inspecciónalo en solo lectura: OpenKey muestra sus interfaces HID y las posibles familias de protocolos, y te ayuda a pedir soporte. No se escribe nada.',
   'landing.contributeTitle': 'Añade tu teclado',
   'landing.contribute.1': 'Inspecciona el dispositivo y exporta un paquete de diagnóstico.',
   'landing.contribute.2': 'Abre con él una solicitud de soporte de dispositivo.',
-  'landing.contribute.3': 'Investigación del protocolo: capturas, fixtures y un adaptador con pruebas simuladas.',
-  'landing.contribute.4': 'Verificación en hardware real y, después, el dispositivo sube de estado.',
+  'landing.contribute.3':
+    'Investigación del protocolo: capturas, fixtures y un adaptador con pruebas simuladas.',
+  'landing.contribute.4':
+    'Verificación en hardware real y, después, el dispositivo sube de estado.',
   'connect.title': 'Conecta un teclado',
-  'connect.lead': 'Esta página necesita un teclado. Conecta uno, prueba la demo simulada o inspecciona cualquier dispositivo HID en solo lectura.',
+  'connect.lead':
+    'Esta página necesita un teclado. Conecta uno, prueba la demo simulada o inspecciona cualquier dispositivo HID en solo lectura.',
   'connect.troubleTitle': '¿No aparece el teclado?',
   'connect.trouble.cable': 'Usa un cable USB de datos (algunos cables solo cargan).',
-  'connect.trouble.wired': 'Pon el teclado en modo con cable; la mayoría no se puede configurar por Bluetooth.',
-  'connect.trouble.linux': 'En Linux, instala la regla udev de OpenKey y vuelve a conectar el teclado.',
+  'connect.trouble.wired':
+    'Pon el teclado en modo con cable; la mayoría no se puede configurar por Bluetooth.',
+  'connect.trouble.linux':
+    'En Linux, instala la regla udev de OpenKey y vuelve a conectar el teclado.',
   'connect.trouble.busy': 'Cierra el software del fabricante y otras pestañas de configuradores.',
   'research.title': 'Hardware detectado: falta investigar el protocolo',
-  'research.body': 'Este teclado tiene esta función, pero OpenKey aún no conoce su protocolo de configuración. No se envía nada. Puedes ayudar aportando capturas del software oficial.',
+  'research.body':
+    'Este teclado tiene esta función, pero OpenKey aún no conoce su protocolo de configuración. No se envía nada. Puedes ayudar aportando capturas del software oficial.',
   'research.lab': 'Abrir el laboratorio de investigación',
   'status.SUPPORTED': 'Compatible',
   'status.CONFIGURABLE': 'Configurable',
@@ -153,7 +172,8 @@ const m: Partial<Messages> = {
   'safety.write': 'Escribir',
   'safety.never': 'OpenKey nunca envía comandos de firmware, de bootloader ni de borrado.',
   'safety.experimentalTitle': 'Escritura experimental',
-  'safety.experimentalBody': 'Este comando reproduce una fuente documentada, pero OpenKey aún no lo ha verificado en hardware. Si el resultado parece incorrecto, restaura una copia o usa el restablecimiento de fábrica del teclado.',
+  'safety.experimentalBody':
+    'Este comando reproduce una fuente documentada, pero OpenKey aún no lo ha verificado en hardware. Si el resultado parece incorrecto, restaura una copia o usa el restablecimiento de fábrica del teclado.',
   'safety.optIn': 'Activar escrituras experimentales en esta sesión del navegador',
   'safety.level.READ_ONLY': 'Solo lectura',
   'safety.level.SAFE_VOLATILE': 'Temporal',
@@ -182,7 +202,8 @@ const m: Partial<Messages> = {
   'settings.theme.dark': 'Oscuro',
   'pwa.updateReady': 'Hay una nueva versión de OpenKey lista.',
   'pwa.reload': 'Recargar',
-  'footer.cta': 'OpenKey es de código abierto y lo impulsa la comunidad. Si te resulta útil, considera darle una estrella en GitHub: ayuda a que otros lo descubran y apoya su desarrollo.',
+  'footer.cta':
+    'OpenKey es de código abierto y lo impulsa la comunidad. Si te resulta útil, considera darle una estrella en GitHub: ayuda a que otros lo descubran y apoya su desarrollo.',
   'footer.star': 'Estrella en GitHub',
   'footer.contribute': 'Aportar un teclado',
   'footer.bug': 'Informar de un error',

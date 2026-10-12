@@ -11,17 +11,17 @@ Confidence levels: **VERIFIED** = observed on the AK820 MAX PLUS test unit (bcdD
 
 ## Transport
 
-| Item                | Value                                                                                                                    | Evidence                                              | Confidence          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------------------- |
+| Item                | Value                                                                                                                    | Evidence                                              | Confidence         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------------------ |
 | Control pipe        | Vendor collection usage page `0xFF13`, usage `0x01`; 64-byte input, output and **feature** report; no report IDs         | report descriptor, `FUN_0044edc0`…                    | VERIFIED           |
 | Data pipe           | Usage page `0xFF68`, usage `0x61`; 64-byte input, **4096-byte output**; no report IDs; interrupt OUT EP 0x03, IN EP 0x84 | report descriptor, `lsusb`                            | VERIFIED           |
 | Report ID           | 0 (Windows buffer `[0x00, payload…]` of 65 bytes)                                                                        | `FUN_0044eed0`                                        | VERIFIED           |
 | Command transfer    | `HidD_SetFeature` with 64-byte payload                                                                                   | `FUN_00451440`                                        | VERIFIED           |
 | Acknowledgement     | `IOCTL_HID_GET_FEATURE` (`0xB0192`) returns the last packet with **payload[3] = 0x01**                                   | `FUN_0044eed0` checks byte 3; hardware: `04 18 00 01` | VERIFIED           |
-| Busy                | payload[3] = `0xFF` → retry once                                                                                         | `FUN_0044f0c0`                                        | OBSERVED  |
-| Pacing              | sleep `cmd_delaytime` = **35 ms** before each SET and before each GET                                                    | `layouts/rgb-keyboard.xml`, `FUN_0044eed0`            | OBSERVED  |
-| Multi-packet writes | consecutive 64-byte feature reports, no per-packet handshake; a failed SET is retried up to 10 times                     | `FUN_0044eed0`                                        | OBSERVED  |
-| Data chunks         | 4096-byte output report on FF68, then wait ≤300 ms for one 64-byte input report (content ignored)                        | `FUN_0044f2d0`, `FUN_004511f0`                        | OBSERVED  |
+| Busy                | payload[3] = `0xFF` → retry once                                                                                         | `FUN_0044f0c0`                                        | OBSERVED           |
+| Pacing              | sleep `cmd_delaytime` = **35 ms** before each SET and before each GET                                                    | `layouts/rgb-keyboard.xml`, `FUN_0044eed0`            | OBSERVED           |
+| Multi-packet writes | consecutive 64-byte feature reports, no per-packet handshake; a failed SET is retried up to 10 times                     | `FUN_0044eed0`                                        | OBSERVED           |
+| Data chunks         | 4096-byte output report on FF68, then wait ≤300 ms for one 64-byte input report (content ignored)                        | `FUN_0044f2d0`, `FUN_004511f0`                        | OBSERVED           |
 | Linux note          | hidraw strips a leading `0x00`; always write `[reportId, …payload]`                                                      | aks075-linux                                          | VERIFIED (sibling) |
 | Passive read        | GET_FEATURE without a prior command returns the echo of the last command (all zero after power-up)                       | hardware                                              | VERIFIED           |
 
@@ -35,23 +35,23 @@ offset  0    1    2    3..7   8     9     10..63
         04   cmd  sub  00     arg8  arg9  00
 ```
 
-| cmd  | Name             | Sequence (H = handshake read)                                           | Evidence                       | Confidence               |
-| ---- | ---------------- | ----------------------------------------------------------------------- | ------------------------------ | ------------------------ |
+| cmd  | Name             | Sequence (H = handshake read)                                           | Evidence                       | Confidence              |
+| ---- | ---------------- | ----------------------------------------------------------------------- | ------------------------------ | ----------------------- |
 | `18` | START            | opens a configuration transaction (H)                                   | all write functions            | VERIFIED (ack observed) |
 | `02` | SAVE             | commits to flash (H)                                                    | all write functions            | VERIFIED (ack observed) |
-| `F0` | FINISH           | ends lighting/keymap transactions                                       | `FUN_0042b100`, `FUN_00418420` | OBSERVED       |
-| `13` | LIGHT_MODE       | `arg8=01`, then lighting data packet                                    | `FUN_0042b100`                 | OBSERVED       |
-| `23` | PER_KEY_RGB      | `arg8=09`, then 576-byte table                                          | `FUN_0044ba10`                 | OBSERVED       |
+| `F0` | FINISH           | ends lighting/keymap transactions                                       | `FUN_0042b100`, `FUN_00418420` | OBSERVED                |
+| `13` | LIGHT_MODE       | `arg8=01`, then lighting data packet                                    | `FUN_0042b100`                 | OBSERVED                |
+| `23` | PER_KEY_RGB      | `arg8=09`, then 576-byte table                                          | `FUN_0044ba10`                 | OBSERVED                |
 | `F5` | READ_PER_KEY_RGB | `arg8=09`, ack, then 9 × GET_FEATURE                                    | `FUN_0042aee0`, `FUN_0044f3a0` | VERIFIED                |
-| `20` | REALTIME_RGB     | `arg8=08`, 512-byte packed table, then `02`                             | `FUN_004329e0`                 | OBSERVED       |
-| `11` | KEYMAP_BASE      | `arg8=09`, 576-byte table                                               | `FUN_00418420(0)`              | OBSERVED       |
-| `27` | KEYMAP_FN        | `arg8=09`, 576-byte table                                               | `FUN_00418420(1)`              | OBSERVED       |
-| `19` | MACRO_BEGIN      | sent instead of START before macros (H)                                 | `FUN_0042d6f0`                 | OBSERVED       |
-| `15` | MACRO_DATA       | `arg8=packets`, storage image                                           | `FUN_0042d6f0`                 | OBSERVED       |
-| `17` | SETTINGS         | `sub=01 arg8=01`, then settings data packet                             | `FUN_00414060`                 | OBSERVED       |
-| `28` | TIME             | `arg8=01`, then clock data packet (H)                                   | `FUN_00423940`                 | OBSERVED       |
-| `72` | IMAGE            | `sub=slot`, `arg8..9 = chunk count` (u16 LE), then chunks on FF68       | `FUN_00422980`                 | OBSERVED       |
-| `2B` | —                | appears only as data (`Alt+Tab` = `04 2B` in a key slot), not a command | `FUN_00418070`                 | n/a                      |
+| `20` | REALTIME_RGB     | `arg8=08`, 512-byte packed table, then `02`                             | `FUN_004329e0`                 | OBSERVED                |
+| `11` | KEYMAP_BASE      | `arg8=09`, 576-byte table                                               | `FUN_00418420(0)`              | OBSERVED                |
+| `27` | KEYMAP_FN        | `arg8=09`, 576-byte table                                               | `FUN_00418420(1)`              | OBSERVED                |
+| `19` | MACRO_BEGIN      | sent instead of START before macros (H)                                 | `FUN_0042d6f0`                 | OBSERVED                |
+| `15` | MACRO_DATA       | `arg8=packets`, storage image                                           | `FUN_0042d6f0`                 | OBSERVED                |
+| `17` | SETTINGS         | `sub=01 arg8=01`, then settings data packet                             | `FUN_00414060`                 | OBSERVED                |
+| `28` | TIME             | `arg8=01`, then clock data packet (H)                                   | `FUN_00423940`                 | OBSERVED                |
+| `72` | IMAGE            | `sub=slot`, `arg8..9 = chunk count` (u16 LE), then chunks on FF68       | `FUN_00422980`                 | OBSERVED                |
+| `2B` | —                | appears only as data (`Alt+Tab` = `04 2B` in a key slot), not a command | `FUN_00418070`                 | n/a                     |
 
 Data packets are plain 64-byte feature reports that do **not** start with `04`.
 

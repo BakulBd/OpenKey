@@ -15,9 +15,20 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const ROOT = path.resolve(import.meta.dirname, '../../apps/web/dist');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.map': 'application/json' };
+const TYPES = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.webmanifest': 'application/manifest+json',
+  '.json': 'application/json',
+  '.map': 'application/json',
+};
 /** Applies vercel.json headers locally so the CSP and Permissions-Policy are tested with the app. */
-const VERCEL = JSON.parse(await readFile(path.resolve(import.meta.dirname, '../../vercel.json'), 'utf8'));
+const VERCEL = JSON.parse(
+  await readFile(path.resolve(import.meta.dirname, '../../vercel.json'), 'utf8'),
+);
 function vercelHeaders(pathname) {
   const out = {};
   for (const rule of VERCEL.headers ?? []) {
@@ -27,7 +38,9 @@ function vercelHeaders(pathname) {
   return out;
 }
 
-const CHROME = process.env.CHROME ?? ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync);
+const CHROME =
+  process.env.CHROME ??
+  ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync);
 
 async function serve() {
   const server = createServer(async (req, res) => {
@@ -36,7 +49,10 @@ async function serve() {
     if (url.pathname.endsWith('/')) file = path.join(file, 'index.html');
     try {
       const body = await readFile(file);
-      res.writeHead(200, { ...vercelHeaders(url.pathname), 'content-type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
+      res.writeHead(200, {
+        ...vercelHeaders(url.pathname),
+        'content-type': TYPES[path.extname(file)] ?? 'application/octet-stream',
+      });
       res.end(body);
     } catch {
       res.writeHead(404).end('not found');
@@ -61,26 +77,49 @@ const browser = await chromium.launch({ executablePath: CHROME, headless: true }
 async function a11yAudit(page) {
   return page.evaluate(() => {
     const problems = [];
-    const visible = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length) && window.getComputedStyle(el).visibility !== 'hidden';
+    const visible = (el) =>
+      !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length) &&
+      window.getComputedStyle(el).visibility !== 'hidden';
     const name = (el) => {
       const by = el.getAttribute('aria-labelledby');
-      if (by) return by.split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ').trim();
+      if (by)
+        return by
+          .split(/\s+/)
+          .map((id) => document.getElementById(id)?.textContent ?? '')
+          .join(' ')
+          .trim();
       const aria = el.getAttribute('aria-label');
       if (aria) return aria.trim();
-      if (el.labels && el.labels.length) return [...el.labels].map((l) => l.textContent).join(' ').trim();
-      return (el.textContent ?? '').trim() || el.getAttribute('title') || el.getAttribute('placeholder') || '';
+      if (el.labels && el.labels.length)
+        return [...el.labels]
+          .map((l) => l.textContent)
+          .join(' ')
+          .trim();
+      return (
+        (el.textContent ?? '').trim() ||
+        el.getAttribute('title') ||
+        el.getAttribute('placeholder') ||
+        ''
+      );
     };
-    for (const el of document.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [role=tab], [role=gridcell]')) {
+    for (const el of document.querySelectorAll(
+      'button, a[href], input:not([type=hidden]), select, textarea, [role=tab], [role=gridcell]',
+    )) {
       if (!visible(el) && !el.classList.contains('visually-hidden')) continue;
-      if (!name(el)) problems.push(`unnamed ${el.tagName.toLowerCase()}${el.className ? '.' + String(el.className).split(' ')[0] : ''}`);
+      if (!name(el))
+        problems.push(
+          `unnamed ${el.tagName.toLowerCase()}${el.className ? '.' + String(el.className).split(' ')[0] : ''}`,
+        );
     }
-    for (const el of document.querySelectorAll('[role=img]')) if (!el.getAttribute('aria-label')) problems.push('role=img without label');
+    for (const el of document.querySelectorAll('[role=img]'))
+      if (!el.getAttribute('aria-label')) problems.push('role=img without label');
     const h1 = [...document.querySelectorAll('h1')].filter(visible).length;
     if (h1 !== 1) problems.push(`${h1} visible h1`);
     const ids = [...document.querySelectorAll('[id]')].map((e) => e.id);
     const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
     if (dup.length) problems.push(`duplicate ids: ${[...new Set(dup)].join(', ')}`);
-    if (document.querySelector('[tabindex]:not([tabindex="0"]):not([tabindex="-1"])')) problems.push('positive tabindex');
+    if (document.querySelector('[tabindex]:not([tabindex="0"]):not([tabindex="-1"])'))
+      problems.push('positive tabindex');
     return problems;
   });
 }
@@ -88,12 +127,20 @@ const failures = [];
 const results = [];
 try {
   for (const scheme of ['light', 'dark']) {
-    const ctx = await browser.newContext({ colorScheme: scheme, viewport: { width: 1360, height: 900 } });
+    const ctx = await browser.newContext({
+      colorScheme: scheme,
+      viewport: { width: 1360, height: 900 },
+    });
     const page = await ctx.newPage();
-    page.on('console', (m) => m.type() === 'error' && failures.push(`[${scheme}] console: ${m.text()}`));
+    page.on(
+      'console',
+      (m) => m.type() === 'error' && failures.push(`[${scheme}] console: ${m.text()}`),
+    );
     page.on('pageerror', (e) => failures.push(`[${scheme}] pageerror: ${e.message}`));
     await page.addInitScript(() => {
-      document.addEventListener('securitypolicyviolation', (e) => console.error(`CSP violation: ${e.violatedDirective} ${e.blockedURI}`));
+      document.addEventListener('securitypolicyviolation', (e) =>
+        console.error(`CSP violation: ${e.violatedDirective} ${e.blockedURI}`),
+      );
     });
     await page.goto(base, { waitUntil: 'networkidle' });
     await page.getByRole('heading', { level: 1 }).first().waitFor();
@@ -102,19 +149,30 @@ try {
     results.push(`webhid in browser: ${await page.evaluate(() => 'hid' in navigator)}`);
     const served = await page.evaluate(async () => {
       const r = await fetch(location.pathname, { cache: 'no-store' });
-      return ['content-security-policy', 'permissions-policy', 'x-content-type-options', 'referrer-policy', 'x-frame-options'].map((h) => `${h}=${r.headers.get(h) ? 'set' : 'MISSING'}`);
+      return [
+        'content-security-policy',
+        'permissions-policy',
+        'x-content-type-options',
+        'referrer-policy',
+        'x-frame-options',
+      ].map((h) => `${h}=${r.headers.get(h) ? 'set' : 'MISSING'}`);
     });
     results.push(`headers: ${served.join(' ')}`);
-    if (served.some((h) => h.endsWith('MISSING'))) failures.push(`missing security headers: ${served.join(' ')}`);
+    if (served.some((h) => h.endsWith('MISSING')))
+      failures.push(`missing security headers: ${served.join(' ')}`);
     // Permissions-Policy must still allow WebHID for this origin.
-    results.push(`hid allowed by policy: ${await page.evaluate(() => (document.featurePolicy ?? document.permissionsPolicy)?.allowsFeature?.('hid') ?? 'n/a')}`);
+    results.push(
+      `hid allowed by policy: ${await page.evaluate(() => (document.featurePolicy ?? document.permissionsPolicy)?.allowsFeature?.('hid') ?? 'n/a')}`,
+    );
 
     await page.getByRole('button', { name: 'Try demo' }).first().click();
     await page.waitForURL(/#\/overview/);
     await page.getByText('What OpenKey concluded').waitFor();
     if (shots) await page.screenshot({ path: `${shots}/overview-${scheme}.png`, fullPage: true });
 
-    const navLinks = await page.locator('nav .nav-item').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
+    const navLinks = await page
+      .locator('nav .nav-item')
+      .evaluateAll((as) => as.map((a) => a.getAttribute('href')));
     results.push(`[${scheme}] nav: ${navLinks.join(' ')}`);
     for (const href of navLinks) {
       await page.goto(base + href);
@@ -125,7 +183,11 @@ try {
         const problems = await a11yAudit(page);
         if (problems.length) failures.push(`a11y ${href}: ${[...new Set(problems)].join('; ')}`);
       }
-      if (shots) await page.screenshot({ path: `${shots}/${href.replace(/[#/?]/g, '') || 'home'}-${scheme}.png`, fullPage: true });
+      if (shots)
+        await page.screenshot({
+          path: `${shots}/${href.replace(/[#/?]/g, '') || 'home'}-${scheme}.png`,
+          fullPage: true,
+        });
     }
 
     // Keyboard only: focus the board, move with arrows, select with Enter.
@@ -135,7 +197,8 @@ try {
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     const inspectorTitle = await page.locator('.studio-side h2').first().textContent();
-    if (!/\(slot \d+\)/.test(inspectorTitle ?? '')) failures.push(`keyboard selection did not open the key inspector: ${inspectorTitle}`);
+    if (!/\(slot \d+\)/.test(inspectorTitle ?? ''))
+      failures.push(`keyboard selection did not open the key inspector: ${inspectorTitle}`);
     results.push(`[${scheme}] keyboard-only selection: ${inspectorTitle}`);
     await page.keyboard.press('Escape');
 
@@ -145,16 +208,24 @@ try {
     await page.getByPlaceholder(/Search/).fill('volume');
     await page.locator('.key-result').first().click();
     await page.getByRole('button', { name: /Review 1 change/ }).click();
-    await page.getByRole('dialog').getByRole('button', { name: /Write 1 change/ }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Write 1 change/ })
+      .click();
     // The outcome stays visible in the change bar (not only in a toast).
-    await page.locator('.changebar').getByText(/Saved · the keyboard cannot report it back|Saved and verified/).waitFor();
+    await page
+      .locator('.changebar')
+      .getByText(/Saved · the keyboard cannot report it back|Saved and verified/)
+      .waitFor();
     results.push(`[${scheme}] keymap apply: ok`);
 
     // Refresh on a deep route must work (static host, hash routing).
     await page.goto(base + '#/compat');
     await page.reload({ waitUntil: 'networkidle' });
     await page.locator('main h1').first().waitFor();
-    results.push(`[${scheme}] refresh #/compat: ${await page.locator('main h1').first().textContent()}`);
+    results.push(
+      `[${scheme}] refresh #/compat: ${await page.locator('main h1').first().textContent()}`,
+    );
     await ctx.close();
   }
 
@@ -168,23 +239,39 @@ try {
       const sent = (window.__hidSends = []);
       const record = (op) => () => {
         sent.push(op);
-        return Promise.resolve(op === 'receiveFeatureReport' ? new DataView(new ArrayBuffer(64)) : undefined);
+        return Promise.resolve(
+          op === 'receiveFeatureReport' ? new DataView(new ArrayBuffer(64)) : undefined,
+        );
       };
       const coll = (usagePage, usage, feature) => ({
-        usagePage, usage, children: [], inputReports: [], outputReports: [],
-        featureReports: feature ? [{ reportId: 6, items: [{ reportSize: 8, reportCount: 519 }] }] : [],
+        usagePage,
+        usage,
+        children: [],
+        inputReports: [],
+        outputReports: [],
+        featureReports: feature
+          ? [{ reportId: 6, items: [{ reportSize: 8, reportCount: 519 }] }]
+          : [],
       });
       const device = {
-        vendorId: 0x258a, productId: 0x010c, productName: 'USB-HID Keyboard', opened: false,
+        vendorId: 0x258a,
+        productId: 0x010c,
+        productName: 'USB-HID Keyboard',
+        opened: false,
         collections: [coll(0x01, 0x06, false), coll(0xff00, 0x01, true)],
-        open: () => Promise.resolve(), close: () => Promise.resolve(),
-        sendReport: record('sendReport'), sendFeatureReport: record('sendFeatureReport'),
+        open: () => Promise.resolve(),
+        close: () => Promise.resolve(),
+        sendReport: record('sendReport'),
+        sendFeatureReport: record('sendFeatureReport'),
         receiveFeatureReport: record('receiveFeatureReport'),
-        addEventListener() {}, removeEventListener() {},
+        addEventListener() {},
+        removeEventListener() {},
       };
       const hid = {
-        requestDevice: () => Promise.resolve([device]), getDevices: () => Promise.resolve([device]),
-        addEventListener() {}, removeEventListener() {},
+        requestDevice: () => Promise.resolve([device]),
+        getDevices: () => Promise.resolve([device]),
+        addEventListener() {},
+        removeEventListener() {},
       };
       Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
     });
@@ -194,9 +281,12 @@ try {
     await page.getByText('Read-only.', { exact: true }).waitFor();
     const families = await page.locator('.explain').textContent();
     const sends = await page.evaluate(() => window.__hidSends.length);
-    results.push(`unknown device: read-only view shown; possible AULA family listed: ${/AULA/.test(families)}; reports sent: ${sends}`);
+    results.push(
+      `unknown device: read-only view shown; possible AULA family listed: ${/AULA/.test(families)}; reports sent: ${sends}`,
+    );
     if (sends !== 0) failures.push(`unknown-device mode sent ${sends} report(s)`);
-    if (!/AULA/.test(families)) failures.push('unknown-device mode did not list the AULA signature');
+    if (!/AULA/.test(families))
+      failures.push('unknown-device mode did not list the AULA signature');
     await ctx.close();
   }
 
@@ -210,21 +300,49 @@ try {
       const sent = (window.__hidSends = []);
       const items = (n) => [{ reportSize: 8, reportCount: n }];
       const mk = (usagePage, usage, input, output, feature) => ({
-        usagePage, usage, children: [],
+        usagePage,
+        usage,
+        children: [],
         inputReports: input ? [{ reportId: 0, items: items(input) }] : [],
         outputReports: output ? [{ reportId: 0, items: items(output) }] : [],
         featureReports: feature ? [{ reportId: 0, items: items(feature) }] : [],
       });
       const device = (collections) => ({
-        vendorId: 0x1234, productId: 0x0001, productName: 'Generic Keyboard', opened: false, collections,
-        open() { this.opened = true; return Promise.resolve(); }, close() { this.opened = false; return Promise.resolve(); },
-        sendReport: (id, d) => (sent.push(['out', id, [...new Uint8Array(d.buffer ?? d)].slice(0, 2)]), Promise.resolve()),
-        sendFeatureReport: (id, d) => (sent.push(['feature', id, [...new Uint8Array(d.buffer ?? d)].slice(0, 2)]), Promise.resolve()),
+        vendorId: 0x1234,
+        productId: 0x0001,
+        productName: 'Generic Keyboard',
+        opened: false,
+        collections,
+        open() {
+          this.opened = true;
+          return Promise.resolve();
+        },
+        close() {
+          this.opened = false;
+          return Promise.resolve();
+        },
+        sendReport: (id, d) => (
+          sent.push(['out', id, [...new Uint8Array(d.buffer ?? d)].slice(0, 2)]),
+          Promise.resolve()
+        ),
+        sendFeatureReport: (id, d) => (
+          sent.push(['feature', id, [...new Uint8Array(d.buffer ?? d)].slice(0, 2)]),
+          Promise.resolve()
+        ),
         receiveFeatureReport: () => Promise.resolve(new DataView(new ArrayBuffer(64))),
-        addEventListener() {}, removeEventListener() {},
+        addEventListener() {},
+        removeEventListener() {},
       });
-      const devices = [device([mk(0xff13, 0x01, 64, 64, 64)]), device([mk(0xff68, 0x61, 64, 4096, 0)])];
-      const hid = { requestDevice: () => Promise.resolve(devices), getDevices: () => Promise.resolve(devices), addEventListener() {}, removeEventListener() {} };
+      const devices = [
+        device([mk(0xff13, 0x01, 64, 64, 64)]),
+        device([mk(0xff68, 0x61, 64, 4096, 0)]),
+      ];
+      const hid = {
+        requestDevice: () => Promise.resolve(devices),
+        getDevices: () => Promise.resolve(devices),
+        addEventListener() {},
+        removeEventListener() {},
+      };
       Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
     });
     await page.goto(base, { waitUntil: 'networkidle' });
@@ -235,7 +353,9 @@ try {
       await page.screenshot({ path: `${shots}/consent-desktop.png`, fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
       await page.screenshot({ path: `${shots}/consent-mobile.png`, fullPage: true });
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
       results.push(`consent page horizontal overflow at 390px: ${overflow}px`);
       if (overflow > 0) failures.push(`consent page scrolls horizontally at 390px (${overflow}px)`);
       await page.setViewportSize({ width: 1360, height: 900 });
@@ -246,7 +366,8 @@ try {
     const after = await page.evaluate(() => window.__hidSends);
     results.push(`consent: before=${before} after=${JSON.stringify(after)}`);
     if (before !== 0) failures.push(`identification sent ${before} report(s) before consent`);
-    if (JSON.stringify(after) !== JSON.stringify([['feature', 0, [4, 0x18]]])) failures.push(`consented handshake sent ${JSON.stringify(after)}`);
+    if (JSON.stringify(after) !== JSON.stringify([['feature', 0, [4, 0x18]]]))
+      failures.push(`consented handshake sent ${JSON.stringify(after)}`);
     await ctx.close();
   }
 
@@ -262,15 +383,28 @@ try {
       let last = new Uint8Array(64);
       const items = (n) => [{ reportSize: 8, reportCount: n }];
       const mk = (usagePage, usage, input, output, feature) => ({
-        usagePage, usage, children: [],
+        usagePage,
+        usage,
+        children: [],
         inputReports: input ? [{ reportId: 0, items: items(input) }] : [],
         outputReports: output ? [{ reportId: 0, items: items(output) }] : [],
         featureReports: feature ? [{ reportId: 0, items: items(feature) }] : [],
       });
       const wait = () => new Promise((r) => setTimeout(r, window.__hidDelay ?? 0));
       const device = (collections) => ({
-        vendorId: 0x0c45, productId: 0x8009, productName: 'AK820 MAX', opened: false, collections,
-        open() { this.opened = true; return Promise.resolve(); }, close() { this.opened = false; return Promise.resolve(); },
+        vendorId: 0x0c45,
+        productId: 0x8009,
+        productName: 'AK820 MAX',
+        opened: false,
+        collections,
+        open() {
+          this.opened = true;
+          return Promise.resolve();
+        },
+        close() {
+          this.opened = false;
+          return Promise.resolve();
+        },
         sendReport: () => wait(),
         async sendFeatureReport(_id, d) {
           await wait();
@@ -280,18 +414,30 @@ try {
         async receiveFeatureReport() {
           await wait();
           const r = new Uint8Array(64);
-          if (last[0] === 0x04) { r.set(last.slice(0, 3)); r[3] = 1; }
+          if (last[0] === 0x04) {
+            r.set(last.slice(0, 3));
+            r[3] = 1;
+          }
           return new DataView(r.buffer);
         },
-        addEventListener() {}, removeEventListener() {},
+        addEventListener() {},
+        removeEventListener() {},
       });
-      const devices = [device([mk(0xff13, 0x01, 64, 64, 64)]), device([mk(0xff68, 0x61, 64, 4096, 0)])];
+      const devices = [
+        device([mk(0xff13, 0x01, 64, 64, 64)]),
+        device([mk(0xff68, 0x61, 64, 4096, 0)]),
+      ];
       const listeners = { connect: [], disconnect: [] };
-      window.__unplug = () => { for (const l of listeners.disconnect) l({ device: devices[0] }); };
+      window.__unplug = () => {
+        for (const l of listeners.disconnect) l({ device: devices[0] });
+      };
       const hid = {
-        requestDevice: () => Promise.resolve(devices), getDevices: () => Promise.resolve(devices),
+        requestDevice: () => Promise.resolve(devices),
+        getDevices: () => Promise.resolve(devices),
         addEventListener: (type, l) => listeners[type]?.push(l),
-        removeEventListener: (type, l) => { listeners[type] = (listeners[type] ?? []).filter((x) => x !== l); },
+        removeEventListener: (type, l) => {
+          listeners[type] = (listeners[type] ?? []).filter((x) => x !== l);
+        },
       };
       Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
     });
@@ -307,19 +453,41 @@ try {
     await page.locator('.kb-key').nth(30).dispatchEvent('pointerdown');
     await page.getByPlaceholder(/Search/).fill('volume');
     await page.locator('.key-result').first().click();
-    await page.locator('.statusbar').getByText(/1 unapplied change/).waitFor();
+    await page
+      .locator('.statusbar')
+      .getByText(/1 unapplied change/)
+      .waitFor();
     await page.getByRole('button', { name: /Review 1 change/ }).click();
-    await page.getByRole('dialog').getByRole('button', { name: /Write 1 change/ }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Write 1 change/ })
+      .click();
     const write = page.getByRole('dialog').getByRole('button', { name: 'Write', exact: true });
-    if (await write.isDisabled()) failures.push('a hardware-verified write still required the experimental opt-in');
-    if (await page.getByRole('dialog').getByLabel(/Enable experimental writes/).count()) failures.push('the confirmation for a verified write offered the experimental opt-in');
+    if (await write.isDisabled())
+      failures.push('a hardware-verified write still required the experimental opt-in');
+    if (
+      await page
+        .getByRole('dialog')
+        .getByLabel(/Enable experimental writes/)
+        .count()
+    )
+      failures.push('the confirmation for a verified write offered the experimental opt-in');
     await page.evaluate(() => (window.__hidDelay = 40));
     await write.click();
-    await page.locator('.statusbar').getByText(/Writing to the keyboard/).waitFor();
-    await page.locator('.changebar').getByText(/Saved · the keyboard cannot report it back/).waitFor({ timeout: 15000 });
-    const cmds = await page.evaluate(() => window.__hidSends.filter((p) => p[0] === 4).map((p) => p[1].toString(16)));
+    await page
+      .locator('.statusbar')
+      .getByText(/Writing to the keyboard/)
+      .waitFor();
+    await page
+      .locator('.changebar')
+      .getByText(/Saved · the keyboard cannot report it back/)
+      .waitFor({ timeout: 15000 });
+    const cmds = await page.evaluate(() =>
+      window.__hidSends.filter((p) => p[0] === 4).map((p) => p[1].toString(16)),
+    );
     results.push(`hardware stub: keymap write commands ${cmds.join(' ')}`);
-    if (!cmds.includes('11') || !cmds.includes('2')) failures.push(`keymap write did not send the expected sequence: ${cmds}`);
+    if (!cmds.includes('11') || !cmds.includes('2'))
+      failures.push(`keymap write did not send the expected sequence: ${cmds}`);
 
     // Second write, unplugged while it runs: no spinner may survive, and the user is told the state is unknown.
     await page.locator('.kb-key').nth(31).dispatchEvent('pointerdown');
@@ -327,12 +495,19 @@ try {
     await page.locator('.key-result').first().click();
     await page.evaluate(() => (window.__hidDelay = 300));
     await page.getByRole('button', { name: /Review 1 change/ }).click();
-    await page.getByRole('dialog').getByRole('button', { name: /Write 1 change/ }).click();
-    await page.locator('.statusbar').getByText(/Writing to the keyboard/).waitFor();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Write 1 change/ })
+      .click();
+    await page
+      .locator('.statusbar')
+      .getByText(/Writing to the keyboard/)
+      .waitFor();
     await page.evaluate(() => window.__unplug());
     await page.getByText(/disconnected during/).waitFor();
     await page.locator('.statusbar').getByText('No keyboard connected').waitFor();
-    if (await page.locator('.statusbar .spinner').count()) failures.push('a spinner survived the unplug');
+    if (await page.locator('.statusbar .spinner').count())
+      failures.push('a spinner survived the unplug');
     results.push('hardware stub: unplug during a write ends the session without a stale spinner');
     await ctx.close();
   }
@@ -348,30 +523,57 @@ try {
       let last = new Uint8Array(64);
       const items = (n) => [{ reportSize: 8, reportCount: n }];
       const mk = (usagePage, usage, input, output, feature) => ({
-        usagePage, usage, children: [],
+        usagePage,
+        usage,
+        children: [],
         inputReports: input ? [{ reportId: 0, items: items(input) }] : [],
         outputReports: output ? [{ reportId: 0, items: items(output) }] : [],
         featureReports: feature ? [{ reportId: 0, items: items(feature) }] : [],
       });
       const device = (collections) => ({
-        vendorId: 0x0c45, productId: 0x8009, productName: 'AK820 MAX', opened: false, collections,
+        vendorId: 0x0c45,
+        productId: 0x8009,
+        productName: 'AK820 MAX',
+        opened: false,
+        collections,
         open() {
-          if (!window.__openOk) return Promise.reject(new window.DOMException('Failed to open the device.', 'NotAllowedError'));
+          if (!window.__openOk)
+            return Promise.reject(
+              new window.DOMException('Failed to open the device.', 'NotAllowedError'),
+            );
           this.opened = true;
           return Promise.resolve();
         },
-        close() { this.opened = false; return Promise.resolve(); },
+        close() {
+          this.opened = false;
+          return Promise.resolve();
+        },
         sendReport: () => Promise.resolve(),
-        sendFeatureReport(_id, d) { last = new Uint8Array(d.buffer ?? d).slice(); return Promise.resolve(); },
+        sendFeatureReport(_id, d) {
+          last = new Uint8Array(d.buffer ?? d).slice();
+          return Promise.resolve();
+        },
         receiveFeatureReport() {
           const r = new Uint8Array(64);
-          if (last[0] === 0x04) { r.set(last.slice(0, 3)); r[3] = 1; }
+          if (last[0] === 0x04) {
+            r.set(last.slice(0, 3));
+            r[3] = 1;
+          }
           return Promise.resolve(new DataView(r.buffer));
         },
-        addEventListener() {}, removeEventListener() {},
+        addEventListener() {},
+        removeEventListener() {},
       });
-      const devices = [device([mk(0xff13, 0x01, 64, 64, 64)]), device([mk(0xff68, 0x61, 64, 4096, 0)])];
-      const hid = { requestDevice: () => Promise.resolve(devices), getDevices: () => Promise.resolve(devices), addEventListener() {}, removeEventListener() {} };
+      const devices = [
+        device([mk(0xff13, 0x01, 64, 64, 64)]),
+        device([mk(0xff68, 0x61, 64, 4096, 0)]),
+      ];
+      const hid = {
+        requestDevice: () => Promise.resolve(devices),
+        getDevices: () => Promise.resolve(devices),
+        addEventListener() {},
+        removeEventListener() {},
+      };
       Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
     });
     await page.goto(base, { waitUntil: 'networkidle' });
@@ -379,13 +581,25 @@ try {
     await page.getByRole('heading', { name: 'Linux setup required' }).waitFor();
     if (shots) await page.screenshot({ path: `${shots}/linux-setup.png`, fullPage: true });
     const files = await page.evaluate(async () => {
-      const get = async (u) => { const r = await fetch(u); return { ok: r.ok, text: await r.text() }; };
-      return { installer: await get('./linux/install-openkey-udev.sh'), rule: await get('./linux/70-openkey.rules') };
+      const get = async (u) => {
+        const r = await fetch(u);
+        return { ok: r.ok, text: await r.text() };
+      };
+      return {
+        installer: await get('./linux/install-openkey-udev.sh'),
+        rule: await get('./linux/70-openkey.rules'),
+      };
     });
-    if (!files.installer.ok || !files.installer.text.includes('OPENKEY_RULE_EOF')) failures.push('installer script is not served');
-    if (!files.rule.ok || !files.rule.text.includes('SUBSYSTEM=="hidraw"')) failures.push('udev rule is not served');
+    if (!files.installer.ok || !files.installer.text.includes('OPENKEY_RULE_EOF'))
+      failures.push('installer script is not served');
+    if (!files.rule.ok || !files.rule.text.includes('SUBSYSTEM=="hidraw"'))
+      failures.push('udev rule is not served');
     const cmd = await page.locator('.access-help .copy-line code').first().textContent();
-    if (!/^curl -fsSL \S+\/linux\/install-openkey-udev\.sh -o \/tmp\/openkey-udev\.sh && sudo sh \/tmp\/openkey-udev\.sh$/.test(cmd ?? ''))
+    if (
+      !/^curl -fsSL \S+\/linux\/install-openkey-udev\.sh -o \/tmp\/openkey-udev\.sh && sudo sh \/tmp\/openkey-udev\.sh$/.test(
+        cmd ?? '',
+      )
+    )
       failures.push(`unexpected install command for a listed keyboard: ${cmd}`);
     // The user ran the installer and replugged: opening now works.
     await page.evaluate(() => (window.__openOk = true));
@@ -404,25 +618,48 @@ try {
     page.on('pageerror', (e) => failures.push(`[linux-unlisted] pageerror: ${e.message}`));
     await page.addInitScript(() => {
       const dev = {
-        vendorId: 0x1234, productId: 0x5678, productName: 'Some Keyboard', opened: false,
-        collections: [{ usagePage: 0xff00, usage: 1, children: [], inputReports: [], outputReports: [], featureReports: [{ reportId: 6, items: [{ reportSize: 8, reportCount: 32 }] }] }],
-        open: () => Promise.reject(new window.DOMException('Failed to open the device.', 'NotAllowedError')),
+        vendorId: 0x1234,
+        productId: 0x5678,
+        productName: 'Some Keyboard',
+        opened: false,
+        collections: [
+          {
+            usagePage: 0xff00,
+            usage: 1,
+            children: [],
+            inputReports: [],
+            outputReports: [],
+            featureReports: [{ reportId: 6, items: [{ reportSize: 8, reportCount: 32 }] }],
+          },
+        ],
+        open: () =>
+          Promise.reject(new window.DOMException('Failed to open the device.', 'NotAllowedError')),
         close: () => Promise.resolve(),
-        sendReport: () => Promise.resolve(), sendFeatureReport: () => Promise.resolve(),
+        sendReport: () => Promise.resolve(),
+        sendFeatureReport: () => Promise.resolve(),
         receiveFeatureReport: () => Promise.resolve(new DataView(new ArrayBuffer(32))),
-        addEventListener() {}, removeEventListener() {},
+        addEventListener() {},
+        removeEventListener() {},
       };
       window.__sent = 0;
-      const hid = { requestDevice: () => Promise.resolve([dev]), getDevices: () => Promise.resolve([dev]), addEventListener() {}, removeEventListener() {} };
+      const hid = {
+        requestDevice: () => Promise.resolve([dev]),
+        getDevices: () => Promise.resolve([dev]),
+        addEventListener() {},
+        removeEventListener() {},
+      };
       Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
     });
     await page.goto(base, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Connect keyboard' }).first().click();
     await page.getByRole('heading', { name: 'Linux setup required' }).waitFor();
     const cmd = await page.locator('.access-help .copy-line code').first().textContent();
-    if (!(cmd ?? '').endsWith('sudo sh /tmp/openkey-udev.sh --device 1234:5678')) failures.push(`install command does not add the unlisted keyboard: ${cmd}`);
+    if (!(cmd ?? '').endsWith('sudo sh /tmp/openkey-udev.sh --device 1234:5678'))
+      failures.push(`install command does not add the unlisted keyboard: ${cmd}`);
     await page.getByText(/not in OpenKey’s list yet/).waitFor();
-    results.push('linux setup: unlisted keyboard detected before identification; command adds --device 1234:5678');
+    results.push(
+      'linux setup: unlisted keyboard detected before identification; command adds --device 1234:5678',
+    );
     await ctx.close();
   }
 
@@ -439,7 +676,11 @@ try {
     await page.getByText('Fixed on').first().waitFor();
     if (shots) await page.screenshot({ path: `${shots}/aula-f75-lighting.png`, fullPage: true });
     await page.goto(base + '#/');
-    await page.getByRole('button', { name: 'Disconnect' }).first().click().catch(() => undefined);
+    await page
+      .getByRole('button', { name: 'Disconnect' })
+      .first()
+      .click()
+      .catch(() => undefined);
     await page.goto(base, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'RK R75' }).click();
     await page.waitForURL(/#\/overview/);
@@ -449,7 +690,9 @@ try {
     await page.getByRole('button', { name: 'Start (reads the settings)' }).click();
     await page.getByRole('button', { name: 'Done, read again' }).waitFor();
     if (shots) await page.screenshot({ path: `${shots}/rk-r75-teach.png`, fullPage: true });
-    results.push('by-tech demos: AULA F75 lighting decoded; RK R75 offers the teach flow (reads only)');
+    results.push(
+      'by-tech demos: AULA F75 lighting decoded; RK R75 offers the teach flow (reads only)',
+    );
     await ctx.close();
   }
 
@@ -472,7 +715,8 @@ try {
     const keys = await page.locator('.kb-key').count();
     if (shots) await page.screenshot({ path: `${shots}/via-keymap.png`, fullPage: true });
     if (keys !== 75) failures.push(`VIA grid shows ${keys} keys, expected 75`);
-    if (await page.getByText(/Protocol error/).count()) failures.push('VIA: an error toast appeared after choosing the grid');
+    if (await page.getByText(/Protocol error/).count())
+      failures.push('VIA: an error toast appeared after choosing the grid');
     results.push(`via demo: definition step, 5×15 grid (${keys} keys), layers 0–3`);
     await ctx.close();
   }
@@ -488,14 +732,22 @@ try {
     await page.goto(base + '#/screen');
     await page.getByRole('heading', { name: 'Animation gallery' }).waitFor();
     const cards = await page.locator('.gallery-item').count();
-    await page.locator('.gallery-item').filter({ hasText: 'Plasma' }).getByRole('button', { name: 'Use' }).click();
+    await page
+      .locator('.gallery-item')
+      .filter({ hasText: 'Plasma' })
+      .getByRole('button', { name: 'Use' })
+      .click();
     await page.getByText('30 of max 255').waitFor();
     if (shots) await page.screenshot({ path: `${shots}/screen-gallery.png`, fullPage: true });
     results.push(`gallery: ${cards} animations; Plasma loaded into the preview (30 frames)`);
     if (cards < 8) failures.push(`gallery shows only ${cards} animations`);
     await page.getByRole('tab', { name: 'Public-domain GIFs' }).click();
     const gifs = await page.locator('.gallery-item').count();
-    await page.locator('.gallery-item').filter({ hasText: 'Cat with a waving tail' }).getByRole('button', { name: 'Use' }).click();
+    await page
+      .locator('.gallery-item')
+      .filter({ hasText: 'Cat with a waving tail' })
+      .getByRole('button', { name: 'Use' })
+      .click();
     await page.getByText('2 of max 255').waitFor();
     if (shots) await page.screenshot({ path: `${shots}/screen-gallery-gifs.png`, fullPage: true });
     if (gifs < 11) failures.push(`public-domain tab shows only ${gifs} GIFs`);
@@ -503,7 +755,11 @@ try {
     await page.getByRole('tab', { name: 'Name Studio' }).click();
     await page.getByLabel('Your name').waitFor();
     const styles = await page.locator('.gallery-item').count();
-    await page.locator('.gallery-item').filter({ hasText: 'Neon Pulse' }).getByRole('button', { name: 'Use' }).click();
+    await page
+      .locator('.gallery-item')
+      .filter({ hasText: 'Neon Pulse' })
+      .getByRole('button', { name: 'Use' })
+      .click();
     await page.getByText('30 of max 255').waitFor();
     if (shots) await page.screenshot({ path: `${shots}/name-studio.png`, fullPage: true });
     if (styles < 10) failures.push(`Name Studio shows only ${styles} styles`);
@@ -513,16 +769,35 @@ try {
 
   // Phone width: no horizontal overflow, and the off-canvas navigation is out of the tab order when closed.
   {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
     const page = await ctx.newPage();
     page.on('pageerror', (e) => failures.push(`[mobile] pageerror: ${e.message}`));
     await page.goto(base, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Try demo' }).first().click();
     await page.waitForURL(/#\/overview/);
-    for (const r of ['overview', 'keymap', 'rgb', 'macros', 'screen', 'settings-device', 'backup', 'profiles', 'tester', 'lab', 'compat', 'settings']) {
+    for (const r of [
+      'overview',
+      'keymap',
+      'rgb',
+      'macros',
+      'screen',
+      'settings-device',
+      'backup',
+      'profiles',
+      'tester',
+      'lab',
+      'compat',
+      'settings',
+    ]) {
       await page.goto(base + '#/' + r);
       await page.locator('main h1').first().waitFor();
-      const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      const over = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
       if (over > 0) failures.push(`[mobile] #/${r} overflows horizontally by ${over}px`);
     }
     const inertClosed = await page.locator('#side-nav').evaluate((el) => el.inert);
@@ -530,8 +805,11 @@ try {
     const inertOpen = await page.locator('#side-nav').evaluate((el) => el.inert);
     await page.keyboard.press('Escape');
     const inertAfter = await page.locator('#side-nav').evaluate((el) => el.inert);
-    results.push(`mobile: nav inert closed=${inertClosed} open=${inertOpen} afterEscape=${inertAfter}`);
-    if (!inertClosed || inertOpen || !inertAfter) failures.push('[mobile] navigation is reachable while hidden, or not while open');
+    results.push(
+      `mobile: nav inert closed=${inertClosed} open=${inertOpen} afterEscape=${inertAfter}`,
+    );
+    if (!inertClosed || inertOpen || !inertAfter)
+      failures.push('[mobile] navigation is reachable while hidden, or not while open');
     await ctx.close();
   }
 
@@ -542,16 +820,36 @@ try {
     page.on('pageerror', (e) => failures.push(`[offline-analysis] pageerror: ${e.message}`));
     await page.goto(base + '#/lab', { waitUntil: 'networkidle' });
     await page.getByRole('tab', { name: 'Offline analysis' }).click();
-    for (const [sample, expected] of [['Fixture A (258A:015E)', 'Strong candidate, not confirmed'], ['Fixture B (3151:6000)', 'Unknown device'], ['AK820 MAX PLUS descriptors', 'Strong candidate, not confirmed']]) {
+    for (const [sample, expected] of [
+      ['Fixture A (258A:015E)', 'Strong candidate, not confirmed'],
+      ['Fixture B (3151:6000)', 'Unknown device'],
+      ['AK820 MAX PLUS descriptors', 'Strong candidate, not confirmed'],
+    ]) {
       await page.getByRole('button', { name: sample }).click();
       // Files are previewed (sanitized summary) before analysis.
       await page.getByText(/Before analysing:/).waitFor();
       await page.getByRole('button', { name: 'Analyse', exact: true }).click();
       await page.locator('#verdict-h').waitFor();
-      const kind = await page.locator('.vd-' + (expected === 'Unknown device' ? 'unknown' : expected === 'Resembles a known family' ? 'family_candidate' : 'strong_candidate')).first().textContent({ timeout: 5000 }).catch(() => null);
+      const kind = await page
+        .locator(
+          '.vd-' +
+            (expected === 'Unknown device'
+              ? 'unknown'
+              : expected === 'Resembles a known family'
+                ? 'family_candidate'
+                : 'strong_candidate'),
+        )
+        .first()
+        .textContent({ timeout: 5000 })
+        .catch(() => null);
       results.push(`offline analysis ${sample}: ${kind}`);
-      if (kind !== expected) failures.push(`offline analysis of ${sample} showed ${kind}, expected ${expected}`);
-      if (shots) await page.screenshot({ path: `${shots}/offline-${sample.replace(/\W+/g, '-')}.png`, fullPage: true });
+      if (kind !== expected)
+        failures.push(`offline analysis of ${sample} showed ${kind}, expected ${expected}`);
+      if (shots)
+        await page.screenshot({
+          path: `${shots}/offline-${sample.replace(/\W+/g, '-')}.png`,
+          fullPage: true,
+        });
     }
     // Compare the last file with fixture B.
     await page.getByRole('button', { name: 'Fixture B (3151:6000)' }).click();
@@ -567,7 +865,10 @@ try {
   await page.goto(base, { waitUntil: 'networkidle' });
   const swReady = await page.evaluate(async () => {
     if (!('serviceWorker' in navigator)) return 'no-sw';
-    const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(() => r(null), 8000))]);
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((r) => setTimeout(() => r(null), 8000)),
+    ]);
     return reg ? 'ready' : 'timeout';
   });
   results.push(`service worker: ${swReady}`);

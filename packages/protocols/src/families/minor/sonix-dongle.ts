@@ -121,7 +121,12 @@ class SonixDongleDriver extends BaseKeyboardDriver {
   }
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
-    c.deviceInfo = { status: FeatureStatus.READ_ONLY, read: 'device', write: false, confidence: Evidence.VERIFIED };
+    c.deviceInfo = {
+      status: FeatureStatus.READ_ONLY,
+      read: 'device',
+      write: false,
+      confidence: Evidence.VERIFIED,
+    };
     c.battery = {
       status: FeatureStatus.READ_ONLY,
       read: 'device',
@@ -129,8 +134,18 @@ class SonixDongleDriver extends BaseKeyboardDriver {
       confidence: Evidence.OBSERVED,
       source: 'FUN_00435890: ping 20 01, answer byte 3',
     };
-    c.tft = { status: FeatureStatus.NOT_SUPPORTED, read: 'none', write: false, confidence: Evidence.OBSERVED, note: 'Official menu_wireless: screen=0' };
-    c.rgb = { status: FeatureStatus.WRITE_ONLY, read: 'none', write: true, safety: SafetyLevel.CAUTION,
+    c.tft = {
+      status: FeatureStatus.NOT_SUPPORTED,
+      read: 'none',
+      write: false,
+      confidence: Evidence.OBSERVED,
+      note: 'Official menu_wireless: screen=0',
+    };
+    c.rgb = {
+      status: FeatureStatus.WRITE_ONLY,
+      read: 'none',
+      write: true,
+      safety: SafetyLevel.CAUTION,
       confidence: Evidence.INFERRED,
       note: 'Experimental: official 2.4 GHz lighting packet, not hardware-verified.',
     };
@@ -187,10 +202,19 @@ export const sonixDongleProtocol: ProtocolDefinition = {
     status: 'research',
     transports: { input: ['2.4ghz'], configuration: ['2.4ghz'] },
     verification: 'Implemented from the official driver; no receiver was available for testing.',
-    safety: 'Only the ping and battery read are offered; lighting writes need the experimental opt-in.',
+    safety:
+      'Only the ping and battery read are offered; lighting writes need the experimental opt-in.',
     provenance: [
-      { source: 'official-driver', reference: 'AK820 MAX driver FUN_0044f5f0 / FUN_0042b2a0', status: Evidence.OBSERVED },
-      { source: 'public-reverse-engineering', reference: 'VitalyArt/Aula-F75-Max-Driver (MIT): same ping and checksum on 05AC:024F', status: Evidence.INFERRED },
+      {
+        source: 'official-driver',
+        reference: 'AK820 MAX driver FUN_0044f5f0 / FUN_0042b2a0',
+        status: Evidence.OBSERVED,
+      },
+      {
+        source: 'public-reverse-engineering',
+        reference: 'VitalyArt/Aula-F75-Max-Driver (MIT): same ping and checksum on 05AC:024F',
+        status: Evidence.INFERRED,
+      },
     ],
     license: 'MIT',
     limitations: [
@@ -239,7 +263,8 @@ export const sonixDongleProtocol: ProtocolDefinition = {
         collection: '32-byte vendor command collection',
         reportId: 0,
         payloadPrefix: '20 01',
-        purpose: 'Ping (official driver FUN_00435890); the answer carries link state and battery. Byte 31 is a checksum.',
+        purpose:
+          'Ping (official driver FUN_00435890); the answer carries link state and battery. Byte 31 is a checksum.',
         effect: 'none',
         evidence: Evidence.OBSERVED,
       },
@@ -258,7 +283,10 @@ export const sonixDongleProtocol: ProtocolDefinition = {
       const { vendorId, productId } = group.identity;
       return OFFICIAL_RECEIVERS.some(([v, p]) => v === vendorId && p === productId)
         ? { auto: true, reason: 'the official AJAZZ driver pings this receiver identity' }
-        : { auto: false, reason: 'matched by product name only; not an identity from the official driver' };
+        : {
+            auto: false,
+            reason: 'matched by product name only; not an identity from the official driver',
+          };
     },
   },
   async probe(ctx: ProbeContext): Promise<ProbeResult> {

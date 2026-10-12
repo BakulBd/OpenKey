@@ -20,8 +20,20 @@ const drivers = async () => {
   const reg = createDefaultRegistry();
   const opts = { log: new PacketLog(), store: new MemoryStateStore() };
   return [
-    { name: 'sonix-feature', d: await reg.get('sonix-feature')!.createDriver(new sonixFeature.SonixFeatureSimulator().device.group(), opts), encode: sonixFeature.encodeSlot },
-    { name: 'sonix-aa55', d: await reg.get('sonix-aa55')!.createDriver(new sonixAa55.SonixAa55Simulator().device.group(), opts), encode: sonixAa55.encodeSlotAa55 },
+    {
+      name: 'sonix-feature',
+      d: await reg
+        .get('sonix-feature')!
+        .createDriver(new sonixFeature.SonixFeatureSimulator().device.group(), opts),
+      encode: sonixFeature.encodeSlot,
+    },
+    {
+      name: 'sonix-aa55',
+      d: await reg
+        .get('sonix-aa55')!
+        .createDriver(new sonixAa55.SonixAa55Simulator().device.group(), opts),
+      encode: sonixAa55.encodeSlotAa55,
+    },
   ];
 };
 

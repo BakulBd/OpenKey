@@ -61,7 +61,8 @@ const m: Partial<Messages> = {
   'notice.demoDetail': '模擬鍵盤——不會傳送任何資料到硬體。',
   'notice.unknownDevice': '{name}：沒有經過驗證的轉接器。進入唯讀檢查模式。',
   'notice.noDeviceSelected': '未選擇裝置',
-  'notice.noDeviceSelectedHint': '請在瀏覽器對話框中選擇你的鍵盤。使用 USB 資料線並切換到有線模式。',
+  'notice.noDeviceSelectedHint':
+    '請在瀏覽器對話框中選擇你的鍵盤。使用 USB 資料線並切換到有線模式。',
   'notice.disconnected': '鍵盤已中斷連線',
   'notice.disconnectedHint': '本機編輯已保留。重新連接即可繼續；不會自動寫入任何內容。',
   'notice.replugged': '偵測到鍵盤接上。',
@@ -85,8 +86,10 @@ const m: Partial<Messages> = {
   'browser.useDemo': '請在桌面系統使用 Chrome、Edge、Opera 或 Brave——或先試用示範。',
   'landing.eyebrow': '開放原始碼 · 本機優先 · 免帳號',
   'landing.title': '在瀏覽器中設定你的鍵盤。',
-  'landing.lead': 'OpenKey 透過 WebHID 直接與鍵盤溝通。免安裝、無雲端、無遙測——並清楚說明它知道什麼、驗證過什麼。',
-  'landing.honest': 'OpenKey 尚非通用：只有具備 OpenKey 轉接器的鍵盤可以設定。其他鍵盤可以安全地檢查並回報。',
+  'landing.lead':
+    'OpenKey 透過 WebHID 直接與鍵盤溝通。免安裝、無雲端、無遙測——並清楚說明它知道什麼、驗證過什麼。',
+  'landing.honest':
+    'OpenKey 尚非通用：只有具備 OpenKey 轉接器的鍵盤可以設定。其他鍵盤可以安全地檢查並回報。',
   'landing.devices': '支援的裝置',
   'landing.pipelineTitle': 'OpenKey 如何辨識鍵盤',
   'landing.pipe.transport': '傳輸',
@@ -110,7 +113,8 @@ const m: Partial<Messages> = {
   'landing.privacy.permission': 'OpenKey 存取裝置前，瀏覽器會先徵求同意，一次一台裝置。',
   'landing.privacyLink': '閱讀隱私聲明',
   'landing.unknownTitle': '有其他鍵盤？',
-  'landing.unknownBody': '以唯讀方式檢查：OpenKey 會顯示其 HID 介面與可能的協定家族，並協助你提出支援請求。不會寫入任何內容。',
+  'landing.unknownBody':
+    '以唯讀方式檢查：OpenKey 會顯示其 HID 介面與可能的協定家族，並協助你提出支援請求。不會寫入任何內容。',
   'landing.contributeTitle': '加入你的鍵盤',
   'landing.contribute.1': '檢查裝置並匯出診斷包。',
   'landing.contribute.2': '用它建立裝置支援 issue。',
@@ -124,7 +128,8 @@ const m: Partial<Messages> = {
   'connect.trouble.linux': '在 Linux 上安裝 OpenKey 的 udev 規則並重新插拔鍵盤。',
   'connect.trouble.busy': '關閉原廠軟體與其他設定工具的分頁。',
   'research.title': '已偵測到硬體——需要協定研究',
-  'research.body': '這把鍵盤具備此功能，但 OpenKey 還不知道它的設定協定。不會傳送任何內容。你可以提供原廠軟體的封包擷取來協助。',
+  'research.body':
+    '這把鍵盤具備此功能，但 OpenKey 還不知道它的設定協定。不會傳送任何內容。你可以提供原廠軟體的封包擷取來協助。',
   'research.lab': '開啟研究實驗室',
   'status.SUPPORTED': '已支援',
   'status.CONFIGURABLE': '可設定',
@@ -153,7 +158,8 @@ const m: Partial<Messages> = {
   'safety.write': '寫入',
   'safety.never': 'OpenKey 絕不傳送韌體、開機載入程式或抹除指令。',
   'safety.experimentalTitle': '實驗性寫入',
-  'safety.experimentalBody': '此指令依據有文件記載的來源重現，但 OpenKey 尚未在硬體上驗證。若結果異常，請還原備份或使用鍵盤的恢復原廠設定。',
+  'safety.experimentalBody':
+    '此指令依據有文件記載的來源重現，但 OpenKey 尚未在硬體上驗證。若結果異常，請還原備份或使用鍵盤的恢復原廠設定。',
   'safety.optIn': '為本次瀏覽器工作階段啟用實驗性寫入',
   'safety.level.READ_ONLY': '唯讀',
   'safety.level.SAFE_VOLATILE': '暫時',
@@ -182,7 +188,8 @@ const m: Partial<Messages> = {
   'settings.theme.dark': '深色',
   'pwa.updateReady': 'OpenKey 新版本已就緒。',
   'pwa.reload': '重新載入',
-  'footer.cta': 'OpenKey 是開放原始碼、由社群驅動的專案。如果它對你有幫助，請考慮在 GitHub 上為專案加星——這能幫助更多人發現它，並支持持續開發。',
+  'footer.cta':
+    'OpenKey 是開放原始碼、由社群驅動的專案。如果它對你有幫助，請考慮在 GitHub 上為專案加星——這能幫助更多人發現它，並支持持續開發。',
   'footer.star': '在 GitHub 加星',
   'footer.contribute': '貢獻一把鍵盤',
   'footer.bug': '回報問題',

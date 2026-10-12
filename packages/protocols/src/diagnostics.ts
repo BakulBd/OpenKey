@@ -8,7 +8,8 @@ import { detectionVerdict } from './verdict.js';
 import type { DetectionVerdict } from './verdict.js';
 
 const num = (h: string): number => parseInt(h.replace(/^0x/i, ''), 16);
-const reports = (r: SupportReport[]): HidReportInfo[] => r.map(({ reportId, size }) => ({ reportId, size }));
+const reports = (r: SupportReport[]): HidReportInfo[] =>
+  r.map(({ reportId, size }) => ({ reportId, size }));
 
 /**
  * A device group rebuilt from a diagnostic file. It has descriptors and nothing else: opening an
@@ -42,7 +43,9 @@ export function offlineGroup(device: SupportDevice): HidDeviceGroup {
     backend: 'offline',
     transportHint: device.transport ?? 'usb',
     async openInterface() {
-      throw new TransportError('Offline analysis: the device is not connected, nothing can be sent.');
+      throw new TransportError(
+        'Offline analysis: the device is not connected, nothing can be sent.',
+      );
     },
   };
 }
@@ -57,7 +60,10 @@ export interface DiagnosticAnalysis {
 }
 
 /** Descriptor-only detection of an imported diagnostic package. Performs no I/O by construction. */
-export async function analyzeDiagnostic(bundle: SupportBundle, registry: ProtocolRegistry): Promise<DiagnosticAnalysis> {
+export async function analyzeDiagnostic(
+  bundle: SupportBundle,
+  registry: ProtocolRegistry,
+): Promise<DiagnosticAnalysis> {
   if (!bundle.device) throw new TransportError('The diagnostic package contains no device');
   const group = offlineGroup(bundle.device);
   const detection = await registry.detect(group, { level: 'descriptor' });
@@ -66,6 +72,8 @@ export async function analyzeDiagnostic(bundle: SupportBundle, registry: Protoco
     detection,
     fingerprint: buildFingerprint(detection),
     verdict: detectionVerdict(detection, registry),
-    missingUsages: bundle.device.interfaces.flatMap((i) => i.collections).filter((c) => c.usage === null).length,
+    missingUsages: bundle.device.interfaces
+      .flatMap((i) => i.collections)
+      .filter((c) => c.usage === null).length,
   };
 }

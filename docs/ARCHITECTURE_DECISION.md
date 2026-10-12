@@ -21,18 +21,18 @@ The question is not which stack to start from, but which direction to grow in wi
 
 Scores 1 (poor) to 5 (strong); weights reflect the project's goals (safety and extensibility first).
 
-| Criterion (weight)                   | A | B | C | D | Hybrid A+B(boundary only)+D |
-| ------------------------------------ | - | - | - | - | --------------------------- |
-| Portability (2)                      | 4 | 5 | 4 | 3 | 4 |
-| Compatibility potential (3)          | 3 | 5 | 4 | 1 | 4 |
-| Implementation effort, inverse (2)   | 4 | 2 | 3 | 5 | 4 |
-| Safety (3)                           | 4 | 3 | 4 | 5 | 5 |
-| Maintainability (2)                  | 4 | 2 | 3 | 4 | 4 |
-| Offline use (1)                      | 4 | 5 | 4 | 4 | 4 |
-| Browser restrictions, inverse (1)    | 2 | 5 | 2 | 3 | 3 |
-| Licensing simplicity (1)             | 5 | 4 | 2 | 5 | 5 |
-| Long-term extensibility (3)          | 4 | 5 | 4 | 2 | 5 |
-| **Weighted total (max 90)**          | **68** | **71** | **64** | **60** | **78** |
+| Criterion (weight)                 | A      | B      | C      | D      | Hybrid A+B(boundary only)+D |
+| ---------------------------------- | ------ | ------ | ------ | ------ | --------------------------- |
+| Portability (2)                    | 4      | 5      | 4      | 3      | 4                           |
+| Compatibility potential (3)        | 3      | 5      | 4      | 1      | 4                           |
+| Implementation effort, inverse (2) | 4      | 2      | 3      | 5      | 4                           |
+| Safety (3)                         | 4      | 3      | 4      | 5      | 5                           |
+| Maintainability (2)                | 4      | 2      | 3      | 4      | 4                           |
+| Offline use (1)                    | 4      | 5      | 4      | 4      | 4                           |
+| Browser restrictions, inverse (1)  | 2      | 5      | 2      | 3      | 3                           |
+| Licensing simplicity (1)           | 5      | 4      | 2      | 5      | 5                           |
+| Long-term extensibility (3)        | 4      | 5      | 4      | 2      | 5                           |
+| **Weighted total (max 90)**        | **68** | **71** | **64** | **60** | **78**                      |
 
 Notes on the scores:
 
@@ -63,32 +63,32 @@ What makes OpenKey different is not a feature list but the **evidence-driven ada
 
 ## Layers
 
-| Concern (brief §4)        | Module |
-| ------------------------- | ------ |
-| Presentation              | `apps/web` (React), `tools/cli` |
-| Normalized device model   | `packages/core/src/model/*`, `KeyboardDriver` |
-| Capability engine         | `core/model/capabilities.ts`, `core/safety.ts`, `core/write-guard.ts` |
-| Device identity engine    | `protocols/registry.ts` (detect), `fingerprint.ts`, `verdict.ts` |
-| Adapter registry          | `ProtocolRegistry`, `createDefaultRegistry()`, planned adapters |
-| Protocol adapters         | `protocols/src/families/*` |
-| Transport                 | `packages/hid` (WebHID, mock, replay), `packages/hid-node` (Linux hidraw) |
-| Diagnostics / RE          | `core/support-bundle.ts`, `protocols/diagnostics.ts`, research lab, `tools/*` |
-| Local data                | `apps/web/src/state/db.ts` (IndexedDB), backup v2 |
-| Community workflow        | `docs/CONTRIBUTING_KEYBOARDS.md`, `docs/ADAPTER_GUIDE.md`, issue links |
-| Testing and evidence      | `tests/*`, `fixtures/*`, conformance kit, ledgers |
+| Concern (brief §4)      | Module                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| Presentation            | `apps/web` (React), `tools/cli`                                               |
+| Normalized device model | `packages/core/src/model/*`, `KeyboardDriver`                                 |
+| Capability engine       | `core/model/capabilities.ts`, `core/safety.ts`, `core/write-guard.ts`         |
+| Device identity engine  | `protocols/registry.ts` (detect), `fingerprint.ts`, `verdict.ts`              |
+| Adapter registry        | `ProtocolRegistry`, `createDefaultRegistry()`, planned adapters               |
+| Protocol adapters       | `protocols/src/families/*`                                                    |
+| Transport               | `packages/hid` (WebHID, mock, replay), `packages/hid-node` (Linux hidraw)     |
+| Diagnostics / RE        | `core/support-bundle.ts`, `protocols/diagnostics.ts`, research lab, `tools/*` |
+| Local data              | `apps/web/src/state/db.ts` (IndexedDB), backup v2                             |
+| Community workflow      | `docs/CONTRIBUTING_KEYBOARDS.md`, `docs/ADAPTER_GUIDE.md`, issue links        |
+| Testing and evidence    | `tests/*`, `fixtures/*`, conformance kit, ledgers                             |
 
 These stay in the existing six packages; no new package was needed.
 
 ## Extension model
 
-| Model | Power | Risk | Decision |
-| ----- | ----- | ---- | -------- |
-| Built-in TypeScript adapters | full | reviewed code only | **current release** |
-| Reviewed community adapters shipped with releases | full | review + conformance tests + evidence | **the contribution path** |
-| Data-only definitions (catalogue, layouts, imported diagnostic files) | naming, layout, offline analysis | none: data cannot select a write path or open a transport | **supported** (diagnostic import implemented) |
-| Remote registry (static JSON) | names devices before a release | privacy (fetching may leak device identity), trust | **not now**; if added: static, signed, fetched without device identifiers, data-only |
-| User-installed local adapter code | full | arbitrary code with access to the user's HID devices | **not now**; would need an explicit trust prompt, a separate origin or worker sandbox, and the same conformance kit |
-| Remote JavaScript / `eval` | full | remote code execution against hardware | **never** |
+| Model                                                                 | Power                            | Risk                                                      | Decision                                                                                                            |
+| --------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Built-in TypeScript adapters                                          | full                             | reviewed code only                                        | **current release**                                                                                                 |
+| Reviewed community adapters shipped with releases                     | full                             | review + conformance tests + evidence                     | **the contribution path**                                                                                           |
+| Data-only definitions (catalogue, layouts, imported diagnostic files) | naming, layout, offline analysis | none: data cannot select a write path or open a transport | **supported** (diagnostic import implemented)                                                                       |
+| Remote registry (static JSON)                                         | names devices before a release   | privacy (fetching may leak device identity), trust        | **not now**; if added: static, signed, fetched without device identifiers, data-only                                |
+| User-installed local adapter code                                     | full                             | arbitrary code with access to the user's HID devices      | **not now**; would need an explicit trust prompt, a separate origin or worker sandbox, and the same conformance kit |
+| Remote JavaScript / `eval`                                            | full                             | remote code execution against hardware                    | **never**                                                                                                           |
 
 Executable protocol support (anything that encodes a command) is always code under review. Everything
 data-driven is unable to cause I/O by construction (`offlineGroup` cannot open a transport; layouts and
@@ -108,12 +108,12 @@ whose configuration collection browsers block, when such a case is measured.
 
 ## Decisions taken in this session
 
-| Decision | Why | Reversible? |
-| -------- | --- | ----------- |
-| Adapter contract v1 with `apiVersion`, probe plans, verified identities, licence, limitations | stable target for contributors; checkable by tests | yes (bump version) |
-| Handshakes need auto-consent or user consent | a signature match is not evidence that a command is harmless for that identity | yes |
-| No driver without family identification (CRS becomes identification-only) | descriptor similarity must never create a write path | yes, once a read-only CRS identification is documented |
-| AA/55 matcher requires unnumbered reports | every documented AA/55 device uses report ID 0; fixture B (ID 186) would otherwise receive guessed framing | yes |
-| `guardWrites` in CLI and web | the CLI had no experimental gate | yes |
-| Cross-model restore skips slot-indexed sections | key slots differ between models | yes (explicit opt-in exists) |
-| Keep the OpenKey brand already in the code; repository stays OpenAK820 | renaming back would churn the previous session's work; the repository rename remains a deliberate milestone | owner's call |
+| Decision                                                                                      | Why                                                                                                         | Reversible?                                            |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Adapter contract v1 with `apiVersion`, probe plans, verified identities, licence, limitations | stable target for contributors; checkable by tests                                                          | yes (bump version)                                     |
+| Handshakes need auto-consent or user consent                                                  | a signature match is not evidence that a command is harmless for that identity                              | yes                                                    |
+| No driver without family identification (CRS becomes identification-only)                     | descriptor similarity must never create a write path                                                        | yes, once a read-only CRS identification is documented |
+| AA/55 matcher requires unnumbered reports                                                     | every documented AA/55 device uses report ID 0; fixture B (ID 186) would otherwise receive guessed framing  | yes                                                    |
+| `guardWrites` in CLI and web                                                                  | the CLI had no experimental gate                                                                            | yes                                                    |
+| Cross-model restore skips slot-indexed sections                                               | key slots differ between models                                                                             | yes (explicit opt-in exists)                           |
+| Keep the OpenKey brand already in the code; repository stays OpenAK820                        | renaming back would churn the previous session's work; the repository rename remains a deliberate milestone | owner's call                                           |

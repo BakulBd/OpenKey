@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { createHistory, canRedo, canUndo, deepEqual, hexToRgb, markApplied, pushHistory, redo, rgbToHex, undo } from '@openkey/core';
+import {
+  createHistory,
+  canRedo,
+  canUndo,
+  deepEqual,
+  hexToRgb,
+  markApplied,
+  pushHistory,
+  redo,
+  rgbToHex,
+  undo,
+} from '@openkey/core';
 import type { History, PerKeyRgb, Transaction } from '@openkey/core';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
@@ -21,10 +32,18 @@ export function PerKeyStudio() {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const readable = device?.caps.perKeyRgb.read !== 'none';
   const layout = device?.driver.getLayout();
-  const lights = layout ? layout.keys.map((k) => k.light).filter((n): n is number => n !== null) : [];
+  const lights = layout
+    ? layout.keys.map((k) => k.light).filter((n): n is number => n !== null)
+    : [];
   // Compare only LEDs that exist on this layout: the firmware table has spare entries.
-  const onLayout = (c: PerKeyRgb) => Object.fromEntries(lights.map((l) => [l, c[l] ?? { r: 0, g: 0, b: 0 }]));
-  const changed = h ? lights.filter((l) => !deepEqual(h.present[l] ?? { r: 0, g: 0, b: 0 }, h.applied[l] ?? { r: 0, g: 0, b: 0 })).length : 0;
+  const onLayout = (c: PerKeyRgb) =>
+    Object.fromEntries(lights.map((l) => [l, c[l] ?? { r: 0, g: 0, b: 0 }]));
+  const changed = h
+    ? lights.filter(
+        (l) =>
+          !deepEqual(h.present[l] ?? { r: 0, g: 0, b: 0 }, h.applied[l] ?? { r: 0, g: 0, b: 0 }),
+      ).length
+    : 0;
   const track = useChangeTracking('perkey', ['perKeyRgb'], changed);
 
   useEffect(() => {
@@ -73,31 +92,69 @@ export function PerKeyStudio() {
           <Field label={t('perkey.brush')}>
             <input type="color" value={brush} onChange={(e) => setBrush(e.target.value)} />
           </Field>
-          <button type="button" className="btn small" onClick={() => setH(pushHistory(h, Object.fromEntries(lights.map((l) => [l, hexToRgb(brush)]))))}>
+          <button
+            type="button"
+            className="btn small"
+            onClick={() =>
+              setH(pushHistory(h, Object.fromEntries(lights.map((l) => [l, hexToRgb(brush)]))))
+            }
+          >
             {t('perkey.fill')}
           </button>
-          <button type="button" className="btn small ghost" onClick={() => setH(pushHistory(h, Object.fromEntries(lights.map((l) => [l, { r: 0, g: 0, b: 0 }]))))}>
+          <button
+            type="button"
+            className="btn small ghost"
+            onClick={() =>
+              setH(pushHistory(h, Object.fromEntries(lights.map((l) => [l, { r: 0, g: 0, b: 0 }]))))
+            }
+          >
             {t('perkey.clear')}
           </button>
           <span className="toolbar-sep" aria-hidden="true" />
-          <button type="button" className="btn ghost icon-only" disabled={!canUndo(h)} onClick={() => setH(undo(h))} aria-label={t('common.undo')} title={t('common.undo')}>
+          <button
+            type="button"
+            className="btn ghost icon-only"
+            disabled={!canUndo(h)}
+            onClick={() => setH(undo(h))}
+            aria-label={t('common.undo')}
+            title={t('common.undo')}
+          >
             <Icon name="undo" />
           </button>
-          <button type="button" className="btn ghost icon-only" disabled={!canRedo(h)} onClick={() => setH(redo(h))} aria-label={t('common.redo')} title={t('common.redo')}>
+          <button
+            type="button"
+            className="btn ghost icon-only"
+            disabled={!canRedo(h)}
+            onClick={() => setH(redo(h))}
+            aria-label={t('common.redo')}
+            title={t('common.redo')}
+          >
             <Icon name="redo" />
           </button>
           {readable && (
-            <button type="button" className="btn ghost small" disabled={changed > 0} title={changed > 0 ? t('perkey.readDisabled') : undefined} onClick={() => void read(t('perkey.read'), (d) => d.getPerKeyRgb()).then((c) => c && setH(markApplied(pushHistory(h, c), c)))}>
+            <button
+              type="button"
+              className="btn ghost small"
+              disabled={changed > 0}
+              title={changed > 0 ? t('perkey.readDisabled') : undefined}
+              onClick={() =>
+                void read(t('perkey.read'), (d) => d.getPerKeyRgb()).then(
+                  (c) => c && setH(markApplied(pushHistory(h, c), c)),
+                )
+              }
+            >
               {t('perkey.readNow')}
             </button>
           )}
         </div>
         <p className="small muted">{t('perkey.help')}</p>
         <KeyboardView
-            scrollHint={t('kb.scrollHint')}
+          scrollHint={t('kb.scrollHint')}
           layout={layout}
           label={t('perkey.boardLabel')}
-          fill={(k) => (k.light !== null && h.present[k.light] ? rgbToHex(h.present[k.light]!) : undefined)}
+          fill={(k) =>
+            k.light !== null && h.present[k.light] ? rgbToHex(h.present[k.light]!) : undefined
+          }
           highlight={(k) => k.light !== null && !deepEqual(h.present[k.light], h.applied[k.light])}
           onKey={(k) => paint(k.light)}
           onKeyDrag={(k) => paint(k.light)}
@@ -109,7 +166,13 @@ export function PerKeyStudio() {
         verifies={caps.read === 'device'}
         canApply={caps.write && g.decision.kind !== 'blocked' && !cooling}
         busy={track.busy}
-        blockedReason={g.decision.kind === 'blocked' ? g.decision.reason : cooling ? t('perkey.cooldown') : undefined}
+        blockedReason={
+          g.decision.kind === 'blocked'
+            ? g.decision.reason
+            : cooling
+              ? t('perkey.cooldown')
+              : undefined
+        }
         onDiscard={() => {
           setH(pushHistory(h, { ...h.applied }));
           track.discarded();

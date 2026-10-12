@@ -1,0 +1,29 @@
+name: Keyboard support request
+description: Ask for a keyboard that OpenKey does not configure yet.
+labels: [device-support]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Keyboard model
+      placeholder: AULA F99 Max
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostic
+    attributes:
+      label: Diagnostic package
+      description: Connect the keyboard, choose "Inspect any HID device", then Device Lab → Export diagnostic package and attach it. Nothing is written to the keyboard.
+    validations:
+      required: true
+  - type: textarea
+    id: software
+    attributes:
+      label: Official software
+      description: Name and download link of the vendor's configuration software, if any.
+  - type: checkboxes
+    id: captures
+    attributes:
+      label: Help with captures
+      options:
+        - label: I can record USB captures of the official software (docs/CONTRIBUTING_KEYBOARDS.md).

@@ -99,7 +99,10 @@ function App() {
     },
     [unsavedCount],
   );
-  const go = useCallback((r: string) => (r === route ? undefined : guarded(() => goRaw(r))), [goRaw, guarded, route]);
+  const go = useCallback(
+    (r: string) => (r === route ? undefined : guarded(() => goRaw(r))),
+    [goRaw, guarded, route],
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -137,7 +140,9 @@ function App() {
   // A descriptive tab title per page (shared links, history, search snippets).
   const pageTitle = active ? t(active.label) : null;
   useEffect(() => {
-    document.title = pageTitle ? `${pageTitle} · OpenKey` : 'OpenKey — open-source keyboard configurator in your browser';
+    document.title = pageTitle
+      ? `${pageTitle} · OpenKey`
+      : 'OpenKey — open-source keyboard configurator in your browser';
   }, [pageTitle]);
 
   const palette = paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} go={go} />;
@@ -200,8 +205,17 @@ function App() {
       <a className="skip" href="#main">
         {t('a11y.skip')}
       </a>
-      {narrow && navOpen && <div className="nav-scrim" aria-hidden="true" onClick={() => setNavOpen(false)} />}
-      <aside ref={navRef} className="side" aria-label={t('nav.label')} id="side-nav" inert={navHidden || undefined} aria-hidden={navHidden || undefined}>
+      {narrow && navOpen && (
+        <div className="nav-scrim" aria-hidden="true" onClick={() => setNavOpen(false)} />
+      )}
+      <aside
+        ref={navRef}
+        className="side"
+        aria-label={t('nav.label')}
+        id="side-nav"
+        inert={navHidden || undefined}
+        aria-hidden={navHidden || undefined}
+      >
         <a className="brand" href={href('home')} onClick={(e) => (e.preventDefault(), go('home'))}>
           <Logo /> OpenKey
         </a>
@@ -226,7 +240,11 @@ function App() {
                   >
                     <Icon name={r.icon} />
                     <span>{t(r.label)}</span>
-                    {v === 'research' && <span className="pill tiny st-not_yet_reverse_engineered">{t('nav.research')}</span>}
+                    {v === 'research' && (
+                      <span className="pill tiny st-not_yet_reverse_engineered">
+                        {t('nav.research')}
+                      </span>
+                    )}
                   </a>
                 ))}
               </div>
@@ -234,11 +252,19 @@ function App() {
           })}
         </nav>
         <div className="side-foot">
-          <button type="button" className="btn ghost small kbd-hint" onClick={() => setPaletteOpen(true)}>
+          <button
+            type="button"
+            className="btn ghost small kbd-hint"
+            onClick={() => setPaletteOpen(true)}
+          >
             <Icon name="search" /> {t('palette.open')} <kbd>Ctrl K</kbd>
           </button>
           {session && (
-            <button type="button" className="btn ghost small" onClick={() => guarded(() => void disconnect())}>
+            <button
+              type="button"
+              className="btn ghost small"
+              onClick={() => guarded(() => void disconnect())}
+            >
               {t('action.disconnect')}
             </button>
           )}
@@ -265,7 +291,10 @@ function App() {
           ) : activeVis === 'research' ? (
             <ResearchNeeded route={active} />
           ) : (
-            <ErrorBoundary resetKey={pageKey} fallback={(e, reset) => <PageError error={e} onRetry={reset} />}>
+            <ErrorBoundary
+              resetKey={pageKey}
+              fallback={(e, reset) => <PageError error={e} onRetry={reset} />}
+            >
               <Suspense fallback={<Loading />}>
                 <Page key={pageKey} />
               </Suspense>
@@ -294,7 +323,12 @@ function PageError({ error, onRetry }: { error: Error; onRetry: () => void }) {
           <button type="button" className="btn primary" onClick={onRetry}>
             {t('pageError.retry')}
           </button>
-          <a className="btn" href={`${ISSUES_URL}?labels=bug`} target="_blank" rel="noopener noreferrer">
+          <a
+            className="btn"
+            href={`${ISSUES_URL}?labels=bug`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {t('footer.bug')}
           </a>
         </div>
@@ -310,7 +344,16 @@ function PageError({ error, onRetry }: { error: Error; onRetry: () => void }) {
 export function Logo() {
   return (
     <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" className="logo">
-      <rect x="2" y="7" width="28" height="18" rx="4" fill="none" stroke="currentColor" strokeWidth="2.2" />
+      <rect
+        x="2"
+        y="7"
+        width="28"
+        height="18"
+        rx="4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+      />
       <rect x="7" y="12" width="4" height="3" rx="1" fill="currentColor" />
       <rect x="14" y="12" width="4" height="3" rx="1" fill="currentColor" />
       <rect x="21" y="12" width="4" height="3" rx="1" fill="var(--accent)" />
@@ -324,14 +367,20 @@ function DeviceChip() {
   const { session, device, status } = useKeyboard();
   if (!session) return <div className="dev-chip muted small">{t('dev.none')}</div>;
   const name = device?.info.model ?? (session.group.identity.productName || t('dev.unnamed'));
-  const link = device?.demo ? t('mode.simulated') : (device?.info.transport ?? session.group.transportHint).toUpperCase();
+  const link = device?.demo
+    ? t('mode.simulated')
+    : (device?.info.transport ?? session.group.transportHint).toUpperCase();
   return (
     <a className="dev-chip" href={href('overview')}>
       <div className="dev-name">{name}</div>
       <div className="muted small">
         {link}
-        {status.identity && status.identity !== 'simulated' ? ` · ${t(`identity.${status.identity}`)}` : ''}
-        {device && device.info.firmware.version ? ` · ${t('dev.fw', { v: device.info.firmware.version })}` : ''}
+        {status.identity && status.identity !== 'simulated'
+          ? ` · ${t(`identity.${status.identity}`)}`
+          : ''}
+        {device && device.info.firmware.version
+          ? ` · ${t('dev.fw', { v: device.info.firmware.version })}`
+          : ''}
       </div>
     </a>
   );

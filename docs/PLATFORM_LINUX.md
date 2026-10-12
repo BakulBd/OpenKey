@@ -17,6 +17,7 @@ The web app detects this: when the browser lists the keyboard but cannot open it
    file) to `/etc/udev/rules.d/`, keeps a `.bak` of a different existing file, and reloads udev for
    hidraw devices. `--dry-run` shows what it would do, `--uninstall` removes the rule. It never talks
    to a keyboard and never runs automatically.
+
 3. Unplug the keyboard (or its receiver) and plug it back in.
 4. Press **Retry connecting** in the app.
 

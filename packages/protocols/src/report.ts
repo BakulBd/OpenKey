@@ -74,7 +74,9 @@ export function formatDetectionReport(r: DetectionReport, verbose = false): stri
 
 /** Plain-text verdict for the CLI and logs. */
 export function formatVerdict(v: DetectionVerdict): string {
-  const L = [`Verdict: ${v.kind}${v.adapterId ? ` (${v.adapterId})` : ''} — confidence ${v.confidence}, ${v.writeEligible ? 'configurable (each write still needs its safety check)' : 'not configurable'}`];
+  const L = [
+    `Verdict: ${v.kind}${v.adapterId ? ` (${v.adapterId})` : ''} — confidence ${v.confidence}, ${v.writeEligible ? 'configurable (each write still needs its safety check)' : 'not configurable'}`,
+  ];
   for (const r of v.reasons) L.push(`  • ${r}`);
   if (v.conflicts.length) L.push('Conflicting evidence:', ...v.conflicts.map((c) => `  ! ${c}`));
   if (v.unknowns.length) L.push('Not observed:', ...v.unknowns.map((u) => `  ? ${u}`));

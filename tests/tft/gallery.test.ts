@@ -3,7 +3,17 @@ import type { TftInfo } from '@openkey/core';
 import { createImage, GALLERY, prepareAnimation, renderGallery } from '@openkey/tft';
 
 /** The AK820 MAX screen as its adapter reports it (sonix-feature getTftInfo). */
-const AK820_TFT: TftInfo = { width: 128, height: 128, pixelFormat: 'rgb565le', maxFrames: 255, slots: 1, minDelayMs: 2, maxDelayMs: 510, delayUnitMs: 2, chunkBytes: 4096 };
+const AK820_TFT: TftInfo = {
+  width: 128,
+  height: 128,
+  pixelFormat: 'rgb565le',
+  maxFrames: 255,
+  slots: 1,
+  minDelayMs: 2,
+  maxDelayMs: 510,
+  delayUnitMs: 2,
+  chunkBytes: 4096,
+};
 
 function maxDiff(a: Uint8ClampedArray | Uint8Array, b: Uint8ClampedArray | Uint8Array): number {
   let m = 0;

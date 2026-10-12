@@ -5,7 +5,8 @@ import type { Session, RecentError } from '../state/keyboard.js';
 import type { ConnectionState } from '@openkey/core';
 import { APP_VERSION, ISSUES_URL } from '../config.js';
 
-const reports = (list: { reportId: number; size: number }[]) => list.map(({ reportId, size }) => ({ reportId, size }));
+const reports = (list: { reportId: number; size: number }[]) =>
+  list.map(({ reportId, size }) => ({ reportId, size }));
 
 export function toSupportCollection(c: HidCollection): SupportCollection {
   return {
@@ -18,14 +19,20 @@ export function toSupportCollection(c: HidCollection): SupportCollection {
 }
 
 /** Sanitized diagnostic package for the current session (see core/support-bundle.ts for exclusions). */
-export function sessionSupportBundle(session: Session | null, conn: ConnectionState, errors: RecentError[]): SupportBundle {
+export function sessionSupportBundle(
+  session: Session | null,
+  conn: ConnectionState,
+  errors: RecentError[],
+): SupportBundle {
   const id = session?.group.identity;
   const sel = session?.detection.selected;
   return buildSupportBundle({
     environment: {
       appVersion: APP_VERSION,
       userAgent: navigator.userAgent,
-      platform: (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform,
+      platform:
+        (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData
+          ?.platform ?? navigator.platform,
       webHid: 'hid' in navigator,
       secureContext: isSecureContext,
     },
@@ -46,7 +53,11 @@ export function sessionSupportBundle(session: Session | null, conn: ConnectionSt
       : null,
     adapter:
       session?.kind === 'device' && sel
-        ? { id: sel.protocolId, family: session.fingerprint.protocolFamily ?? 'none', evidence: sel.confidence }
+        ? {
+            id: sel.protocolId,
+            family: session.fingerprint.protocolFamily ?? 'none',
+            evidence: sel.confidence,
+          }
         : null,
     detection: session
       ? {
@@ -63,10 +74,19 @@ export function sessionSupportBundle(session: Session | null, conn: ConnectionSt
 }
 
 /** GitHub "new issue" URL with a short body; the full package is attached as a file by the user. */
-export function supportIssueUrl(bundle: SupportBundle, kind: 'device-support' | 'bug', notes: ResearchNote[] = []): string {
+export function supportIssueUrl(
+  bundle: SupportBundle,
+  kind: 'device-support' | 'bug',
+  notes: ResearchNote[] = [],
+): string {
   const d = bundle.device;
-  const title = kind === 'device-support' ? `Device support: ${d ? `${d.productName} (${d.vendorId}:${d.productId})` : 'unknown device'}` : 'Bug report';
+  const title =
+    kind === 'device-support'
+      ? `Device support: ${d ? `${d.productName} (${d.vendorId}:${d.productId})` : 'unknown device'}`
+      : 'Bug report';
   // Browsers and GitHub truncate very long URLs: keep the body to the summary, not the full JSON.
-  const body = supportBundleToIssue(bundle, notes).split('<details>')[0] + '\n_Attach the exported diagnostic package (JSON) to this issue._\n';
+  const body =
+    supportBundleToIssue(bundle, notes).split('<details>')[0] +
+    '\n_Attach the exported diagnostic package (JSON) to this issue._\n';
   return `${ISSUES_URL}?labels=${kind}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body.slice(0, 6000))}`;
 }

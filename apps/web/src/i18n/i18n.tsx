@@ -17,8 +17,16 @@ export interface LocaleInfo {
 export const LOCALES: readonly LocaleInfo[] = [
   { code: 'en', name: 'English', load: async () => en },
   { code: 'bn', name: 'বাংলা', load: async () => (await import('./locales/bn.js')).default },
-  { code: 'zh-CN', name: '简体中文', load: async () => (await import('./locales/zh-CN.js')).default },
-  { code: 'zh-TW', name: '繁體中文', load: async () => (await import('./locales/zh-TW.js')).default },
+  {
+    code: 'zh-CN',
+    name: '简体中文',
+    load: async () => (await import('./locales/zh-CN.js')).default,
+  },
+  {
+    code: 'zh-TW',
+    name: '繁體中文',
+    load: async () => (await import('./locales/zh-TW.js')).default,
+  },
   { code: 'ja', name: '日本語', load: async () => (await import('./locales/ja.js')).default },
   { code: 'ko', name: '한국어', load: async () => (await import('./locales/ko.js')).default },
   { code: 'ru', name: 'Русский', load: async () => (await import('./locales/ru.js')).default },
@@ -66,7 +74,9 @@ const Ctx = createContext<I18nCtx | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState(
-    () => readPref('locale') ?? negotiateLocale(typeof navigator !== 'undefined' ? navigator.languages ?? [] : []),
+    () =>
+      readPref('locale') ??
+      negotiateLocale(typeof navigator !== 'undefined' ? (navigator.languages ?? []) : []),
   );
   const [messages, setMessages] = useState<Partial<Messages>>(en);
 
@@ -90,14 +100,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const value = useMemo<I18nCtx>(() => {
     const total = Object.keys(en).length;
     const translated = Object.keys(messages).filter((k) => k in en).length;
-    const nf = (n: number, opts?: Intl.NumberFormatOptions) => new Intl.NumberFormat(locale, opts).format(n);
+    const nf = (n: number, opts?: Intl.NumberFormatOptions) =>
+      new Intl.NumberFormat(locale, opts).format(n);
     return {
       locale,
       setLocale,
       t: makeTranslate(messages),
       coverage: locale === 'en' ? 1 : translated / total,
       formatNumber: nf,
-      formatDate: (d) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(d)),
+      formatDate: (d) =>
+        new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+          new Date(d),
+        ),
     };
   }, [locale, messages, setLocale]);
 

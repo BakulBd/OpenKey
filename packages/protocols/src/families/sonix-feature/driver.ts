@@ -74,7 +74,10 @@ import { sonixFeatureCapabilities } from './capabilities.js';
 export const SONIX_FEATURE_PROTOCOL_ID = 'sonix-feature';
 
 /** Report ID of the first report of the given kind in the interface's collections (0 if none declared). */
-export function descriptorReportId(iface: HidInterfaceInfo, kind: 'featureReports' | 'outputReports'): number {
+export function descriptorReportId(
+  iface: HidInterfaceInfo,
+  kind: 'featureReports' | 'outputReports',
+): number {
   for (const c of iface.collections) {
     const r = c[kind][0];
     if (r) return r.reportId;
@@ -398,25 +401,43 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
     };
   }
 
-  override async uploadTftImage(frame: TftFrame, onProgress?: ProgressCallback, opts?: UploadOptions): Promise<void> {
+  override async uploadTftImage(
+    frame: TftFrame,
+    onProgress?: ProgressCallback,
+    opts?: UploadOptions,
+  ): Promise<void> {
     return this.uploadTftGif([{ ...frame, delayMs: frame.delayMs || 0 }], onProgress, opts);
   }
 
-  override async uploadTftGif(frames: TftFrame[], onProgress?: ProgressCallback, opts: UploadOptions = {}): Promise<void> {
+  override async uploadTftGif(
+    frames: TftFrame[],
+    onProgress?: ProgressCallback,
+    opts: UploadOptions = {},
+  ): Promise<void> {
     const slot = opts.slot ?? 1;
     const info = await this.getTftInfo();
-    if (slot < 1 || slot > info.slots) throw new TftUploadError(`Slot ${slot} outside 1..${info.slots}`);
+    if (slot < 1 || slot > info.slots)
+      throw new TftUploadError(`Slot ${slot} outside 1..${info.slots}`);
     const plan = planTftUpload(frames, info.width, info.height, info.maxFrames);
     const s = this.s();
     const aborted = () => {
-      if (opts.signal?.aborted) throw new TftUploadError('Upload cancelled; nothing was committed, the previous animation stays.');
+      if (opts.signal?.aborted)
+        throw new TftUploadError(
+          'Upload cancelled; nothing was committed, the previous animation stays.',
+        );
     };
     aborted();
     onProgress?.({ phase: 'prepare', sent: 0, total: plan.chunks });
     await s.transaction(async () => {
       await s.command(Cmd.START);
-      const { ack, response } = await s.sendPacket(commandPacketU16(Cmd.IMAGE, slot, plan.chunks), true);
-      if (ack && !ack.ok) throw new TftUploadError('Keyboard rejected the image header', { response: response ? toHex(response) : '' });
+      const { ack, response } = await s.sendPacket(
+        commandPacketU16(Cmd.IMAGE, slot, plan.chunks),
+        true,
+      );
+      if (ack && !ack.ok)
+        throw new TftUploadError('Keyboard rejected the image header', {
+          response: response ? toHex(response) : '',
+        });
       let i = 0;
       for (const chunk of tftChunks(frames, plan)) {
         aborted();

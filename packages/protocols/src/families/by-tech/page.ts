@@ -57,9 +57,12 @@ export function isValidPage(page: Uint8Array): boolean {
 
 export function assertValidPage(page: Uint8Array): void {
   if (!isValidPage(page))
-    throw new ProtocolError('The settings page read from the keyboard has no 5A A5 end marker; nothing is written.', {
-      length: page.length,
-    });
+    throw new ProtocolError(
+      'The settings page read from the keyboard has no 5A A5 end marker; nothing is written.',
+      {
+        length: page.length,
+      },
+    );
 }
 
 /** Byte offset of the settings slot for a 1-based effect position, or null past the marker. */
@@ -76,7 +79,11 @@ export interface SlotSettings {
   color: number;
 }
 
-export function readSlot(page: Uint8Array, layout: PageLayout, effect: number): SlotSettings | null {
+export function readSlot(
+  page: Uint8Array,
+  layout: PageLayout,
+  effect: number,
+): SlotSettings | null {
   const at = slotOffset(layout, effect);
   if (at === null) return null;
   const packed = page[at + 1]!;
@@ -93,14 +100,18 @@ export function patchPage(
   const out = page.slice();
   if (change.effect !== undefined) out[layout.effect] = change.effect & 0xff;
   if (change.sleep !== undefined) {
-    if (layout.sleep === null) throw new ProtocolError('the sleep byte is not known for this model');
+    if (layout.sleep === null)
+      throw new ProtocolError('the sleep byte is not known for this model');
     out[layout.sleep] = change.sleep & 0xff;
   }
   if (change.slot) {
     const at = slotOffset(layout, change.slot.effect);
     if (at === null) throw new ProtocolError(`effect ${change.slot.effect} has no settings slot`);
     const cur = readSlot(out, layout, change.slot.effect)!;
-    const s = { ...cur, ...Object.fromEntries(Object.entries(change.slot).filter(([, v]) => v !== undefined)) };
+    const s = {
+      ...cur,
+      ...Object.fromEntries(Object.entries(change.slot).filter(([, v]) => v !== undefined)),
+    };
     out[at] = s.brightness & 0xff;
     out[at + 1] = ((s.speed & 0x0f) << 4) | (s.color & 0x0f);
   }
@@ -108,7 +119,10 @@ export function patchPage(
 }
 
 /** Offsets whose value differs, for "what changed" views and the read-back check. */
-export function diffPages(a: Uint8Array, b: Uint8Array): { offset: number; before: number; after: number }[] {
+export function diffPages(
+  a: Uint8Array,
+  b: Uint8Array,
+): { offset: number; before: number; after: number }[] {
   const out: { offset: number; before: number; after: number }[] = [];
   for (let i = 0; i < Math.max(a.length, b.length); i++)
     if (a[i] !== b[i]) out.push({ offset: i, before: a[i] ?? -1, after: b[i] ?? -1 });

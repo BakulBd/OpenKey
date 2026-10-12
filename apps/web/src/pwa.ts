@@ -19,7 +19,8 @@ export function applyUpdate(): void {
 }
 
 export function registerServiceWorker(): void {
-  if (import.meta.env.DEV || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+  if (import.meta.env.DEV || typeof navigator === 'undefined' || !('serviceWorker' in navigator))
+    return;
   const sw = navigator.serviceWorker;
   sw.addEventListener('controllerchange', () => {
     if (reloading) location.reload();

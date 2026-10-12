@@ -61,9 +61,11 @@ const m: Partial<Messages> = {
   'notice.demoDetail': 'Simulierte Tastatur — es wird nichts an Hardware gesendet.',
   'notice.unknownDevice': '{name}: kein geprüfter Adapter. Untersuchungsmodus, nur lesen.',
   'notice.noDeviceSelected': 'Kein Gerät ausgewählt',
-  'notice.noDeviceSelectedHint': 'Wähle deine Tastatur im Browserdialog. Verwende ein USB-Datenkabel und den Kabelmodus.',
+  'notice.noDeviceSelectedHint':
+    'Wähle deine Tastatur im Browserdialog. Verwende ein USB-Datenkabel und den Kabelmodus.',
   'notice.disconnected': 'Tastatur getrennt',
-  'notice.disconnectedHint': 'Lokale Änderungen bleiben erhalten. Zum Fortfahren neu verbinden; es wird nichts automatisch geschrieben.',
+  'notice.disconnectedHint':
+    'Lokale Änderungen bleiben erhalten. Zum Fortfahren neu verbinden; es wird nichts automatisch geschrieben.',
   'notice.replugged': 'Eine Tastatur wurde angeschlossen.',
   'notice.noDevice': 'Keine Tastatur verbunden.',
   'notice.blocked': '{label}: durch die Sicherheitsrichtlinie blockiert',
@@ -82,11 +84,14 @@ const m: Partial<Messages> = {
   'browser.ok': 'Dieser Browser unterstützt WebHID.',
   'browser.noWebHid': 'Dieser Browser unterstützt WebHID nicht.',
   'browser.insecure': 'WebHID benötigt einen sicheren Kontext (HTTPS).',
-  'browser.useDemo': 'Nutze Chrome, Edge, Opera oder Brave auf einem Desktop-System — oder probiere die Demo.',
+  'browser.useDemo':
+    'Nutze Chrome, Edge, Opera oder Brave auf einem Desktop-System — oder probiere die Demo.',
   'landing.eyebrow': 'Open Source · Lokal zuerst · Kein Konto',
   'landing.title': 'Konfiguriere deine Tastatur im Browser.',
-  'landing.lead': 'OpenKey spricht über WebHID direkt mit deiner Tastatur. Keine Installation, keine Cloud, keine Telemetrie — und es sagt klar, was es weiß und was geprüft ist.',
-  'landing.honest': 'OpenKey ist noch nicht universell: Konfigurierbar sind nur Tastaturen mit einem OpenKey-Adapter. Jede andere Tastatur kann gefahrlos untersucht und gemeldet werden.',
+  'landing.lead':
+    'OpenKey spricht über WebHID direkt mit deiner Tastatur. Keine Installation, keine Cloud, keine Telemetrie — und es sagt klar, was es weiß und was geprüft ist.',
+  'landing.honest':
+    'OpenKey ist noch nicht universell: Konfigurierbar sind nur Tastaturen mit einem OpenKey-Adapter. Jede andere Tastatur kann gefahrlos untersucht und gemeldet werden.',
   'landing.devices': 'Unterstützte Geräte',
   'landing.pipelineTitle': 'Wie OpenKey eine Tastatur erkennt',
   'landing.pipe.transport': 'Transport',
@@ -98,33 +103,42 @@ const m: Partial<Messages> = {
   'landing.pipe.adapter': 'Adapter',
   'landing.pipe.adapter.d': 'Einer pro Protokollfamilie, mit Belegen und Sicherheitsrichtlinie.',
   'landing.pipe.capabilities': 'Fähigkeiten',
-  'landing.pipe.capabilities.d': 'Jede Funktion ist unterstützt, nur lesbar, fest, unbekannt oder in Erforschung.',
+  'landing.pipe.capabilities.d':
+    'Jede Funktion ist unterstützt, nur lesbar, fest, unbekannt oder in Erforschung.',
   'landing.pipe.ui': 'Oberfläche',
   'landing.pipe.ui.d': 'Angezeigt wird nur, was deine Tastatur wirklich kann.',
   'landing.hardwareTitle': 'Hardware-Status',
-  'landing.countsNote': 'Die Zahlen sind Katalogeinträge je Prüfstatus; sie werden nie zu einer „unterstützt“-Zahl addiert.',
+  'landing.countsNote':
+    'Die Zahlen sind Katalogeinträge je Prüfstatus; sie werden nie zu einer „unterstützt“-Zahl addiert.',
   'landing.privacyTitle': 'Datenschutz von Grund auf',
   'landing.privacy.noAccount': 'Kein Konto, keine Analyse, kein Tracking.',
   'landing.privacy.local': 'Profile, Sicherungen und Projekte bleiben in diesem Browser.',
-  'landing.privacy.typing': 'Deine Eingaben werden nie aufgezeichnet; der Tester zeichnet nur auf, solange du ihn laufen lässt.',
-  'landing.privacy.permission': 'Der Browser fragt nach, bevor OpenKey ein Gerät sehen darf — jeweils eines.',
+  'landing.privacy.typing':
+    'Deine Eingaben werden nie aufgezeichnet; der Tester zeichnet nur auf, solange du ihn laufen lässt.',
+  'landing.privacy.permission':
+    'Der Browser fragt nach, bevor OpenKey ein Gerät sehen darf — jeweils eines.',
   'landing.privacyLink': 'Datenschutzerklärung lesen',
   'landing.unknownTitle': 'Andere Tastatur?',
-  'landing.unknownBody': 'Untersuche sie nur lesend: OpenKey zeigt ihre HID-Schnittstellen und mögliche Protokollfamilien und hilft beim Support-Antrag. Es wird nichts geschrieben.',
+  'landing.unknownBody':
+    'Untersuche sie nur lesend: OpenKey zeigt ihre HID-Schnittstellen und mögliche Protokollfamilien und hilft beim Support-Antrag. Es wird nichts geschrieben.',
   'landing.contributeTitle': 'Füge deine Tastatur hinzu',
   'landing.contribute.1': 'Gerät untersuchen und ein Diagnosepaket exportieren.',
   'landing.contribute.2': 'Damit ein Issue für Geräte-Support eröffnen.',
   'landing.contribute.3': 'Protokollforschung: Mitschnitte, Fixtures, ein Adapter mit Mock-Tests.',
   'landing.contribute.4': 'Prüfung auf echter Hardware, dann wird das Gerät hochgestuft.',
   'connect.title': 'Tastatur verbinden',
-  'connect.lead': 'Diese Seite braucht eine Tastatur. Verbinde eine, probiere die simulierte Demo oder untersuche ein beliebiges HID-Gerät nur lesend.',
+  'connect.lead':
+    'Diese Seite braucht eine Tastatur. Verbinde eine, probiere die simulierte Demo oder untersuche ein beliebiges HID-Gerät nur lesend.',
   'connect.troubleTitle': 'Tastatur nicht in der Liste?',
   'connect.trouble.cable': 'Verwende ein USB-Datenkabel (manche Kabel laden nur).',
-  'connect.trouble.wired': 'Stelle die Tastatur auf Kabelmodus; die meisten Tastaturen lassen sich nicht über Bluetooth konfigurieren.',
-  'connect.trouble.linux': 'Unter Linux die OpenKey-udev-Regel installieren und die Tastatur neu anstecken.',
+  'connect.trouble.wired':
+    'Stelle die Tastatur auf Kabelmodus; die meisten Tastaturen lassen sich nicht über Bluetooth konfigurieren.',
+  'connect.trouble.linux':
+    'Unter Linux die OpenKey-udev-Regel installieren und die Tastatur neu anstecken.',
   'connect.trouble.busy': 'Herstellersoftware und andere Konfigurator-Tabs schließen.',
   'research.title': 'Hardware erkannt — Protokollforschung nötig',
-  'research.body': 'Diese Tastatur hat die Funktion, aber OpenKey kennt ihr Konfigurationsprotokoll noch nicht. Es wird nichts gesendet. Du kannst mit Mitschnitten der offiziellen Software helfen.',
+  'research.body':
+    'Diese Tastatur hat die Funktion, aber OpenKey kennt ihr Konfigurationsprotokoll noch nicht. Es wird nichts gesendet. Du kannst mit Mitschnitten der offiziellen Software helfen.',
   'research.lab': 'Forschungslabor öffnen',
   'status.SUPPORTED': 'Unterstützt',
   'status.CONFIGURABLE': 'Konfigurierbar',
@@ -147,13 +161,15 @@ const m: Partial<Messages> = {
   'write.allowed': 'Verfügbar',
   'write.experimental': 'Experimentell',
   'write.blocked': 'Blockiert',
-  'gate.optIn': 'Beim Anwenden wirst du gefragt, ob experimentelles Schreiben für diese Sitzung aktiviert werden soll.',
+  'gate.optIn':
+    'Beim Anwenden wirst du gefragt, ob experimentelles Schreiben für diese Sitzung aktiviert werden soll.',
   'gate.enabled': 'Experimentelles Schreiben ist für diese Sitzung aktiviert.',
   'safety.title': 'In die Tastatur schreiben: {label}',
   'safety.write': 'Schreiben',
   'safety.never': 'OpenKey sendet niemals Firmware-, Bootloader- oder Löschbefehle.',
   'safety.experimentalTitle': 'Experimentelles Schreiben',
-  'safety.experimentalBody': 'Dieser Befehl ist nach einer dokumentierten Quelle nachgebaut, wurde von OpenKey aber noch nicht auf Hardware geprüft. Wirkt das Ergebnis falsch, stelle eine Sicherung wieder her oder nutze den Werksreset der Tastatur.',
+  'safety.experimentalBody':
+    'Dieser Befehl ist nach einer dokumentierten Quelle nachgebaut, wurde von OpenKey aber noch nicht auf Hardware geprüft. Wirkt das Ergebnis falsch, stelle eine Sicherung wieder her oder nutze den Werksreset der Tastatur.',
   'safety.optIn': 'Experimentelles Schreiben für diese Browsersitzung aktivieren',
   'safety.level.READ_ONLY': 'Nur lesen',
   'safety.level.SAFE_VOLATILE': 'Vorübergehend',
@@ -182,7 +198,8 @@ const m: Partial<Messages> = {
   'settings.theme.dark': 'Dunkel',
   'pwa.updateReady': 'Eine neue Version von OpenKey ist bereit.',
   'pwa.reload': 'Neu laden',
-  'footer.cta': 'OpenKey ist Open Source und wird von der Community getragen. Wenn es dir hilft, gib dem Projekt einen Stern auf GitHub — so finden es andere, und die Entwicklung geht weiter.',
+  'footer.cta':
+    'OpenKey ist Open Source und wird von der Community getragen. Wenn es dir hilft, gib dem Projekt einen Stern auf GitHub — so finden es andere, und die Entwicklung geht weiter.',
   'footer.star': 'Stern auf GitHub',
   'footer.contribute': 'Tastatur beitragen',
   'footer.bug': 'Fehler melden',

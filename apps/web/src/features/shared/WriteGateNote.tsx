@@ -13,7 +13,8 @@ export function WriteGateNote({ gate }: { gate: WriteGate }) {
     );
   return (
     <div className="callout warn small" role="note">
-      <strong>{t('write.experimental')}</strong> {gate.decision.reason} {gate.allowed ? t('gate.enabled') : t('gate.optIn')}
+      <strong>{t('write.experimental')}</strong> {gate.decision.reason}{' '}
+      {gate.allowed ? t('gate.enabled') : t('gate.optIn')}
     </div>
   );
 }

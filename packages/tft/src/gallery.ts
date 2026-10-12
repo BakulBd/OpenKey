@@ -77,13 +77,24 @@ function shade(img: RgbaImage, fn: (u: number, v: number) => Rgb): void {
 type Palette = Record<string, Rgb>;
 const mirror = (half: string[]): string[] => half.map((r) => r + [...r].reverse().join(''));
 
-function spriteAt(sprite: string[], pal: Palette, col: number, row: number, x: number, y: number): Rgb | null {
+function spriteAt(
+  sprite: string[],
+  pal: Palette,
+  col: number,
+  row: number,
+  x: number,
+  y: number,
+): Rgb | null {
   const ch = sprite[y - row]?.[x - col];
   return ch && ch !== '.' ? (pal[ch] ?? null) : null;
 }
 
 /** Paints on a coarse grid of `grid` cells across the shorter side, so pixel art stays crisp. */
-function pixels(img: RgbaImage, grid: number, fn: (x: number, y: number, u: number, v: number) => Rgb): void {
+function pixels(
+  img: RgbaImage,
+  grid: number,
+  fn: (x: number, y: number, u: number, v: number) => Rgb,
+): void {
   shade(img, (u, v) => fn(Math.floor(u * grid), Math.floor(v * grid), u, v));
 }
 
@@ -111,10 +122,18 @@ const KITTY_OPEN = mirror([
   '...KWWWWWW',
   '....KKKKKK',
 ]);
-const KITTY_BLINK = KITTY_OPEN.map((r, i) => (i === 5 ? mirror(['..KWWWWWWW'])[0]! : i === 6 ? mirror(['LLKWWKKWWW'])[0]! : r));
+const KITTY_BLINK = KITTY_OPEN.map((r, i) =>
+  i === 5 ? mirror(['..KWWWWWWW'])[0]! : i === 6 ? mirror(['LLKWWKKWWW'])[0]! : r,
+);
 const SMALL_HEART = ['.X.X.', 'XXXXX', 'XXXXX', '.XXX.', '..X..'];
 
-const WALK_PAL: Palette = { K: [0.12, 0.1, 0.16], W: [0.98, 0.62, 0.3], S: [1, 0.82, 0.6], E: [0.1, 0.08, 0.1], P: [1, 0.55, 0.65] };
+const WALK_PAL: Palette = {
+  K: [0.12, 0.1, 0.16],
+  W: [0.98, 0.62, 0.3],
+  S: [1, 0.82, 0.6],
+  E: [0.1, 0.08, 0.1],
+  P: [1, 0.55, 0.65],
+};
 const WALK_BODY = [
   '..............K...K.',
   '.............KWK.KWK',
@@ -165,17 +184,31 @@ function sdBox(x: number, y: number, bx: number, by: number, r: number): number 
 
 const STARS = (() => {
   const r = rng(7);
-  return Array.from({ length: 110 }, () => ({ a: r() * TAU, z: r(), k: r() < 0.6 ? 1 : 2, hue: r() }));
+  return Array.from({ length: 110 }, () => ({
+    a: r() * TAU,
+    z: r(),
+    k: r() < 0.6 ? 1 : 2,
+    hue: r(),
+  }));
 })();
 
 const RAIN = (() => {
   const r = rng(42);
-  return Array.from({ length: 16 }, () => ({ off: r(), k: r() < 0.5 ? 1 : 2, len: 0.35 + r() * 0.4, glyphs: Array.from({ length: 24 }, () => Math.floor(r() * 0x7fff)) }));
+  return Array.from({ length: 16 }, () => ({
+    off: r(),
+    k: r() < 0.5 ? 1 : 2,
+    len: 0.35 + r() * 0.4,
+    glyphs: Array.from({ length: 24 }, () => Math.floor(r() * 0x7fff)),
+  }));
 })();
 
 const EQ = (() => {
   const r = rng(3);
-  return Array.from({ length: 10 }, () => ({ k: 1 + Math.floor(r() * 3), p: r(), a: 0.45 + r() * 0.4 }));
+  return Array.from({ length: 10 }, () => ({
+    k: 1 + Math.floor(r() * 3),
+    p: r(),
+    a: 0.45 + r() * 0.4,
+  }));
 })();
 
 export const GALLERY: readonly GalleryAnimation[] = [
@@ -196,11 +229,15 @@ export const GALLERY: readonly GalleryAnimation[] = [
         let b = bg * 1.4;
         // Case outline, three keys (the last one accent) and a space bar, as in the app icon.
         const outline = Math.abs(sdBox(x, y, 0.36, 0.22, 0.06)) - 0.02;
-        const keys = Math.min(sdBox(x + 0.18, y + 0.06, 0.055, 0.04, 0.015), sdBox(x - 0.0, y + 0.06, 0.055, 0.04, 0.015));
+        const keys = Math.min(
+          sdBox(x + 0.18, y + 0.06, 0.055, 0.04, 0.015),
+          sdBox(x - 0.0, y + 0.06, 0.055, 0.04, 0.015),
+        );
         const accent = sdBox(x - 0.18, y + 0.06, 0.055, 0.04, 0.015);
         const space = sdBox(x, y - 0.09, 0.2, 0.035, 0.015);
         const white = Math.min(outline, keys, space);
-        const halo = Math.exp(-Math.max(Math.min(white, accent), 0) * (18 - 8 * glow)) * (0.25 + 0.35 * glow);
+        const halo =
+          Math.exp(-Math.max(Math.min(white, accent), 0) * (18 - 8 * glow)) * (0.25 + 0.35 * glow);
         r += 0.48 * halo;
         g += 0.58 * halo;
         b += 1.0 * halo;
@@ -219,11 +256,21 @@ export const GALLERY: readonly GalleryAnimation[] = [
     paint(img, t) {
       shade(img, (u, v) => {
         const w = Math.sin(u * 7 + Math.sin(v * 3 + TAU * t) * 1.4 + TAU * t);
-        const band = Math.exp(-Math.pow(v - 0.42 - 0.13 * w, 2) * 38) * (0.55 + 0.45 * Math.sin(u * 13 - TAU * t));
+        const band =
+          Math.exp(-Math.pow(v - 0.42 - 0.13 * w, 2) * 38) *
+          (0.55 + 0.45 * Math.sin(u * 13 - TAU * t));
         const [r, g, b] = hsv(0.36 + 0.18 * u + 0.05 * Math.sin(TAU * t), 0.75, band);
-        const star = frac(Math.sin(Math.floor(u * 64) * 12.9898 + Math.floor(v * 64) * 78.233) * 43758.55) > 0.993 ? 0.6 + 0.4 * Math.sin(TAU * t + u * 40) : 0;
+        const star =
+          frac(Math.sin(Math.floor(u * 64) * 12.9898 + Math.floor(v * 64) * 78.233) * 43758.55) >
+          0.993
+            ? 0.6 + 0.4 * Math.sin(TAU * t + u * 40)
+            : 0;
         const sky = 0.03 + 0.07 * v;
-        return [r + sky * 0.3 + star * (1 - band), g + sky * 0.4 + star * (1 - band), b + sky + star * (1 - band)];
+        return [
+          r + sky * 0.3 + star * (1 - band),
+          g + sky * 0.4 + star * (1 - band),
+          b + sky + star * (1 - band),
+        ];
       });
     },
   },
@@ -259,7 +306,14 @@ export const GALLERY: readonly GalleryAnimation[] = [
         const c = hsv(0.55 + s.hue * 0.15, 0.25, 0.35 + 0.65 * z);
         for (let k = 0; k < 3; k++) {
           const rr = r * (1 - k * 0.06);
-          dot(img, 0.5 + Math.cos(s.a) * rr, 0.5 + Math.sin(s.a) * rr, 0.004 + z * 0.012, c, 1 - k * 0.35);
+          dot(
+            img,
+            0.5 + Math.cos(s.a) * rr,
+            0.5 + Math.sin(s.a) * rr,
+            0.004 + z * 0.012,
+            c,
+            1 - k * 0.35,
+          );
         }
       }
     },
@@ -275,7 +329,13 @@ export const GALLERY: readonly GalleryAnimation[] = [
         const i = Math.min(EQ.length - 1, Math.floor(u * EQ.length));
         const inBar = frac(u * EQ.length) > 0.16 && frac(u * EQ.length) < 0.84;
         const e = EQ[i]!;
-        const level = 0.12 + e.a * Math.abs(Math.sin(TAU * (e.k * t + e.p) / 2) ** 2 + 0.25 * Math.sin(TAU * (2 * e.k * t + e.p)));
+        const level =
+          0.12 +
+          e.a *
+            Math.abs(
+              Math.sin((TAU * (e.k * t + e.p)) / 2) ** 2 +
+                0.25 * Math.sin(TAU * (2 * e.k * t + e.p)),
+            );
         const y = 1 - v;
         const segment = frac(v * 22) > 0.22;
         if (inBar && segment && y < level) {
@@ -296,7 +356,8 @@ export const GALLERY: readonly GalleryAnimation[] = [
     paint(img, t) {
       shade(img, (u, v) => {
         const d = Math.hypot(u - 0.5, v - 0.5);
-        const ring = Math.pow(0.5 + 0.5 * Math.cos(TAU * (d * 6 - t)), 6) * (1 - smooth(0.3, 0.72, d));
+        const ring =
+          Math.pow(0.5 + 0.5 * Math.cos(TAU * (d * 6 - t)), 6) * (1 - smooth(0.3, 0.72, d));
         const [r, g, b] = hsv(0.5 + d * 0.35, 0.7, ring);
         return [r + 0.02, g + 0.04, b + 0.08];
       });
@@ -359,7 +420,10 @@ export const GALLERY: readonly GalleryAnimation[] = [
       shade(img, (u, v) => {
         const d = Math.hypot(u - 0.5, v - 0.5);
         const sun = Math.exp(-d * 14) * 1.2;
-        const rings = [0.18, 0.29, 0.4].reduce((a, r) => a + Math.exp(-Math.pow((d - r) * 220, 2)) * 0.12, 0);
+        const rings = [0.18, 0.29, 0.4].reduce(
+          (a, r) => a + Math.exp(-Math.pow((d - r) * 220, 2)) * 0.12,
+          0,
+        );
         return [sun + 0.02 + rings, sun * 0.75 + 0.02 + rings, sun * 0.2 + 0.06 + rings * 1.4];
       });
       const planets: [number, number, number, Rgb][] = [
@@ -367,7 +431,8 @@ export const GALLERY: readonly GalleryAnimation[] = [
         [0.29, -2, 0.045, [0.3, 0.7, 1]],
         [0.4, 3, 0.03, [0.6, 1, 0.6]],
       ];
-      for (const [r, k, size, c] of planets) dot(img, 0.5 + Math.cos(TAU * k * t) * r, 0.5 + Math.sin(TAU * k * t) * r, size, c);
+      for (const [r, k, size, c] of planets)
+        dot(img, 0.5 + Math.cos(TAU * k * t) * r, 0.5 + Math.sin(TAU * k * t) * r, size, c);
     },
   },
   {
@@ -380,14 +445,22 @@ export const GALLERY: readonly GalleryAnimation[] = [
       const G = 24;
       const bob = Math.round(Math.sin(TAU * t) * 0.7);
       const face = frac(t - 0.62) < 0.07 ? KITTY_BLINK : KITTY_OPEN;
-      const hearts = [0.1, 0.35, 0.6, 0.85].map((p, i) => ({ x: [1, 18, 3, 16][i]!, y: Math.round(26 - frac(p + t) * 32) }));
+      const hearts = [0.1, 0.35, 0.6, 0.85].map((p, i) => ({
+        x: [1, 18, 3, 16][i]!,
+        y: Math.round(26 - frac(p + t) * 32),
+      }));
       pixels(img, G, (x, y, u, v) => {
         const c = spriteAt(face, KITTY_PAL, 2, 7 + bob, x, y);
         if (c) return c;
-        for (const h of hearts) if (spriteAt(SMALL_HEART, { X: [1, 0.45, 0.62] }, h.x, h.y, x, y)) return [1, 0.45, 0.62];
+        for (const h of hearts)
+          if (spriteAt(SMALL_HEART, { X: [1, 0.45, 0.62] }, h.x, h.y, x, y)) return [1, 0.45, 0.62];
         // Pastel sky with a soft vignette.
         const d = Math.hypot(u - 0.5, v - 0.45);
-        return [mix(0.86, 0.72, v) - d * 0.2, mix(0.8, 0.66, v) - d * 0.25, mix(1, 0.92, v) - d * 0.15];
+        return [
+          mix(0.86, 0.72, v) - d * 0.2,
+          mix(0.8, 0.66, v) - d * 0.25,
+          mix(1, 0.92, v) - d * 0.15,
+        ];
       });
     },
   },
@@ -412,7 +485,11 @@ export const GALLERY: readonly GalleryAnimation[] = [
       const bodyCol = 7;
       const bodyRow = 13;
       const stars = rng(7);
-      const field = Array.from({ length: 14 }, () => ({ x: Math.floor(stars() * G), y: Math.floor(stars() * 11), p: stars() }));
+      const field = Array.from({ length: 14 }, () => ({
+        x: Math.floor(stars() * G),
+        y: Math.floor(stars() * 11),
+        p: stars(),
+      }));
       pixels(img, G, (x, y) => {
         const c = spriteAt(WALK_BODY, WALK_PAL, bodyCol, bodyRow, x, y);
         if (c) return c;
@@ -421,7 +498,8 @@ export const GALLERY: readonly GalleryAnimation[] = [
           const lx = bodyCol + l.x + l.up;
           const top = bodyRow + 9;
           const bottom = bodyRow + 12 - l.up;
-          if (y >= top && y <= bottom && (x === lx || x === lx + 1)) return y === bottom ? WALK_PAL.S! : WALK_PAL.W!;
+          if (y >= top && y <= bottom && (x === lx || x === lx + 1))
+            return y === bottom ? WALK_PAL.S! : WALK_PAL.W!;
           if (y >= top && y <= bottom && (x === lx - 1 || x === lx + 2)) return WALK_PAL.K!;
         }
         // Tail: two cells thick, rising from the rump and swaying.
@@ -432,9 +510,12 @@ export const GALLERY: readonly GalleryAnimation[] = [
         }
         // Ground: dashes scroll left one full pattern per half loop.
         const ground = bodyRow + 13;
-        if (y === ground) return (x + Math.floor(t * 12)) % 6 < 3 ? [0.35, 0.3, 0.5] : [0.2, 0.18, 0.32];
+        if (y === ground)
+          return (x + Math.floor(t * 12)) % 6 < 3 ? [0.35, 0.3, 0.5] : [0.2, 0.18, 0.32];
         if (y > ground) return [0.13, 0.12, 0.22];
-        for (const s of field) if (x === s.x && y === s.y) return Array(3).fill(0.55 + 0.45 * Math.sin(TAU * (t + s.p)) ** 2) as Rgb;
+        for (const s of field)
+          if (x === s.x && y === s.y)
+            return Array(3).fill(0.55 + 0.45 * Math.sin(TAU * (t + s.p)) ** 2) as Rgb;
         return [0.07, mix(0.06, 0.14, y / ground), mix(0.18, 0.32, y / ground)];
       });
     },
@@ -448,7 +529,15 @@ export const GALLERY: readonly GalleryAnimation[] = [
     paint(img, t) {
       shade(img, (u, v) => [0.02 + v * 0.05, 0.02 + v * 0.04, 0.08 + v * 0.12]);
       const sky = rng(3);
-      for (let i = 0; i < 26; i++) dot(img, sky(), sky() * 0.6, 0.004, [0.7, 0.7, 0.8], 0.4 + 0.4 * Math.sin(TAU * (t + sky())) ** 2);
+      for (let i = 0; i < 26; i++)
+        dot(
+          img,
+          sky(),
+          sky() * 0.6,
+          0.004,
+          [0.7, 0.7, 0.8],
+          0.4 + 0.4 * Math.sin(TAU * (t + sky())) ** 2,
+        );
       const bursts: [number, number, number, number][] = [
         [0.3, 0.32, 0.0, 0.02],
         [0.7, 0.26, 0.33, 0.6],
@@ -469,11 +558,30 @@ export const GALLERY: readonly GalleryAnimation[] = [
           const c = hsv(hue + (i % 3) * 0.04, 0.75, 1);
           const drop = k * k * 0.08;
           // A short trail behind every spark, brighter at the head.
-          for (const [lag, w] of [[0, 1], [0.12, 0.55], [0.24, 0.3]] as const) {
+          for (const [lag, w] of [
+            [0, 1],
+            [0.12, 0.55],
+            [0.24, 0.3],
+          ] as const) {
             const rr = r * (1 - lag);
-            dot(img, bx + Math.cos(a) * rr, by + Math.sin(a) * rr + drop, 0.013 - lag * 0.02, c, Math.min(1, fade * 1.4) * w);
+            dot(
+              img,
+              bx + Math.cos(a) * rr,
+              by + Math.sin(a) * rr + drop,
+              0.013 - lag * 0.02,
+              c,
+              Math.min(1, fade * 1.4) * w,
+            );
           }
-          if (i % 2 === 0) dot(img, bx + Math.cos(a) * r * 0.55, by + Math.sin(a) * r * 0.55 + drop, 0.008, [1, 1, 0.85], fade * 0.8);
+          if (i % 2 === 0)
+            dot(
+              img,
+              bx + Math.cos(a) * r * 0.55,
+              by + Math.sin(a) * r * 0.55 + drop,
+              0.008,
+              [1, 1, 0.85],
+              fade * 0.8,
+            );
         }
         dot(img, bx, by, 0.05 * (1 - k), [1, 0.9, 0.7], fade * 0.6);
       }
@@ -530,11 +638,22 @@ export const GALLERY: readonly GalleryAnimation[] = [
         const sun = Math.hypot(u - 0.5, (v - 0.48) * 1.1);
         const waves = [0.55, 0.65, 0.76, 0.88];
         for (let k = 0; k < waves.length; k++) {
-          const y = waves[k]! + 0.02 * Math.sin(TAU * (u * (1.5 + k * 0.6) - t * (k + 1))) + 0.01 * Math.sin(TAU * (u * 4 + t * 2));
+          const y =
+            waves[k]! +
+            0.02 * Math.sin(TAU * (u * (1.5 + k * 0.6) - t * (k + 1))) +
+            0.01 * Math.sin(TAU * (u * 4 + t * 2));
           if (v > y) {
             const d = 0.35 + k * 0.12;
-            const glint = Math.exp(-(((u - 0.5) * 6) ** 2)) * Math.max(0, Math.sin(TAU * (u * 9 + t * 3))) * 0.4 * (1 - k * 0.2);
-            return [0.05 + glint + 0.1 * (1 - d), 0.18 + glint * 0.8 + 0.2 * (1 - d), 0.35 + 0.25 * (1 - d) + glint * 0.5];
+            const glint =
+              Math.exp(-(((u - 0.5) * 6) ** 2)) *
+              Math.max(0, Math.sin(TAU * (u * 9 + t * 3))) *
+              0.4 *
+              (1 - k * 0.2);
+            return [
+              0.05 + glint + 0.1 * (1 - d),
+              0.18 + glint * 0.8 + 0.2 * (1 - d),
+              0.35 + 0.25 * (1 - d) + glint * 0.5,
+            ];
           }
         }
         if (sun < 0.12) return [1, 0.85 - sun * 2, 0.45];
@@ -556,7 +675,15 @@ export const GALLERY: readonly GalleryAnimation[] = [
         if (branch) return [0.3, 0.18, 0.15];
         return [mix(1, 0.98, v), mix(0.88, 0.78, v), mix(0.93, 0.9, v)];
       });
-      for (let i = 0; i < 9; i++) dot(img, 0.08 + i * 0.07, 0.13 + 0.18 * (0.08 + i * 0.07) ** 2 - 0.02, 0.032, [0.05, -0.5, -0.25], 1);
+      for (let i = 0; i < 9; i++)
+        dot(
+          img,
+          0.08 + i * 0.07,
+          0.13 + 0.18 * (0.08 + i * 0.07) ** 2 - 0.02,
+          0.032,
+          [0.05, -0.5, -0.25],
+          1,
+        );
       const r = rng(23);
       for (let i = 0; i < 40; i++) {
         const x0 = r();
@@ -587,7 +714,9 @@ export const GALLERY: readonly GalleryAnimation[] = [
         const light = 0.85 + 0.15 * Math.cos(TAU * (x * 1.6 - t));
         // Red disc: centre at 45 % of the length, radius 1/5 of the length (flag 10:6).
         const inDisc = Math.hypot((x - 0.45) * 10, (y - 0.5) * 6) < 2;
-        return inDisc ? [0.957 * light, 0.165 * light, 0.255 * light] : [0, 0.416 * light, 0.306 * light];
+        return inDisc
+          ? [0.957 * light, 0.165 * light, 0.255 * light]
+          : [0, 0.416 * light, 0.306 * light];
       });
     },
   },
@@ -611,11 +740,14 @@ export const GALLERY: readonly GalleryAnimation[] = [
           const fx = Math.floor(frac(f.phase + t * f.speed) * (G + 8)) - 4;
           const dx = (x - fx) * f.dir;
           const dy = y - f.y;
-          if (dx >= -1 && dx <= 1 && Math.abs(dy) <= 1) return dx === 1 && dy === -1 ? [0.05, 0.05, 0.1] : f.body;
+          if (dx >= -1 && dx <= 1 && Math.abs(dy) <= 1)
+            return dx === 1 && dy === -1 ? [0.05, 0.05, 0.1] : f.body;
           if (dx === 2 && dy === 0) return f.body;
-          if (dx === -2 && Math.abs(dy) <= 1) return [f.body[0] * 0.8, f.body[1] * 0.6, f.body[2] * 0.6];
+          if (dx === -2 && Math.abs(dy) <= 1)
+            return [f.body[0] * 0.8, f.body[1] * 0.6, f.body[2] * 0.6];
         }
-        for (const b of bubbles) if (x === b.x && y === Math.floor((1 - frac(b.p + t * 2)) * G)) return [0.75, 0.9, 1];
+        for (const b of bubbles)
+          if (x === b.x && y === Math.floor((1 - frac(b.p + t * 2)) * G)) return [0.75, 0.9, 1];
         if (y >= G - 3) return (x * 7 + y * 3) % 5 === 0 ? [0.85, 0.75, 0.45] : [0.75, 0.65, 0.4];
         const sway = Math.sin(TAU * (t + x * 0.05));
         if (x % 9 === 2 && y > G - 12 + Math.round(sway)) return [0.15, 0.6, 0.3];
@@ -640,7 +772,11 @@ export const GALLERY: readonly GalleryAnimation[] = [
         for (const b of blobs) f += (b.r * b.r) / ((u - b.x) ** 2 + (v - b.y) ** 2 + 1e-4);
         const k = smooth(0.9, 1.1, f);
         const glow = Math.min(1, f * 0.3);
-        return [mix(0.12 + glow * 0.3, 1, k), mix(0.02 + glow * 0.05, 0.35 + 0.3 * v, k), mix(0.18 + glow * 0.2, 0.15, k)];
+        return [
+          mix(0.12 + glow * 0.3, 1, k),
+          mix(0.02 + glow * 0.05, 0.35 + 0.3 * v, k),
+          mix(0.18 + glow * 0.2, 0.15, k),
+        ];
       });
     },
   },
@@ -662,7 +798,8 @@ export const GALLERY: readonly GalleryAnimation[] = [
         return [density * 0.9 + core, density * 0.7 + core * 0.9, density * 1.2 + core * 0.7];
       });
       const r = rng(41);
-      for (let i = 0; i < 40; i++) dot(img, r(), r(), 0.003, [0.8, 0.8, 1], 0.3 + 0.5 * Math.sin(TAU * (t + r())) ** 2);
+      for (let i = 0; i < 40; i++)
+        dot(img, r(), r(), 0.003, [0.8, 0.8, 1], 0.3 + 0.5 * Math.sin(TAU * (t + r())) ** 2);
     },
   },
   {
@@ -692,7 +829,12 @@ export function galleryAnimation(id: string): GalleryAnimation | undefined {
 }
 
 /** Renders one gallery animation as frames ready for `prepareAnimation`. */
-export function renderGallery(id: string, width = 128, height = 128, frames?: number): AnimationFrame[] {
+export function renderGallery(
+  id: string,
+  width = 128,
+  height = 128,
+  frames?: number,
+): AnimationFrame[] {
   const a = galleryAnimation(id);
   if (!a) throw new Error(`Unknown gallery animation: ${id}`);
   const n = frames ?? a.frames;

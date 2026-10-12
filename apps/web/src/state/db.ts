@@ -12,7 +12,15 @@ const DB_VERSION = 1;
 const MIRROR = 'mirror';
 const RECORDS = 'records';
 
-export type RecordKind = 'profile' | 'backup' | 'macro-project' | 'rgb-project' | 'tft-project' | 'trace' | 'definition' | 'research-note';
+export type RecordKind =
+  | 'profile'
+  | 'backup'
+  | 'macro-project'
+  | 'rgb-project'
+  | 'tft-project'
+  | 'trace'
+  | 'definition'
+  | 'research-note';
 
 export interface StoredRecord<T = unknown> {
   id: string;
@@ -56,7 +64,10 @@ function wrap<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
-async function store(name: typeof MIRROR | typeof RECORDS, mode: IDBTransactionMode): Promise<IDBObjectStore | null> {
+async function store(
+  name: typeof MIRROR | typeof RECORDS,
+  mode: IDBTransactionMode,
+): Promise<IDBObjectStore | null> {
   const db = await openDb();
   if (!db) return null;
   try {
@@ -79,7 +90,8 @@ export class IdbStateStore implements StateStore {
           const k = ls.key(i);
           if (!k?.startsWith('openak820/')) continue;
           const key = k.slice('openak820/'.length);
-          if ((await this.rawGet(key)) === undefined) await this.set(key, JSON.parse(ls.getItem(k) ?? 'null'));
+          if ((await this.rawGet(key)) === undefined)
+            await this.set(key, JSON.parse(ls.getItem(k) ?? 'null'));
         }
       } catch {
         /* nothing to migrate */
@@ -124,7 +136,9 @@ export async function listRecords<T>(kind: RecordKind): Promise<StoredRecord<T>[
   return all.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-export async function saveRecord<T>(r: Omit<StoredRecord<T>, 'createdAt' | 'updatedAt'> & { createdAt?: string }): Promise<StoredRecord<T>> {
+export async function saveRecord<T>(
+  r: Omit<StoredRecord<T>, 'createdAt' | 'updatedAt'> & { createdAt?: string },
+): Promise<StoredRecord<T>> {
   const now = new Date().toISOString();
   const full: StoredRecord<T> = { ...r, createdAt: r.createdAt ?? now, updatedAt: now };
   const s = await store(RECORDS, 'readwrite');
@@ -158,7 +172,13 @@ export async function exportAll(): Promise<unknown> {
   (keys as IDBValidKey[]).forEach((k, i) => (mirror[String(k)] = values[i]));
   const r = await store(RECORDS, 'readonly');
   const records = r ? await wrap(r.getAll()) : [...memory[RECORDS].values()];
-  return { format: LOCAL_EXPORT_FORMAT, version: 1, exportedAt: new Date().toISOString(), mirror, records };
+  return {
+    format: LOCAL_EXPORT_FORMAT,
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    mirror,
+    records,
+  };
 }
 
 export async function importAll(doc: unknown): Promise<{ records: number; mirror: number }> {

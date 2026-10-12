@@ -1,6 +1,12 @@
 import { CATALOG, lookupCatalogAll } from '@openkey/devices';
 import type { TransportMode } from '@openkey/core';
-import type { CandidateReport, DetectionReport, ProbeOperation, ProtocolRegistry, VerifiedIdentity } from './registry.js';
+import type {
+  CandidateReport,
+  DetectionReport,
+  ProbeOperation,
+  ProtocolRegistry,
+  VerifiedIdentity,
+} from './registry.js';
 import { detectionConfidence } from './fingerprint.js';
 import type { DetectionConfidence } from './fingerprint.js';
 
@@ -64,16 +70,22 @@ function identityMatches(
 ): 'exact' | 'other-firmware' | 'no' {
   if (v.vendorId !== d.vendorId || v.productId !== d.productId) return 'no';
   if (v.productName !== undefined && v.productName !== d.productName.trim()) return 'no';
-  if (v.release !== undefined && d.release !== undefined && v.release !== d.release) return 'other-firmware';
+  if (v.release !== undefined && d.release !== undefined && v.release !== d.release)
+    return 'other-firmware';
   return 'exact';
 }
 
 function unknownSignals(report: DetectionReport): string[] {
   const d = report.device;
   const offline = d.backend === 'offline';
-  const missing = offline ? 'is not recorded in this diagnostic file' : 'is not exposed by this platform';
+  const missing = offline
+    ? 'is not recorded in this diagnostic file'
+    : 'is not exposed by this platform';
   const out: string[] = [];
-  if (offline) out.push('Offline analysis of a diagnostic file: the device is not present, so it could not be asked anything.');
+  if (offline)
+    out.push(
+      'Offline analysis of a diagnostic file: the device is not present, so it could not be asked anything.',
+    );
   if (d.release === undefined) out.push(`bcdDevice (a firmware hint) ${missing}.`);
   if (d.manufacturer === undefined) out.push(`The manufacturer string ${missing}.`);
   if (report.interfaces.every((i) => i.interfaceNumber === undefined))
@@ -82,7 +94,8 @@ function unknownSignals(report: DetectionReport): string[] {
         ? 'USB interface numbers are not recorded; interfaces are told apart by collections.'
         : 'USB interface numbers are not exposed (WebHID hides them); interfaces are told apart by collections.',
     );
-  if (report.level === 'descriptor' && !offline) out.push('Only descriptors were evaluated; no read or handshake was performed.');
+  if (report.level === 'descriptor' && !offline)
+    out.push('Only descriptors were evaluated; no read or handshake was performed.');
   out.push('The firmware version is not reported by any implemented protocol for this device.');
   return out;
 }
@@ -97,7 +110,10 @@ function failedCandidates(report: DetectionReport): CandidateReport[] {
  * Turns a detection report into an explainable verdict. Pure: performs no I/O. A similarity score
  * never becomes a compatibility claim: only `ProbeResult.identified` makes a device write-eligible.
  */
-export function detectionVerdict(report: DetectionReport, registry: ProtocolRegistry): DetectionVerdict {
+export function detectionVerdict(
+  report: DetectionReport,
+  registry: ProtocolRegistry,
+): DetectionVerdict {
   const d = report.device;
   const confidence = detectionConfidence(report);
   const reasons: string[] = [];
@@ -105,7 +121,11 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
   const unknowns = unknownSignals(report);
 
   // Catalogue and vendor-ID signals: naming only, never selection.
-  const shared = lookupCatalogAll({ vendorId: d.vendorId, productId: d.productId, productName: d.productName });
+  const shared = lookupCatalogAll({
+    vendorId: d.vendorId,
+    productId: d.productId,
+    productName: d.productName,
+  });
   if (shared.length > 1)
     conflicts.push(
       `${h4(d.vendorId)}:${h4(d.productId)} is used by different products (${shared.map((e) => `${e.brand} ${e.model}`).join('; ')}).`,
@@ -118,9 +138,15 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
       );
   }
   for (const c of failedCandidates(report))
-    conflicts.push(`${c.protocol.id} matched the descriptors but the device did not confirm it: ${c.probe!.summary}`);
+    conflicts.push(
+      `${c.protocol.id} matched the descriptors but the device did not confirm it: ${c.probe!.summary}`,
+    );
 
-  const base = (partial: Omit<DetectionVerdict, 'confidence' | 'reasons' | 'conflicts' | 'unknowns'> & { reasons?: string[] }): DetectionVerdict => ({
+  const base = (
+    partial: Omit<DetectionVerdict, 'confidence' | 'reasons' | 'conflicts' | 'unknowns'> & {
+      reasons?: string[];
+    },
+  ): DetectionVerdict => ({
     ...partial,
     confidence,
     reasons: [...(partial.reasons ?? []), ...reasons],
@@ -137,12 +163,16 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
       kind: 'SIMULATED',
       adapterId: sel?.protocolId ?? null,
       writeEligible: !!sel && sel.identification === 'identified',
-      reasons: ['This is a firmware simulator. It runs the real protocol code, but proves nothing about a physical keyboard.'],
+      reasons: [
+        'This is a firmware simulator. It runs the real protocol code, but proves nothing about a physical keyboard.',
+      ],
       next: sel ? { kind: 'configure', adapterId: sel.protocolId } : { kind: 'contribute' },
     });
 
   if (report.catalog && sel && def && !report.catalog.family.includes(sel.protocolId))
-    conflicts.push(`The catalogue lists this identity under "${report.catalog.family}", the device answered as ${sel.protocolId}.`);
+    conflicts.push(
+      `The catalogue lists this identity under "${report.catalog.family}", the device answered as ${sel.protocolId}.`,
+    );
 
   if (sel && def && sel.identification === 'identified') {
     const why = [...(selCand?.match.reasons ?? []), selCand?.probe?.summary ?? ''].filter(Boolean);
@@ -151,7 +181,10 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
         kind: 'TRANSPORT_UNSUPPORTED',
         adapterId: def.id,
         writeEligible: false,
-        reasons: [`${def.name} is configurable only over ${def.manifest.transports.configuration.join(', ') || 'no link'}; this link is ${d.transportHint}.`, ...why],
+        reasons: [
+          `${def.name} is configurable only over ${def.manifest.transports.configuration.join(', ') || 'no link'}; this link is ${d.transportHint}.`,
+          ...why,
+        ],
         next: { kind: 'switch-transport', transports: def.manifest.transports.configuration },
       });
     const matches = def.manifest.verifiedIdentities.map((v) => ({ v, m: identityMatches(v, d) }));
@@ -162,7 +195,10 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
         kind: 'VERIFIED_MATCH',
         adapterId: def.id,
         writeEligible: true,
-        reasons: [`Identified by the device, and this identity was verified on hardware (${exact.v.scope}; ${exact.v.evidence}).`, ...why],
+        reasons: [
+          `Identified by the device, and this identity was verified on hardware (${exact.v.scope}; ${exact.v.evidence}).`,
+          ...why,
+        ],
         next: { kind: 'configure', adapterId: def.id },
       });
     if (otherFw)
@@ -173,7 +209,10 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
       kind: 'FIRMWARE_UNVERIFIED',
       adapterId: def.id,
       writeEligible: true,
-      reasons: [`The device answered as ${def.family}, but this model or firmware was never verified on hardware. Writes stay experimental.`, ...why],
+      reasons: [
+        `The device answered as ${def.family}, but this model or firmware was never verified on hardware. Writes stay experimental.`,
+        ...why,
+      ],
       next: { kind: 'configure', adapterId: def.id },
     });
   }
@@ -183,13 +222,22 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
       kind: 'AMBIGUOUS',
       adapterId: null,
       writeEligible: false,
-      reasons: ['Several adapters match equally. OpenKey does not guess between protocols that may read the same bytes differently.', ...report.notes],
+      reasons: [
+        'Several adapters match equally. OpenKey does not guess between protocols that may read the same bytes differently.',
+        ...report.notes,
+      ],
       next: { kind: 'contribute' },
     });
 
   // An implemented adapter matches and its identification step has not run.
   const pending = report.candidates
-    .filter((c) => c.match.applicable && !c.probe?.identified && c.probe?.status !== 'fail' && c.probe?.status !== 'error')
+    .filter(
+      (c) =>
+        c.match.applicable &&
+        !c.probe?.identified &&
+        c.probe?.status !== 'fail' &&
+        c.probe?.status !== 'error',
+    )
     .map((c) => ({ c, p: registry.get(c.protocol.id)! }))
     .filter(({ p }) => p.probePlan.operations.some((o) => o.level === 'handshake'))
     .sort((a, b) => b.c.match.score - a.c.match.score);
@@ -197,7 +245,9 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
     const { c, p } = pending[0]!;
     const why = [
       `Descriptors match ${p.name}: ${c.match.reasons.join('; ')}.`,
-      c.consent?.required ? `Identification not run automatically: ${c.consent.reason}.` : 'Identification has not run yet.',
+      c.consent?.required
+        ? `Identification not run automatically: ${c.consent.reason}.`
+        : 'Identification has not run yet.',
     ];
     return base({
       kind: 'STRONG_CANDIDATE',
@@ -229,7 +279,9 @@ export function detectionVerdict(report: DetectionReport, registry: ProtocolRegi
       kind: 'INSPECT_ONLY',
       adapterId: null,
       writeEligible: false,
-      reasons: [`Catalogued as ${report.catalog.brand} ${report.catalog.model} (${report.catalog.status}): ${report.catalog.evidence}. No adapter can configure it yet.`],
+      reasons: [
+        `Catalogued as ${report.catalog.brand} ${report.catalog.model} (${report.catalog.status}): ${report.catalog.evidence}. No adapter can configure it yet.`,
+      ],
       next: { kind: 'contribute' },
     });
 

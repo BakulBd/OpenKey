@@ -1,16 +1,28 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { globalHeaders, headersFile, nginxSecurityHeaders, toSplatPattern } from '../../tools/deploy/src/headers.js';
+import {
+  globalHeaders,
+  headersFile,
+  nginxSecurityHeaders,
+  toSplatPattern,
+} from '../../tools/deploy/src/headers.js';
 import type { HeaderRule } from '../../tools/deploy/src/headers.js';
 import { ROOT } from '../helpers.js';
 
-const vercel = JSON.parse(readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')) as { headers: HeaderRule[] };
+const vercel = JSON.parse(readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')) as {
+  headers: HeaderRule[];
+};
 
 describe('one set of security headers on every host', () => {
   it('the nginx snippet is exactly what vercel.json generates', () => {
     const snippet = readFileSync(path.join(ROOT, 'deploy/nginx/security-headers.conf'), 'utf8');
-    expect(snippet.split('\n').filter((l) => l && !l.startsWith('#')).join('\n')).toBe(nginxSecurityHeaders(vercel.headers));
+    expect(
+      snippet
+        .split('\n')
+        .filter((l) => l && !l.startsWith('#'))
+        .join('\n'),
+    ).toBe(nginxSecurityHeaders(vercel.headers));
   });
 
   it('every nginx location includes the security headers', () => {
@@ -18,7 +30,8 @@ describe('one set of security headers on every host', () => {
     const locations = conf.split(/\n\s*location /).slice(1);
     const serving = locations.filter((l) => !/return 404/.test(l.split('}')[0]!));
     expect(serving.length).toBeGreaterThanOrEqual(5);
-    for (const l of serving) expect(l.split('}')[0]).toMatch(/include \/etc\/nginx\/snippets\/security-headers\.conf/);
+    for (const l of serving)
+      expect(l.split('}')[0]).toMatch(/include \/etc\/nginx\/snippets\/security-headers\.conf/);
   });
 
   it('the _headers file (Netlify, Cloudflare Pages) carries every rule', () => {

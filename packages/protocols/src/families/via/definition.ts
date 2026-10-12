@@ -21,9 +21,14 @@ export interface ViaDefinition {
 
 export class DefinitionError extends Error {}
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
 const num = (v: unknown): number | undefined =>
-  typeof v === 'number' ? v : typeof v === 'string' && /^(0x[0-9a-f]+|\d+)$/i.test(v.trim()) ? Number(v.trim()) : undefined;
+  typeof v === 'number'
+    ? v
+    : typeof v === 'string' && /^(0x[0-9a-f]+|\d+)$/i.test(v.trim())
+      ? Number(v.trim())
+      : undefined;
 
 /** Finished key list → layout; positions are shifted so the top-left key is at 0,0. */
 function finish(id: string, name: string, keys: PhysicalKey[], source: string): KeyboardLayout {
@@ -44,7 +49,16 @@ function finish(id: string, name: string, keys: PhysicalKey[], source: string): 
   };
 }
 
-const key = (r: number, c: number, cols: number, x: number, y: number, w: number, h: number, label = ''): PhysicalKey => ({
+const key = (
+  r: number,
+  c: number,
+  cols: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  label = '',
+): PhysicalKey => ({
   id: `r${r}c${c}`,
   label,
   slot: r * cols + c,
@@ -91,7 +105,8 @@ export function parseKle(rows: unknown, cols: number, name: string): PhysicalKey
       const legends = item.split('\n');
       const m = /^\s*(\d+)\s*,\s*(\d+)\s*$/.exec(legends[0] ?? '');
       const option = /^\s*\d+\s*,\s*(\d+)\s*$/.exec(legends[8] ?? '');
-      if (m && !cur.decal && (!option || option[1] === '0')) out.push(key(Number(m[1]), Number(m[2]), cols, cur.x, cur.y, cur.w, cur.h));
+      if (m && !cur.decal && (!option || option[1] === '0'))
+        out.push(key(Number(m[1]), Number(m[2]), cols, cur.x, cur.y, cur.w, cur.h));
       cur.x += cur.w;
       cur.w = 1;
       cur.h = 1;
@@ -107,14 +122,22 @@ export function parseKle(rows: unknown, cols: number, name: string): PhysicalKey
 function parseVia(j: Record<string, unknown>): ViaDefinition {
   const matrix = j.matrix;
   const layouts = j.layouts;
-  if (!isObj(matrix) || !isObj(layouts)) throw new DefinitionError('Not a VIA definition: matrix and layouts are required.');
+  if (!isObj(matrix) || !isObj(layouts))
+    throw new DefinitionError('Not a VIA definition: matrix and layouts are required.');
   const rows = num(matrix.rows);
   const cols = num(matrix.cols);
-  if (!rows || !cols || rows > 32 || cols > 32) throw new DefinitionError('matrix.rows and matrix.cols must be 1–32.');
+  if (!rows || !cols || rows > 32 || cols > 32)
+    throw new DefinitionError('matrix.rows and matrix.cols must be 1–32.');
   const name = typeof j.name === 'string' ? j.name : 'VIA keyboard';
-  const keys = parseKle(layouts.keymap, cols, name).filter((k) => Number(k.id.slice(1).split('c')[0]) < rows && Number(k.id.split('c')[1]) < cols);
-  const menus = Array.isArray(j.menus) ? j.menus.filter((m): m is string => typeof m === 'string') : [];
-  const lighting = menus.find((m) => m.startsWith('qmk_')) ?? (typeof j.lighting === 'string' ? j.lighting : undefined);
+  const keys = parseKle(layouts.keymap, cols, name).filter(
+    (k) => Number(k.id.slice(1).split('c')[0]) < rows && Number(k.id.split('c')[1]) < cols,
+  );
+  const menus = Array.isArray(j.menus)
+    ? j.menus.filter((m): m is string => typeof m === 'string')
+    : [];
+  const lighting =
+    menus.find((m) => m.startsWith('qmk_')) ??
+    (typeof j.lighting === 'string' ? j.lighting : undefined);
   const vendorId = num(j.vendorId);
   const productId = num(j.productId);
   return {
@@ -132,19 +155,34 @@ function parseVia(j: Record<string, unknown>): ViaDefinition {
 function parseQmk(j: Record<string, unknown>): ViaDefinition {
   const layouts = j.layouts as Record<string, unknown>;
   const names = Object.keys(layouts);
-  const pick = names.find((n) => /^LAYOUT_all$/i.test(n)) ?? names.find((n) => /^LAYOUT$/i.test(n)) ?? names[0];
+  const pick =
+    names.find((n) => /^LAYOUT_all$/i.test(n)) ??
+    names.find((n) => /^LAYOUT$/i.test(n)) ??
+    names[0];
   const entry = pick ? layouts[pick] : undefined;
   const list = isObj(entry) && Array.isArray(entry.layout) ? entry.layout : null;
   if (!list) throw new DefinitionError('Not a QMK info.json: layouts.*.layout is missing.');
   const items = list.filter(isObj).filter((k) => Array.isArray(k.matrix) && k.matrix.length === 2);
   const ms = isObj(j.matrix_size) ? j.matrix_size : null;
-  const rows = num(ms?.rows) ?? Math.max(...items.map((k) => Number((k.matrix as number[])[0]))) + 1;
-  const cols = num(ms?.cols) ?? Math.max(...items.map((k) => Number((k.matrix as number[])[1]))) + 1;
-  if (!rows || !cols || rows > 32 || cols > 32) throw new DefinitionError('The matrix must be 1–32 rows and columns.');
+  const rows =
+    num(ms?.rows) ?? Math.max(...items.map((k) => Number((k.matrix as number[])[0]))) + 1;
+  const cols =
+    num(ms?.cols) ?? Math.max(...items.map((k) => Number((k.matrix as number[])[1]))) + 1;
+  if (!rows || !cols || rows > 32 || cols > 32)
+    throw new DefinitionError('The matrix must be 1–32 rows and columns.');
   const name = typeof j.keyboard_name === 'string' ? j.keyboard_name : 'QMK keyboard';
   const keys = items.map((k) => {
     const [r, c] = k.matrix as [number, number];
-    return key(r, c, cols, Number(k.x ?? 0), Number(k.y ?? 0), Number(k.w ?? 1), Number(k.h ?? 1), typeof k.label === 'string' ? k.label : '');
+    return key(
+      r,
+      c,
+      cols,
+      Number(k.x ?? 0),
+      Number(k.y ?? 0),
+      Number(k.w ?? 1),
+      Number(k.h ?? 1),
+      typeof k.label === 'string' ? k.label : '',
+    );
   });
   const usb = isObj(j.usb) ? j.usb : {};
   const vendorId = num(usb.vid);
@@ -177,8 +215,20 @@ export function parseDefinition(text: string): ViaDefinition {
 /** A plain rows × columns grid, for boards without a definition: every matrix position is a key. */
 export function gridDefinition(rows: number, cols: number, name: string): ViaDefinition {
   const keys: PhysicalKey[] = [];
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) keys.push(key(r, c, cols, c, r, 1, 1, `${r},${c}`));
-  return { name, rows, cols, layout: finish(`grid-${rows}x${cols}`, `${name} (matrix ${rows}×${cols})`, keys, 'matrix grid (no definition loaded)'), format: 'grid' };
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) keys.push(key(r, c, cols, c, r, 1, 1, `${r},${c}`));
+  return {
+    name,
+    rows,
+    cols,
+    layout: finish(
+      `grid-${rows}x${cols}`,
+      `${name} (matrix ${rows}×${cols})`,
+      keys,
+      'matrix grid (no definition loaded)',
+    ),
+    format: 'grid',
+  };
 }
 
 /** Serialized form kept in the state store (the parsed result, not the user's file). */

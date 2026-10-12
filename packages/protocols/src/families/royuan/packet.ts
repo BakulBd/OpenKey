@@ -1,15 +1,25 @@
 import { ProtocolError } from '@openkey/core';
 import { FORBIDDEN, REPORT_BYTES } from './constants.js';
 
-const ck = (bytes: Uint8Array, upto: number): number => 0xff - (bytes.subarray(0, upto + 1).reduce((a, b) => a + b, 0) & 0xff);
+const ck = (bytes: Uint8Array, upto: number): number =>
+  0xff - (bytes.subarray(0, upto + 1).reduce((a, b) => a + b, 0) & 0xff);
 
 /** A command report: payload from byte 0, checksum "Bit7" (byte 7) or "Bit8" (byte 8). */
-export function packet(bytes: readonly number[], checksum: 'bit7' | 'bit8' = 'bit7'): Uint8Array {
-  if ((FORBIDDEN as readonly number[]).includes(bytes[0]!)) throw new ProtocolError(`ROYUAN opcode 0x${bytes[0]!.toString(16)} resets, erases or reboots the keyboard; OpenKey never sends it.`);
+export function packet(
+  bytes: readonly number[],
+  checksum: 'bit7' | 'bit8' = 'bit7',
+  /** Value bytes that follow the checksummed header, from byte 8 (single-slot key writes). */
+  tail: readonly number[] = [],
+): Uint8Array {
+  if ((FORBIDDEN as readonly number[]).includes(bytes[0]!))
+    throw new ProtocolError(
+      `ROYUAN opcode 0x${bytes[0]!.toString(16)} resets, erases or reboots the keyboard; OpenKey never sends it.`,
+    );
   const p = new Uint8Array(REPORT_BYTES);
   p.set(bytes.slice(0, checksum === 'bit7' ? 7 : 8));
   if (checksum === 'bit7') p[7] = ck(p, 6);
   else p[8] = ck(p, 7);
+  if (tail.length) p.set(tail, 8);
   return p;
 }
 

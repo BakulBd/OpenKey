@@ -61,7 +61,8 @@ const m: Partial<Messages> = {
   'notice.demoDetail': '模拟键盘——不会向任何硬件发送数据。',
   'notice.unknownDevice': '{name}：没有经过验证的适配器。进入只读检查模式。',
   'notice.noDeviceSelected': '未选择设备',
-  'notice.noDeviceSelectedHint': '请在浏览器对话框中选择你的键盘。使用 USB 数据线并切换到有线模式。',
+  'notice.noDeviceSelectedHint':
+    '请在浏览器对话框中选择你的键盘。使用 USB 数据线并切换到有线模式。',
   'notice.disconnected': '键盘已断开',
   'notice.disconnectedHint': '本地编辑已保留。重新连接即可继续；不会自动写入任何内容。',
   'notice.replugged': '检测到键盘接入。',
@@ -85,8 +86,10 @@ const m: Partial<Messages> = {
   'browser.useDemo': '请在桌面系统上使用 Chrome、Edge、Opera 或 Brave——或先体验演示。',
   'landing.eyebrow': '开源 · 本地优先 · 无需账号',
   'landing.title': '在浏览器中配置你的键盘。',
-  'landing.lead': 'OpenKey 通过 WebHID 直接与键盘通信。无需安装、无云端、无遥测——并清楚说明它知道什么、验证过什么。',
-  'landing.honest': 'OpenKey 尚非通用：只有具备 OpenKey 适配器的键盘才能配置。其他键盘可以安全地检查并提交报告。',
+  'landing.lead':
+    'OpenKey 通过 WebHID 直接与键盘通信。无需安装、无云端、无遥测——并清楚说明它知道什么、验证过什么。',
+  'landing.honest':
+    'OpenKey 尚非通用：只有具备 OpenKey 适配器的键盘才能配置。其他键盘可以安全地检查并提交报告。',
   'landing.devices': '支持的设备',
   'landing.pipelineTitle': 'OpenKey 如何识别键盘',
   'landing.pipe.transport': '传输',
@@ -110,7 +113,8 @@ const m: Partial<Messages> = {
   'landing.privacy.permission': 'OpenKey 访问设备前，浏览器会先征求你的同意，每次一台设备。',
   'landing.privacyLink': '阅读隐私声明',
   'landing.unknownTitle': '有其他键盘？',
-  'landing.unknownBody': '以只读方式检查：OpenKey 会显示其 HID 接口和可能的协议家族，并帮助你提交支持请求。不会写入任何内容。',
+  'landing.unknownBody':
+    '以只读方式检查：OpenKey 会显示其 HID 接口和可能的协议家族，并帮助你提交支持请求。不会写入任何内容。',
   'landing.contributeTitle': '添加你的键盘',
   'landing.contribute.1': '检查设备并导出诊断包。',
   'landing.contribute.2': '用它创建一个设备支持 issue。',
@@ -124,7 +128,8 @@ const m: Partial<Messages> = {
   'connect.trouble.linux': '在 Linux 上安装 OpenKey 的 udev 规则并重新插拔键盘。',
   'connect.trouble.busy': '关闭厂商软件和其他配置工具的标签页。',
   'research.title': '已检测到硬件——需要协议研究',
-  'research.body': '这把键盘具备此功能，但 OpenKey 还不了解它的配置协议。不会发送任何内容。你可以通过提供官方软件的抓包来帮忙。',
+  'research.body':
+    '这把键盘具备此功能，但 OpenKey 还不了解它的配置协议。不会发送任何内容。你可以通过提供官方软件的抓包来帮忙。',
   'research.lab': '打开研究实验室',
   'status.SUPPORTED': '已支持',
   'status.CONFIGURABLE': '可配置',
@@ -153,7 +158,8 @@ const m: Partial<Messages> = {
   'safety.write': '写入',
   'safety.never': 'OpenKey 从不发送固件、引导程序或擦除命令。',
   'safety.experimentalTitle': '实验性写入',
-  'safety.experimentalBody': '此命令依据有文档的来源重现，但 OpenKey 尚未在硬件上验证。如结果异常，请恢复备份或使用键盘的恢复出厂设置。',
+  'safety.experimentalBody':
+    '此命令依据有文档的来源重现，但 OpenKey 尚未在硬件上验证。如结果异常，请恢复备份或使用键盘的恢复出厂设置。',
   'safety.optIn': '为本次浏览器会话启用实验性写入',
   'safety.level.READ_ONLY': '只读',
   'safety.level.SAFE_VOLATILE': '临时',
@@ -182,7 +188,8 @@ const m: Partial<Messages> = {
   'settings.theme.dark': '深色',
   'pwa.updateReady': 'OpenKey 新版本已就绪。',
   'pwa.reload': '重新加载',
-  'footer.cta': 'OpenKey 是开源且由社区驱动的项目。如果它对你有帮助，请考虑在 GitHub 上为项目点星——这能帮助更多人发现它，并支持持续开发。',
+  'footer.cta':
+    'OpenKey 是开源且由社区驱动的项目。如果它对你有帮助，请考虑在 GitHub 上为项目点星——这能帮助更多人发现它，并支持持续开发。',
   'footer.star': '在 GitHub 上点星',
   'footer.contribute': '贡献一把键盘',
   'footer.bug': '报告问题',

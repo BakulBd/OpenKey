@@ -8,13 +8,51 @@ import type { LightingChannel } from './constants.js';
  * which is why the effect number is always shown next to the name.
  */
 const RGB_MATRIX_EFFECTS = [
-  'All off', 'Solid colour', 'Alphas/mods', 'Gradient up/down', 'Gradient left/right', 'Breathing', 'Band saturation',
-  'Band value', 'Pinwheel saturation', 'Pinwheel value', 'Spiral saturation', 'Spiral value', 'Cycle all', 'Cycle left/right',
-  'Cycle up/down', 'Rainbow moving chevron', 'Cycle out/in', 'Cycle out/in dual', 'Cycle pinwheel', 'Cycle spiral',
-  'Dual beacon', 'Rainbow beacon', 'Rainbow pinwheels', 'Raindrops', 'Jellybean raindrops', 'Hue breathing', 'Hue pendulum',
-  'Hue wave', 'Pixel rain', 'Pixel flow', 'Pixel fractal', 'Typing heatmap', 'Digital rain', 'Solid reactive simple',
-  'Solid reactive', 'Solid reactive wide', 'Solid reactive multi-wide', 'Solid reactive cross', 'Solid reactive multi-cross',
-  'Solid reactive nexus', 'Solid reactive multi-nexus', 'Splash', 'Multi splash', 'Solid splash', 'Solid multi splash',
+  'All off',
+  'Solid colour',
+  'Alphas/mods',
+  'Gradient up/down',
+  'Gradient left/right',
+  'Breathing',
+  'Band saturation',
+  'Band value',
+  'Pinwheel saturation',
+  'Pinwheel value',
+  'Spiral saturation',
+  'Spiral value',
+  'Cycle all',
+  'Cycle left/right',
+  'Cycle up/down',
+  'Rainbow moving chevron',
+  'Cycle out/in',
+  'Cycle out/in dual',
+  'Cycle pinwheel',
+  'Cycle spiral',
+  'Dual beacon',
+  'Rainbow beacon',
+  'Rainbow pinwheels',
+  'Raindrops',
+  'Jellybean raindrops',
+  'Hue breathing',
+  'Hue pendulum',
+  'Hue wave',
+  'Pixel rain',
+  'Pixel flow',
+  'Pixel fractal',
+  'Typing heatmap',
+  'Digital rain',
+  'Solid reactive simple',
+  'Solid reactive',
+  'Solid reactive wide',
+  'Solid reactive multi-wide',
+  'Solid reactive cross',
+  'Solid reactive multi-cross',
+  'Solid reactive nexus',
+  'Solid reactive multi-nexus',
+  'Splash',
+  'Multi splash',
+  'Solid splash',
+  'Solid multi splash',
 ];
 
 const RGBLIGHT_EFFECTS = [
@@ -32,7 +70,30 @@ const RGBLIGHT_EFFECTS = [
   ...[1, 2, 3, 4, 5, 6].map((n) => `Twinkle ${n}`),
 ];
 
-const LED_MATRIX_EFFECTS = ['All off', 'Solid', 'Alphas/mods', 'Breathing', 'Band', 'Band pinwheel', 'Band spiral', 'Cycle left/right', 'Cycle up/down', 'Cycle out/in', 'Dual beacon', 'Solid reactive simple', 'Solid reactive wide', 'Solid reactive multi-wide', 'Solid reactive cross', 'Solid reactive multi-cross', 'Solid reactive nexus', 'Solid reactive multi-nexus', 'Solid splash', 'Solid multi splash', 'Wave left/right', 'Wave up/down'];
+const LED_MATRIX_EFFECTS = [
+  'All off',
+  'Solid',
+  'Alphas/mods',
+  'Breathing',
+  'Band',
+  'Band pinwheel',
+  'Band spiral',
+  'Cycle left/right',
+  'Cycle up/down',
+  'Cycle out/in',
+  'Dual beacon',
+  'Solid reactive simple',
+  'Solid reactive wide',
+  'Solid reactive multi-wide',
+  'Solid reactive cross',
+  'Solid reactive multi-cross',
+  'Solid reactive nexus',
+  'Solid reactive multi-nexus',
+  'Solid splash',
+  'Solid multi splash',
+  'Wave left/right',
+  'Wave up/down',
+];
 
 export const CHANNEL_NAME: Record<LightingChannel, string> = {
   [Channel.BACKLIGHT]: 'QMK backlight',
@@ -42,7 +103,8 @@ export const CHANNEL_NAME: Record<LightingChannel, string> = {
 };
 
 /** Whether a channel has a colour value (single-colour backlights and LED matrices do not). */
-export const hasColor = (c: LightingChannel): boolean => c === Channel.RGBLIGHT || c === Channel.RGB_MATRIX;
+export const hasColor = (c: LightingChannel): boolean =>
+  c === Channel.RGBLIGHT || c === Channel.RGB_MATRIX;
 export const hasSpeed = (c: LightingChannel): boolean => c !== Channel.BACKLIGHT;
 
 export function viaEffectCatalog(channel: LightingChannel): EffectCatalog {
@@ -57,9 +119,20 @@ export function viaEffectCatalog(channel: LightingChannel): EffectCatalog {
   const effects: EffectDescriptor[] = names.map((name, id) => ({
     id,
     name: channel === Channel.BACKLIGHT ? name : `${id} · ${name}`,
-    controls: { color: hasColor(channel) && id !== 0, colorful: false, brightness: id !== 0 || channel === Channel.BACKLIGHT, speed: hasSpeed(channel) && id > 1, direction: [] },
+    controls: {
+      color: hasColor(channel) && id !== 0,
+      colorful: false,
+      brightness: id !== 0 || channel === Channel.BACKLIGHT,
+      speed: hasSpeed(channel) && id > 1,
+      direction: [],
+    },
   }));
-  return { effects, brightness: { min: 0, max: 255 }, speed: { min: 0, max: 255 }, ...(channel !== Channel.BACKLIGHT ? { offEffect: 0 } : {}) };
+  return {
+    effects,
+    brightness: { min: 0, max: 255 },
+    speed: { min: 0, max: 255 },
+    ...(channel !== Channel.BACKLIGHT ? { offEffect: 0 } : {}),
+  };
 }
 
 /** QMK hue/saturation (0–255) at full value → RGB. */

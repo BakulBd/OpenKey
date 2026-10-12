@@ -1,6 +1,14 @@
 import { ProtocolError, TimeoutError } from '@openkey/core';
 import type { HidTransport } from '@openkey/hid';
-import { CHUNK, Cmd, FORBIDDEN, KeyboardValue, REPLY_TIMEOUT_MS, REPORT_SIZE, UNHANDLED } from './constants.js';
+import {
+  CHUNK,
+  Cmd,
+  FORBIDDEN,
+  KeyboardValue,
+  REPLY_TIMEOUT_MS,
+  REPORT_SIZE,
+  UNHANDLED,
+} from './constants.js';
 
 const FORBIDDEN_IDS = new Set<number>(Object.values(FORBIDDEN));
 
@@ -18,7 +26,10 @@ export class ViaSession {
   command(bytes: readonly number[]): Promise<Uint8Array | null> {
     const run = async (): Promise<Uint8Array | null> => {
       const id = bytes[0]!;
-      if (FORBIDDEN_IDS.has(id)) throw new ProtocolError(`VIA command 0x${id.toString(16)} resets or reflashes the keyboard; OpenKey never sends it.`);
+      if (FORBIDDEN_IDS.has(id))
+        throw new ProtocolError(
+          `VIA command 0x${id.toString(16)} resets or reflashes the keyboard; OpenKey never sends it.`,
+        );
       const report = new Uint8Array(this.reportSize);
       report.set(bytes.slice(0, this.reportSize));
       this.transport.drainInput();
@@ -26,7 +37,10 @@ export class ViaSession {
       const reply = await this.transport.readInputReport(this.timeoutMs);
       if (!reply) throw new TimeoutError(`No VIA reply to command 0x${id.toString(16)}`);
       if (reply[0] === UNHANDLED && id !== UNHANDLED) return null;
-      if (reply[0] !== id) throw new ProtocolError(`VIA reply echoes 0x${reply[0]?.toString(16)}, expected 0x${id.toString(16)}`);
+      if (reply[0] !== id)
+        throw new ProtocolError(
+          `VIA reply echoes 0x${reply[0]?.toString(16)}, expected 0x${id.toString(16)}`,
+        );
       return reply;
     };
     const p = this.queue.then(run, run);
@@ -36,7 +50,10 @@ export class ViaSession {
 
   private async must(bytes: readonly number[]): Promise<Uint8Array> {
     const r = await this.command(bytes);
-    if (!r) throw new ProtocolError(`The firmware does not handle VIA command 0x${bytes[0]!.toString(16)}`);
+    if (!r)
+      throw new ProtocolError(
+        `The firmware does not handle VIA command 0x${bytes[0]!.toString(16)}`,
+      );
     return r;
   }
 

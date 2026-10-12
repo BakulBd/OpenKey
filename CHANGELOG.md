@@ -33,6 +33,13 @@
   detection via `0x80`, lighting read/write `0x87`/`0x07` with read-back; reset, erase and boot opcodes
   refused by the packet builder. The magnetic AJAZZ AK820 (`3151:4015`) and the AJAZZ "BY edition"
   (`258A:010C`, BY Tech adapter) are now community-supported.
+- **AULA F99 family** (docs/AULA_F99.md): F99, F99 Pro and F99 Wired identified by model code over
+  the cable; new read-only **AULA receiver** adapter (`3554:FA09`: model, firmware/battery, lighting
+  page; write, apply and reset opcodes refused). The F99 Max is not assumed compatible.
+- **ROYUAN key maps**: read on yc500 and gen2 boards (slots labelled by the base layer), written key by
+  key with read-back on yc500; firmware that drops single-key writes is reported, not assumed.
+- Codebase: Prettier across the repository with a CI check; issue forms, PR template, CODEOWNERS,
+  Dependabot, code of conduct; switch-style toggles and collapsed source notes on device settings.
 - **Classic RK adapter** (rangoli / kludgeknight facts): 78 Royal Kludge models from RK's own model list
   (RK61, RK68, RK84, RK87, RK100 …), lighting and sleep; write-only, identified from the vendor model list
   (`identifiedBy: 'vendor-model-list'`, documented in the adapter contract), nothing sent while detecting.

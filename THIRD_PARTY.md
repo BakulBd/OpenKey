@@ -16,19 +16,19 @@ are pinned in `pnpm-lock.yaml`.
 **public domain** or **CC0** (checked when added, 2026-10-11). They were cropped or letterboxed to 128×128
 and reduced to at most 48 frames. No conditions apply; credit is given anyway:
 
-| File | Original | Author | Licence |
-| ---- | -------- | ------ | ------- |
-| cat-tail.gif | [Cat tail ani.gif](https://commons.wikimedia.org/wiki/File:Cat_tail_ani.gif) | GeeAlice | Public domain |
-| cat-1919.gif | [Animated GIF from the 1919 Feline folies by Pat Sullivan.gif](https://commons.wikimedia.org/wiki/File:Animated_GIF_from_the_1919_Feline_folies_by_Pat_Sullivan.gif) | Pat Sullivan | Public domain |
-| heart.gif | [Animated heart5.gif](https://commons.wikimedia.org/wiki/File:Animated_heart5.gif) | Filthy cat | Public domain |
-| dog.gif | [Dog galloping.gif](https://commons.wikimedia.org/wiki/File:Dog_galloping.gif) | Eadweard Muybridge; animation by Waugsberg | Public domain |
-| race-horse.gif | [Muybridge race horse animated.gif](https://commons.wikimedia.org/wiki/File:Muybridge_race_horse_animated.gif) | Eadweard Muybridge | Public domain |
-| earth.gif | [Earth-EpicDay260-20150917 (cropped).gif](https://commons.wikimedia.org/wiki/File:Earth-EpicDay260-20150917_(cropped).gif) | NASA / DSCOVR EPIC | Public domain |
-| globe.gif | [Rotating globe s.gif](https://commons.wikimedia.org/wiki/File:Rotating_globe_s.gif) | NOAA NCEI base data | Public domain |
-| newton.gif | [Klassische Physik (Newtonpendel).gif](https://commons.wikimedia.org/wiki/File:Klassische_Physik_(Newtonpendel).gif) | Rhetos | CC0 |
-| tesseract.gif | [8-cell-simple.gif](https://commons.wikimedia.org/wiki/File:8-cell-simple.gif) | Jason Hise | Public domain |
-| hurricane.gif | [Harvey Rainbow 20170825 2345 UTC.gif](https://commons.wikimedia.org/wiki/File:Harvey_Rainbow_20170825_2345_UTC.gif) | NOAA | Public domain |
-| zoetrope.gif | [Optical illusion disc … (Corrected).gif](https://commons.wikimedia.org/wiki/File:Optical_illusion_disc_with_birds,_butterflies,_and_a_man_jumping-Corrected.gif) | Library of Congress | Public domain |
+| File           | Original                                                                                                                                                             | Author                                     | Licence       |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------- |
+| cat-tail.gif   | [Cat tail ani.gif](https://commons.wikimedia.org/wiki/File:Cat_tail_ani.gif)                                                                                         | GeeAlice                                   | Public domain |
+| cat-1919.gif   | [Animated GIF from the 1919 Feline folies by Pat Sullivan.gif](https://commons.wikimedia.org/wiki/File:Animated_GIF_from_the_1919_Feline_folies_by_Pat_Sullivan.gif) | Pat Sullivan                               | Public domain |
+| heart.gif      | [Animated heart5.gif](https://commons.wikimedia.org/wiki/File:Animated_heart5.gif)                                                                                   | Filthy cat                                 | Public domain |
+| dog.gif        | [Dog galloping.gif](https://commons.wikimedia.org/wiki/File:Dog_galloping.gif)                                                                                       | Eadweard Muybridge; animation by Waugsberg | Public domain |
+| race-horse.gif | [Muybridge race horse animated.gif](https://commons.wikimedia.org/wiki/File:Muybridge_race_horse_animated.gif)                                                       | Eadweard Muybridge                         | Public domain |
+| earth.gif      | [Earth-EpicDay260-20150917 (cropped).gif](<https://commons.wikimedia.org/wiki/File:Earth-EpicDay260-20150917_(cropped).gif>)                                         | NASA / DSCOVR EPIC                         | Public domain |
+| globe.gif      | [Rotating globe s.gif](https://commons.wikimedia.org/wiki/File:Rotating_globe_s.gif)                                                                                 | NOAA NCEI base data                        | Public domain |
+| newton.gif     | [Klassische Physik (Newtonpendel).gif](<https://commons.wikimedia.org/wiki/File:Klassische_Physik_(Newtonpendel).gif>)                                               | Rhetos                                     | CC0           |
+| tesseract.gif  | [8-cell-simple.gif](https://commons.wikimedia.org/wiki/File:8-cell-simple.gif)                                                                                       | Jason Hise                                 | Public domain |
+| hurricane.gif  | [Harvey Rainbow 20170825 2345 UTC.gif](https://commons.wikimedia.org/wiki/File:Harvey_Rainbow_20170825_2345_UTC.gif)                                                 | NOAA                                       | Public domain |
+| zoetrope.gif   | [Optical illusion disc … (Corrected).gif](https://commons.wikimedia.org/wiki/File:Optical_illusion_disc_with_birds,_butterflies,_and_a_man_jumping-Corrected.gif)    | Library of Congress                        | Public domain |
 
 `apps/web/public/og.png` (social preview) was rendered once with the Inter typeface (SIL Open Font
 License 1.1); the font itself is not distributed.

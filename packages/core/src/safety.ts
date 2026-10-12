@@ -43,7 +43,8 @@ export type WriteDecision =
  * (with a confirmation for CAUTION and HIGH_RISK); everything else is experimental (opt-in) or blocked.
  */
 export function writeDecision(support: FeatureSupport, ctx: SafetyContext): WriteDecision {
-  if (!support.write) return { kind: 'blocked', reason: 'The device or protocol offers no write for this feature.' };
+  if (!support.write)
+    return { kind: 'blocked', reason: 'The device or protocol offers no write for this feature.' };
   const safety = support.safety ?? SafetyLevel.UNVERIFIED;
   if (safety === SafetyLevel.UNSAFE)
     return { kind: 'blocked', reason: 'Firmware-level operations are outside OpenKey’s scope.' };
@@ -70,5 +71,7 @@ export function writeDecision(support: FeatureSupport, ctx: SafetyContext): Writ
 
 /** True when the UI may send the write now (experimental writes need the opt-in). */
 export function mayWrite(decision: WriteDecision, ctx: SafetyContext): boolean {
-  return decision.kind === 'allowed' || (decision.kind === 'experimental' && ctx.experimentalEnabled);
+  return (
+    decision.kind === 'allowed' || (decision.kind === 'experimental' && ctx.experimentalEnabled)
+  );
 }

@@ -32,8 +32,5 @@
   ],
   "id": "./",
   "lang": "en",
-  "categories": [
-    "utilities",
-    "productivity"
-  ]
+  "categories": ["utilities", "productivity"]
 }

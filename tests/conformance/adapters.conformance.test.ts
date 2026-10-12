@@ -19,6 +19,7 @@ import {
   sonixFeature,
   byTech,
   royuan,
+  aulaReceiver,
 } from '@openkey/protocols';
 import { ROOT } from '../helpers.js';
 
@@ -35,9 +36,23 @@ const SAMPLES: Record<string, () => MockHidDevice> = {
   'sonix-feature': () => new sonixFeature.SonixFeatureSimulator().device,
   'by-tech': () => new byTech.ByTechSimulator().device,
   royuan: () => new royuan.RoyuanSimulator().device,
+  'aula-receiver': () => new aulaReceiver.AulaReceiverSimulator().device,
   'rk-classic': () =>
     new MockHidDevice({ vendorId: 0x258a, productId: 0x004a, productName: 'RK61RGB Wired' }, [
-      { info: { collections: [{ usagePage: 0x0001, usage: 0x0080, inputReports: [], outputReports: [], featureReports: [{ reportId: 0x0a, size: 64 }] }] }, behavior: { onFeatureSet: () => undefined } },
+      {
+        info: {
+          collections: [
+            {
+              usagePage: 0x0001,
+              usage: 0x0080,
+              inputReports: [],
+              outputReports: [],
+              featureReports: [{ reportId: 0x0a, size: 64 }],
+            },
+          ],
+        },
+        behavior: { onFeatureSet: () => undefined },
+      },
     ]),
   'sonix-aa55': () => new sonixAa55.SonixAa55Simulator().device,
   'qmk-via': () =>
@@ -72,7 +87,10 @@ const SAMPLES: Record<string, () => MockHidDevice> = {
     ),
   'crs-aa55cc33': () =>
     new MockHidDevice({ vendorId: 0x1a2c, productId: 0x8fff, productName: 'AK820 Max Plus' }, [
-      { info: { collections: [{ ...rawHid(0xff02, 1, 64), inputReports: [] }] }, behavior: { onOutput: () => undefined } },
+      {
+        info: { collections: [{ ...rawHid(0xff02, 1, 64), inputReports: [] }] },
+        behavior: { onOutput: () => undefined },
+      },
     ]),
 };
 
@@ -89,7 +107,12 @@ const registry = createDefaultRegistry();
 
 describe('adapter conformance', () => {
   it('every adapter has a sample device', () => {
-    expect(Object.keys(SAMPLES).sort()).toEqual(registry.list().map((p) => p.id).sort());
+    expect(Object.keys(SAMPLES).sort()).toEqual(
+      registry
+        .list()
+        .map((p) => p.id)
+        .sort(),
+    );
   });
 
   for (const def of [...registry.list(), ...registry.planned()]) {
@@ -124,7 +147,10 @@ describe('adapter conformance', () => {
 
     it(`${def.id}: never auto-probes an unrelated identity`, () => {
       if (def.id === 'qmk-via') return; // public-specification read on a reserved collection
-      const foreign = { ...SAMPLES[def.id]!().group(), identity: { vendorId: 0x1234, productId: 0x5678, productName: 'Unrelated' } };
+      const foreign = {
+        ...SAMPLES[def.id]!().group(),
+        identity: { vendorId: 0x1234, productId: 0x5678, productName: 'Unrelated' },
+      };
       expect(def.probePlan.autoConsent(foreign).auto).toBe(false);
     });
   }
@@ -135,14 +161,22 @@ describe('adapter conformance', () => {
     save.set([0x04, 0x02]);
     const start = new Uint8Array(64);
     start.set([0x04, 0x18]);
-    expect(checkProbeTraffic(def, [{ op: 'feature-set', reportId: 0, data: save }], 'handshake')).toHaveLength(1);
-    expect(checkProbeTraffic(def, [{ op: 'feature-set', reportId: 0, data: start }], 'passive')).toHaveLength(1);
-    expect(checkProbeTraffic(def, [{ op: 'feature-set', reportId: 0, data: start }], 'handshake')).toEqual([]);
+    expect(
+      checkProbeTraffic(def, [{ op: 'feature-set', reportId: 0, data: save }], 'handshake'),
+    ).toHaveLength(1);
+    expect(
+      checkProbeTraffic(def, [{ op: 'feature-set', reportId: 0, data: start }], 'passive'),
+    ).toHaveLength(1);
+    expect(
+      checkProbeTraffic(def, [{ op: 'feature-set', reportId: 0, data: start }], 'handshake'),
+    ).toEqual([]);
   });
 
   it('the registry refuses adapters written against another contract version', () => {
     const def = registry.get('qmk-via')!;
-    expect(() => new ProtocolRegistry().register({ ...def, apiVersion: 99 })).toThrow(/contract v99/);
+    expect(() => new ProtocolRegistry().register({ ...def, apiVersion: 99 })).toThrow(
+      /contract v99/,
+    );
     expect(() => new ProtocolRegistry().register({ ...def, id: 'Bad_Id' })).toThrow(/kebab-case/);
   });
 });

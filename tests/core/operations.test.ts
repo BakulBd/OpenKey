@@ -18,7 +18,9 @@ describe('operation lock', () => {
     const lock = new OperationLock((op) => seen.push(op));
     let release!: () => void;
     const first = lock.run(1, 'keymap', 'writing', () => new Promise<void>((r) => (release = r)));
-    await expect(lock.run(1, 'lighting', 'writing', async () => 'x')).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'BUSY');
+    await expect(lock.run(1, 'lighting', 'writing', async () => 'x')).rejects.toSatisfy(
+      (e) => isOpenKeyError(e) && e.code === 'BUSY',
+    );
     release();
     await first;
     expect(lock.current).toBeNull();
@@ -28,7 +30,9 @@ describe('operation lock', () => {
 
   it('releases on failure, so a failed write never leaves a permanent spinner', async () => {
     const lock = new OperationLock();
-    await expect(lock.run(1, 'x', 'writing', async () => Promise.reject(new Error('boom')))).rejects.toThrow('boom');
+    await expect(
+      lock.run(1, 'x', 'writing', async () => Promise.reject(new Error('boom'))),
+    ).rejects.toThrow('boom');
     expect(lock.current).toBeNull();
   });
 

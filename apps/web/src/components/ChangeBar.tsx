@@ -21,8 +21,14 @@ export function useChangeTracking(owner: string, features: FeatureId[], dirtyCou
     if (dirtyCount) setReverted(false);
   }, [owner, dirtyCount, setUnsaved]);
   useEffect(() => () => setUnsaved(owner, 0), [owner, setUnsaved]);
-  const mine = operation && operation.feature && features.includes(operation.feature) ? operation : null;
-  const status: ConfigStatus = configStatus({ dirty: dirtyCount > 0, phase: mine?.phase ?? null, lastOutcome: last, reverted });
+  const mine =
+    operation && operation.feature && features.includes(operation.feature) ? operation : null;
+  const status: ConfigStatus = configStatus({
+    dirty: dirtyCount > 0,
+    phase: mine?.phase ?? null,
+    lastOutcome: last,
+    reverted,
+  });
   /** Record a write result; undefined (declined, blocked, busy) leaves the previous state. */
   const record = useCallback((r: TxResult<unknown> | undefined) => {
     if (r && r.outcome !== 'REJECTED' && r.outcome !== 'NO_CHANGES') setLast(r.outcome);
@@ -83,26 +89,50 @@ export function ChangeBar({
   if (status === 'clean')
     return (
       <p className="cb-idle small muted" role="status">
-        <span className="cb-dot" aria-hidden="true" /> {t('config.clean')} · {verifies ? t('config.willVerify') : t('config.noVerify')}
+        <span className="cb-dot" aria-hidden="true" /> {t('config.clean')} ·{' '}
+        {verifies ? t('config.willVerify') : t('config.noVerify')}
       </p>
     );
   return (
     <div className={`changebar cb-${status}`} role="region" aria-label={t('config.region')}>
       <div className="cb-state">
-        {working ? <Spinner /> : icon ? <Icon name={icon} /> : <span className="cb-dot" aria-hidden="true" />}
+        {working ? (
+          <Spinner />
+        ) : icon ? (
+          <Icon name={icon} />
+        ) : (
+          <span className="cb-dot" aria-hidden="true" />
+        )}
         <div>
           <strong>{t(`config.${status}`, { n: count })}</strong>
           <div className="small muted">
-            {blockedReason ?? (status === 'failed' ? t('config.failedMore') : status === 'mismatch' ? t('config.mismatchMore') : verifies ? t('config.willVerify') : t('config.noVerify'))}
+            {blockedReason ??
+              (status === 'failed'
+                ? t('config.failedMore')
+                : status === 'mismatch'
+                  ? t('config.mismatchMore')
+                  : verifies
+                    ? t('config.willVerify')
+                    : t('config.noVerify'))}
           </div>
         </div>
       </div>
       <div className="cb-actions">
         {extra}
-        <button type="button" className="btn ghost" disabled={!count || working} onClick={onDiscard}>
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={!count || working}
+          onClick={onDiscard}
+        >
           {t('common.discard')}
         </button>
-        <button type="button" className="btn primary" disabled={!count || !canApply || busy || working} onClick={onApply}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={!count || !canApply || busy || working}
+          onClick={onApply}
+        >
           {applyLabel}
         </button>
       </div>

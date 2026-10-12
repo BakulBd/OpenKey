@@ -55,20 +55,28 @@ describe('capabilities', () => {
 
   it('defaults every capability to UNKNOWN', () => {
     const caps = emptyCapabilities();
-    expect(Object.values(caps).every((c) => c.status === FeatureStatus.UNKNOWN && !c.write)).toBe(true);
+    expect(Object.values(caps).every((c) => c.status === FeatureStatus.UNKNOWN && !c.write)).toBe(
+      true,
+    );
   });
 });
 
 describe('safety policy', () => {
   const real = { simulated: false, experimentalEnabled: false };
   it('allows verified safe writes', () => {
-    const s = configurable('device', true, Evidence.VERIFIED, { safety: SafetyLevel.SAFE_PERSISTENT });
+    const s = configurable('device', true, Evidence.VERIFIED, {
+      safety: SafetyLevel.SAFE_PERSISTENT,
+    });
     expect(writeDecision(s, real).kind).toBe('allowed');
   });
   it('allows hardware-verified writes of every assessed risk class; unassessed risk stays opt-in', () => {
     for (const safety of [SafetyLevel.CAUTION, SafetyLevel.HIGH_RISK])
-      expect(writeDecision(configurable('mirror', true, Evidence.VERIFIED, { safety }), real).kind).toBe('allowed');
-    expect(writeDecision(configurable('mirror', true, Evidence.VERIFIED), real).kind).toBe('experimental');
+      expect(
+        writeDecision(configurable('mirror', true, Evidence.VERIFIED, { safety }), real).kind,
+      ).toBe('allowed');
+    expect(writeDecision(configurable('mirror', true, Evidence.VERIFIED), real).kind).toBe(
+      'experimental',
+    );
   });
   it('makes unverified writes experimental (opt-in)', () => {
     const s = configurable('mirror', true, Evidence.OBSERVED, { safety: SafetyLevel.CAUTION });
@@ -79,7 +87,9 @@ describe('safety policy', () => {
   });
   it('blocks hypotheses and unsafe operations even with the opt-in', () => {
     const opt = { simulated: false, experimentalEnabled: true };
-    expect(writeDecision(configurable('none', true, Evidence.HYPOTHESIS), opt).kind).toBe('blocked');
+    expect(writeDecision(configurable('none', true, Evidence.HYPOTHESIS), opt).kind).toBe(
+      'blocked',
+    );
     expect(
       writeDecision(configurable('none', true, Evidence.VERIFIED, { safety: SafetyLevel.UNSAFE }), {
         simulated: true,
@@ -119,7 +129,14 @@ describe('transaction', () => {
   it('verifies by read-back', async () => {
     const r = await runTransaction(tx(), { v: 0 }, { v: 1 });
     expect(r.outcome).toBe('VERIFIED');
-    expect(r.steps.map((s) => s.phase)).toEqual(['validate', 'diff', 'apply', 'ack', 'readback', 'verify']);
+    expect(r.steps.map((s) => s.phase)).toEqual([
+      'validate',
+      'diff',
+      'apply',
+      'ack',
+      'readback',
+      'verify',
+    ]);
   });
 
   it('never claims verification without a device read-back', async () => {
@@ -130,14 +147,21 @@ describe('transaction', () => {
   });
 
   it('detects a read-back mismatch', async () => {
-    const r = await runTransaction(tx({ readbackFromDevice: async () => ({ v: 7 }) }), { v: 0 }, { v: 1 });
+    const r = await runTransaction(
+      tx({ readbackFromDevice: async () => ({ v: 7 }) }),
+      { v: 0 },
+      { v: 1 },
+    );
     expect(r.outcome).toBe('MISMATCH');
     expect(r.mismatches).toEqual([{ path: 'v', before: 1, after: 7 }]);
   });
 
   it('sends nothing on validation errors or when unchanged', async () => {
     let sent = false;
-    const t = tx({ apply: async () => void (sent = true), validate: (n) => (n.v > 5 ? ['too big'] : []) });
+    const t = tx({
+      apply: async () => void (sent = true),
+      validate: (n) => (n.v > 5 ? ['too big'] : []),
+    });
     expect((await runTransaction(t, { v: 0 }, { v: 9 })).outcome).toBe('REJECTED');
     expect((await runTransaction(t, { v: 1 }, { v: 1 })).outcome).toBe('NO_CHANGES');
     expect(sent).toBe(false);
@@ -193,7 +217,9 @@ describe('connection state machine', () => {
     const s = run(connectSupported);
     expect(s).toEqual({ status: 'READY', mode: 'supported' });
     expect(canApply(s)).toBe(true);
-    expect(run([{ type: 'APPLY' }, { type: 'APPLY_SENT', verify: true }], s).status).toBe('VERIFYING');
+    expect(run([{ type: 'APPLY' }, { type: 'APPLY_SENT', verify: true }], s).status).toBe(
+      'VERIFYING',
+    );
   });
 
   it('unknown devices skip reading and can never apply', () => {
@@ -233,7 +259,11 @@ describe('connection state machine', () => {
   });
 
   it('a recoverable error during apply returns to READY on reset', () => {
-    const s = run([...connectSupported, { type: 'APPLY' }, { type: 'FAIL', message: 'timeout', recoverable: true }]);
+    const s = run([
+      ...connectSupported,
+      { type: 'APPLY' },
+      { type: 'FAIL', message: 'timeout', recoverable: true },
+    ]);
     expect(s.status).toBe('ERROR');
     expect(transition(s, { type: 'RESET' }).status).toBe('READY');
   });
@@ -256,8 +286,20 @@ describe('cadence statistics', () => {
 describe('support bundle', () => {
   it('redacts the serial number unless opted in and lists exclusions', () => {
     const b = buildSupportBundle({
-      environment: { appVersion: '0.2.0', userAgent: 'x', platform: 'Linux', webHid: true, secureContext: true },
-      device: { vendorId: '0x0C45', productId: '0x8009', productName: 'AK820 MAX', serialNumber: 'SECRET', interfaces: [] },
+      environment: {
+        appVersion: '0.2.0',
+        userAgent: 'x',
+        platform: 'Linux',
+        webHid: true,
+        secureContext: true,
+      },
+      device: {
+        vendorId: '0x0C45',
+        productId: '0x8009',
+        productName: 'AK820 MAX',
+        serialNumber: 'SECRET',
+        interfaces: [],
+      },
       connectionState: 'READY',
       recentErrors: [{ at: 't', kind: 'TIMEOUT', title: 'x' }],
     });
@@ -269,10 +311,14 @@ describe('support bundle', () => {
 
 describe('error explanations', () => {
   it('maps WebHID DOMExceptions to actionable messages', () => {
-    const inUse = explainError(Object.assign(new Error('Failed to open the device.'), { name: 'InvalidStateError' }));
+    const inUse = explainError(
+      Object.assign(new Error('Failed to open the device.'), { name: 'InvalidStateError' }),
+    );
     expect(inUse.kind).toBe('DEVICE_IN_USE');
     expect(inUse.hint).toBeTruthy();
-    expect(explainError(Object.assign(new Error('x'), { name: 'NotAllowedError' })).kind).toBe('PERMISSION');
+    expect(explainError(Object.assign(new Error('x'), { name: 'NotAllowedError' })).kind).toBe(
+      'PERMISSION',
+    );
     expect(explainError(new Error('boom')).kind).toBe('UNEXPECTED');
   });
 });

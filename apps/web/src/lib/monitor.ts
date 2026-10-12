@@ -21,15 +21,28 @@ export async function startReportMonitor(
   const hid = (navigator as Navigator & { hid?: HID }).hid;
   if (!hid) return { stop: () => undefined, collections: 0 };
   const devices = (await hid.getDevices()).filter(
-    (d) => d.vendorId === identity.vendorId && d.productId === identity.productId && (d.collections ?? []).some((c) => isVendorPage(c.usagePage ?? 0) && (c.inputReports?.length ?? 0) > 0),
+    (d) =>
+      d.vendorId === identity.vendorId &&
+      d.productId === identity.productId &&
+      (d.collections ?? []).some(
+        (c) => isVendorPage(c.usagePage ?? 0) && (c.inputReports?.length ?? 0) > 0,
+      ),
   );
   const handlers: [HIDDevice, (e: HIDInputReportEvent) => void][] = [];
   for (const d of devices) {
     if (!d.opened) await d.open().catch(() => undefined);
     const page = d.collections?.find((c) => isVendorPage(c.usagePage ?? 0))?.usagePage ?? 0;
     const h = (e: HIDInputReportEvent) => {
-      const bytes = new Uint8Array(e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset + e.data.byteLength));
-      onReport({ at: performance.now(), reportId: e.reportId, usagePage: page, length: bytes.length, bytes });
+      const bytes = new Uint8Array(
+        e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset + e.data.byteLength),
+      );
+      onReport({
+        at: performance.now(),
+        reportId: e.reportId,
+        usagePage: page,
+        length: bytes.length,
+        bytes,
+      });
     };
     d.addEventListener('inputreport', h);
     handlers.push([d, h]);

@@ -95,7 +95,8 @@ export const sonixFeatureProbePlan: ProbePlan = {
       collection: 'FF13:0001',
       reportId: 0,
       payloadPrefix: '',
-      purpose: 'Read the feature report without sending anything (returns the echo of the last command).',
+      purpose:
+        'Read the feature report without sending anything (returns the echo of the last command).',
       effect: 'none',
       evidence: Evidence.VERIFIED,
     },
@@ -105,7 +106,8 @@ export const sonixFeatureProbePlan: ProbePlan = {
       collection: 'FF13:0001',
       reportId: 0,
       payloadPrefix: '04 18',
-      purpose: 'START: opens a session; the official driver sends it before every transaction. Writes nothing to flash.',
+      purpose:
+        'START: opens a session; the official driver sends it before every transaction. Writes nothing to flash.',
       effect: 'volatile',
       evidence: Evidence.VERIFIED,
     },
@@ -124,9 +126,15 @@ export const sonixFeatureProbePlan: ProbePlan = {
     const id = group.identity;
     const official =
       id.vendorId === SONIX_VID &&
-      OFFICIAL_IDENTITIES.some((o) => o.productId === id.productId && o.productName === id.productName.trim());
+      OFFICIAL_IDENTITIES.some(
+        (o) => o.productId === id.productId && o.productName === id.productName.trim(),
+      );
     return official
-      ? { auto: true, reason: 'the official AJAZZ driver sends START to this exact identity; verified on an AK820 MAX PLUS' }
+      ? {
+          auto: true,
+          reason:
+            'the official AJAZZ driver sends START to this exact identity; verified on an AK820 MAX PLUS',
+        }
       : { auto: false, reason: 'this identity is not in the official driver configuration' };
   },
 };
@@ -140,7 +148,8 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
   facts.knownModel = variant.known;
 
   const ctrlIface =
-    findInterface(ctx.group, isControl) ?? ctx.group.interfaces.find(pageOnly(CONTROL_USAGE_PAGE, CONTROL_USAGE));
+    findInterface(ctx.group, isControl) ??
+    ctx.group.interfaces.find(pageOnly(CONTROL_USAGE_PAGE, CONTROL_USAGE));
   if (!ctrlIface)
     return {
       status: 'fail',
@@ -150,7 +159,9 @@ async function probe(ctx: ProbeContext): Promise<ProbeResult> {
       facts,
     };
   const control = await ctx.open(ctrlIface);
-  const session = new SonixFeatureSession(control, null, { featureReportId: descriptorReportId(ctrlIface, 'featureReports') });
+  const session = new SonixFeatureSession(control, null, {
+    featureReportId: descriptorReportId(ctrlIface, 'featureReports'),
+  });
 
   // Step 1 – passive: GET_FEATURE returns the echo of the last command (zeros after power-up).
   const peek = await session.peek();
@@ -232,11 +243,33 @@ export const sonixFeatureProtocol: ProtocolDefinition = {
     safety:
       'Verified writes are offered after a confirmation; everything else needs the experimental opt-in. Most settings cannot be read back; OpenKey mirrors what it wrote. No firmware, bootloader or erase command exists in this adapter.',
     provenance: [
-      { source: 'hardware-verification', reference: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json', status: Evidence.VERIFIED },
-      { source: 'hardware-verification', reference: 'fixtures/rgb/ak820-max-plus-read-per-key-hw.json', status: Evidence.VERIFIED },
-      { source: 'hardware-verification', reference: 'fixtures/verification/ak820-max-plus-owner-test-hw.json', status: Evidence.VERIFIED },
-      { source: 'official-driver', reference: 'AJAZZ AK820 MAX&MAX PLUS driver V1.0.0.5 (docs/reverse-engineering/official-driver-analysis.md)', status: Evidence.OBSERVED },
-      { source: 'public-reverse-engineering', reference: 'VitalyArt/Aula-F75-Max-Driver (MIT): same command set on 0C45:800A, independent cross-check', status: Evidence.INFERRED },
+      {
+        source: 'hardware-verification',
+        reference: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json',
+        status: Evidence.VERIFIED,
+      },
+      {
+        source: 'hardware-verification',
+        reference: 'fixtures/rgb/ak820-max-plus-read-per-key-hw.json',
+        status: Evidence.VERIFIED,
+      },
+      {
+        source: 'hardware-verification',
+        reference: 'fixtures/verification/ak820-max-plus-owner-test-hw.json',
+        status: Evidence.VERIFIED,
+      },
+      {
+        source: 'official-driver',
+        reference:
+          'AJAZZ AK820 MAX&MAX PLUS driver V1.0.0.5 (docs/reverse-engineering/official-driver-analysis.md)',
+        status: Evidence.OBSERVED,
+      },
+      {
+        source: 'public-reverse-engineering',
+        reference:
+          'VitalyArt/Aula-F75-Max-Driver (MIT): same command set on 0C45:800A, independent cross-check',
+        status: Evidence.INFERRED,
+      },
     ],
     license: 'MIT',
     limitations: [
@@ -258,8 +291,10 @@ export const sonixFeatureProtocol: ProtocolDefinition = {
         productName: 'AK820 MAX',
         release: 0x0107,
         transport: 'usb',
-        scope: 'descriptors, START handshake, per-key colour read; keymap, Fn layer, macros, lighting, per-key, screen image and GIF, clock and settings writes',
-        evidence: 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json, fixtures/verification/ak820-max-plus-owner-test-hw.json',
+        scope:
+          'descriptors, START handshake, per-key colour read; keymap, Fn layer, macros, lighting, per-key, screen image and GIF, clock and settings writes',
+        evidence:
+          'fixtures/device-info/ak820-max-plus-start-handshake-hw.json, fixtures/verification/ak820-max-plus-owner-test-hw.json',
       },
     ],
   },

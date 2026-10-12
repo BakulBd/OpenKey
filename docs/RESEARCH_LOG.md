@@ -84,7 +84,7 @@ Test unit: AJAZZ AK820 MAX PLUS TFT, USB `0C45:8009` "AK820 MAX" (SONiX), bcdDev
 
 ### 2026-10-08 — Acknowledgements must echo their command
 
-- **Evidence:** every acknowledgement captured on hardware echoes its command (`04 18 00 01`, `04 F5 … 01`, `04 02 00 01`); a passive read returns the echo of the *previous* command.
+- **Evidence:** every acknowledgement captured on hardware echoes its command (`04 18 00 01`, `04 F5 … 01`, `04 02 00 01`); a passive read returns the echo of the _previous_ command.
 - **Interpretation:** an answer with status `01` that does not echo the current command may be a stale echo, so it is not accepted as an acknowledgement. Found by fault-injection tests (`tests/transport/mock-faults.test.ts`): a corrupted command byte was previously accepted.
 - **Evidence status:** decision based on VERIFIED observations; fails safe (refuses) if a command acknowledges without echo.
 
@@ -110,14 +110,14 @@ Test unit: AJAZZ AK820 MAX PLUS TFT, USB `0C45:8009` "AK820 MAX" (SONiX), bcdDev
 
 ## Open questions (need hardware with consent)
 
-| Question                                        | Proposed experiment                              | Status                 |
-| ----------------------------------------------- | ------------------------------------------------ | ---------------------- |
-| Do lighting writes behave as traced?            | experiments 02–05 via OpenKey on the test unit | waiting for consent    |
-| Direction code mapping                          | Scrolling effect, each direction                 | waiting                |
-| Macro mode byte for "repeat"/"toggle"           | assign macro with each mode, observe             | waiting                |
-| Keymap write/reset                              | experiments 06–08                                | waiting                |
-| `04 27`: Fn-layer table or lighting reset?       | write an Fn-layer remap, observe Fn behaviour and lighting | waiting        |
-| Per-key write path                              | `openkey verify per-key --experimental`          | tool ready, waiting    |
-| TFT upload/animation timing                     | experiments 11–14                                | waiting                |
-| What the 2.4 GHz receiver exposes               | plug in receiver, `pnpm inspect`                 | receiver not connected |
-| Whether Bluetooth exposes any vendor collection | pair, `pnpm inspect --all`                       | not yet observed       |
+| Question                                        | Proposed experiment                                        | Status                 |
+| ----------------------------------------------- | ---------------------------------------------------------- | ---------------------- |
+| Do lighting writes behave as traced?            | experiments 02–05 via OpenKey on the test unit             | waiting for consent    |
+| Direction code mapping                          | Scrolling effect, each direction                           | waiting                |
+| Macro mode byte for "repeat"/"toggle"           | assign macro with each mode, observe                       | waiting                |
+| Keymap write/reset                              | experiments 06–08                                          | waiting                |
+| `04 27`: Fn-layer table or lighting reset?      | write an Fn-layer remap, observe Fn behaviour and lighting | waiting                |
+| Per-key write path                              | `openkey verify per-key --experimental`                    | tool ready, waiting    |
+| TFT upload/animation timing                     | experiments 11–14                                          | waiting                |
+| What the 2.4 GHz receiver exposes               | plug in receiver, `pnpm inspect`                           | receiver not connected |
+| Whether Bluetooth exposes any vendor collection | pair, `pnpm inspect --all`                                 | not yet observed       |

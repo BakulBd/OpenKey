@@ -6,15 +6,15 @@ Checked 2026-10-11 against `pnpm-lock.yaml` and the installed packages.
 
 ## 1. Dependencies
 
-| Package | Version (installed) | Licence | Shipped in | Use |
-| ------- | ------------------- | ------- | ---------- | --- |
-| react, react-dom (+ scheduler) | 19.3.0 | MIT | web app | UI |
-| gifuct-js | 2.1.2 | MIT | web app (screen studio chunk) | GIF decoding |
-| js-binary-schema-parser | 2.0.3 | MIT | web app (via gifuct-js) | GIF parsing |
-| node-hid | 3.4.0 | MIT OR X11 | CLI only | Linux hidraw |
-| pngjs | 7.0.0 | MIT | CLI only | image input |
-| jpeg-js | 0.4.4 | BSD-3-Clause | CLI only | image input (notice required when redistributed) |
-| vite, @vitejs/plugin-react, TypeScript, Vitest, ESLint, typescript-eslint, Prettier, tsx, esbuild, playwright-core | lockfile | MIT / Apache-2.0 | development only | build and tests (not distributed) |
+| Package                                                                                                            | Version (installed) | Licence          | Shipped in                    | Use                                              |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------- | ---------------- | ----------------------------- | ------------------------------------------------ |
+| react, react-dom (+ scheduler)                                                                                     | 19.3.0              | MIT              | web app                       | UI                                               |
+| gifuct-js                                                                                                          | 2.1.2               | MIT              | web app (screen studio chunk) | GIF decoding                                     |
+| js-binary-schema-parser                                                                                            | 2.0.3               | MIT              | web app (via gifuct-js)       | GIF parsing                                      |
+| node-hid                                                                                                           | 3.4.0               | MIT OR X11       | CLI only                      | Linux hidraw                                     |
+| pngjs                                                                                                              | 7.0.0               | MIT              | CLI only                      | image input                                      |
+| jpeg-js                                                                                                            | 0.4.4               | BSD-3-Clause     | CLI only                      | image input (notice required when redistributed) |
+| vite, @vitejs/plugin-react, TypeScript, Vitest, ESLint, typescript-eslint, Prettier, tsx, esbuild, playwright-core | lockfile            | MIT / Apache-2.0 | development only              | build and tests (not distributed)                |
 
 No dependency was added in this upgrade.
 
@@ -25,16 +25,16 @@ documentation text from another keyboard project is included.** Where an impleme
 project's findings, the finding is cited as a fact in `manifest.provenance`, the protocol ledger or the
 docs, and expressed independently.
 
-| Area | Facts learned from | Their licence | What OpenKey took |
-| ---- | ------------------ | ------------- | ----------------- |
-| `sonix-feature` | AJAZZ official Windows driver V1.0.0.5 (static analysis) | proprietary | interoperability facts (command codes, layouts, timing); no binary, asset, config file or text |
-| `sonix-feature`, `sonix-dongle` cross-check | VitalyArt/Aula-F75-Max-Driver | MIT | facts only (identity, page usage, command sequence); cited in the ledger. MIT would permit code reuse with attribution; none was needed |
-| `sonix-aa55` | AJAZZ online driver; wsclx/ak820pro-modder | proprietary; see public-research.md | facts only |
-| `crs-aa55cc33` | armoredvortex/ajazz-ak820-max-plus, arafatamim/OpenRGBAK820Plugin | see public-research.md | facts only |
-| planned `royuan` | Sharkfin `docs/PROTOCOL.md` | GPL-3.0-or-later | facts only (signature) |
-| planned `aula-sinowealth` | cloudglides, not-ayan | **no licence** | facts only (signature) |
-| planned `vial`, `qmk-via` | QMK raw HID / VIA documentation | GPL-2.0+ (QMK), GPL-3.0 (VIA app) | facts only |
-| design ideas (identification before writes, evidence marks, read-only contribution bundles, read-back verification) | Sharkfin, Micro 2 configurator, Vial | GPL-3.0, none, GPL-2.0 | ideas, independently designed (ideas are not copyrightable) |
+| Area                                                                                                                | Facts learned from                                                | Their licence                       | What OpenKey took                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `sonix-feature`                                                                                                     | AJAZZ official Windows driver V1.0.0.5 (static analysis)          | proprietary                         | interoperability facts (command codes, layouts, timing); no binary, asset, config file or text                                          |
+| `sonix-feature`, `sonix-dongle` cross-check                                                                         | VitalyArt/Aula-F75-Max-Driver                                     | MIT                                 | facts only (identity, page usage, command sequence); cited in the ledger. MIT would permit code reuse with attribution; none was needed |
+| `sonix-aa55`                                                                                                        | AJAZZ online driver; wsclx/ak820pro-modder                        | proprietary; see public-research.md | facts only                                                                                                                              |
+| `crs-aa55cc33`                                                                                                      | armoredvortex/ajazz-ak820-max-plus, arafatamim/OpenRGBAK820Plugin | see public-research.md              | facts only                                                                                                                              |
+| planned `royuan`                                                                                                    | Sharkfin `docs/PROTOCOL.md`                                       | GPL-3.0-or-later                    | facts only (signature)                                                                                                                  |
+| planned `aula-sinowealth`                                                                                           | cloudglides, not-ayan                                             | **no licence**                      | facts only (signature)                                                                                                                  |
+| planned `vial`, `qmk-via`                                                                                           | QMK raw HID / VIA documentation                                   | GPL-2.0+ (QMK), GPL-3.0 (VIA app)   | facts only                                                                                                                              |
+| design ideas (identification before writes, evidence marks, read-only contribution bundles, read-back verification) | Sharkfin, Micro 2 configurator, Vial                              | GPL-3.0, none, GPL-2.0              | ideas, independently designed (ideas are not copyrightable)                                                                             |
 
 ## 3. GPL and unlicensed sources
 
@@ -56,7 +56,7 @@ never inside the MIT packages. None exists.
 Every adapter declares the licence of its own code in `manifest.license` (all `MIT` today); the
 conformance kit rejects an adapter without one. A community adapter under another licence would have to
 be distributed separately; it cannot be merged into the MIT packages. A permissively licensed main
-application does not make an adapter's *sources* permissively licensed: their status is recorded per
+application does not make an adapter's _sources_ permissively licensed: their status is recorded per
 adapter in `manifest.provenance`.
 
 ## 5. Vendor material

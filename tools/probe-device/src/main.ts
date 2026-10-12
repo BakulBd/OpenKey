@@ -3,15 +3,13 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { MemoryStateStore, PacketLog, explainError, formatBcd, hex16 } from '@openkey/core';
 import { enumerateLinux } from '@openkey/hid-node';
-import {
-  connectKeyboard,
-  createDefaultRegistry,
-  formatDetectionReport,
-} from '@openkey/protocols';
+import { connectKeyboard, createDefaultRegistry, formatDetectionReport } from '@openkey/protocols';
 import type { ProbeLevel } from '@openkey/protocols';
 
 if (process.platform !== 'linux') {
-  console.error('This tool reads Linux sysfs. On macOS and Windows use "pnpm openkey list" / "pnpm openkey detect" instead.');
+  console.error(
+    'This tool reads Linux sysfs. On macOS and Windows use "pnpm openkey list" / "pnpm openkey detect" instead.',
+  );
   process.exit(1);
 }
 

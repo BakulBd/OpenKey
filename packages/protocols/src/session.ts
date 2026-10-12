@@ -38,7 +38,11 @@ export async function connectKeyboard(
 ): Promise<ConnectedKeyboard> {
   const log = opts.log ?? new PacketLog();
   const consent = [...(opts.consent ?? []), ...(opts.protocolId ? [opts.protocolId] : [])];
-  const detection = await opts.registry.detect(group, { level: opts.level ?? 'handshake', log, consent });
+  const detection = await opts.registry.detect(group, {
+    level: opts.level ?? 'handshake',
+    log,
+    consent,
+  });
   return openDriver(group, detection, { ...opts, log });
 }
 

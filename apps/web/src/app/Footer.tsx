@@ -28,13 +28,28 @@ export function Footer({ compact = false }: { compact?: boolean }) {
         <a className="btn small" href={REPO_URL} target="_blank" rel="noopener noreferrer">
           <Icon name="github" /> {t('footer.star')}
         </a>
-        <a className="btn ghost small" href={CONTRIBUTE_KEYBOARD_URL} target="_blank" rel="noopener noreferrer">
+        <a
+          className="btn ghost small"
+          href={CONTRIBUTE_KEYBOARD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {t('footer.contribute')}
         </a>
-        <a className="btn ghost small" href={`${ISSUES_URL}?labels=bug`} target="_blank" rel="noopener noreferrer">
+        <a
+          className="btn ghost small"
+          href={`${ISSUES_URL}?labels=bug`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {t('footer.bug')}
         </a>
-        <a className="btn ghost small" href={`${ISSUES_URL}?labels=device-support`} target="_blank" rel="noopener noreferrer">
+        <a
+          className="btn ghost small"
+          href={`${ISSUES_URL}?labels=device-support`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {t('footer.request')}
         </a>
       </div>

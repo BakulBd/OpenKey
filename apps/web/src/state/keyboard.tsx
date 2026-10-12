@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import {
   INITIAL_CONNECTION,
@@ -31,7 +40,12 @@ import type {
 import { CATALOG } from '@openkey/devices/catalog';
 import { WebHidBackend, webHidSupport } from '@openkey/hid';
 import type { HidDeviceGroup, WebHidSupport } from '@openkey/hid';
-import type { AdapterManifest, DetectionReport, DetectionVerdict, DeviceFingerprint } from '@openkey/protocols';
+import type {
+  AdapterManifest,
+  DetectionReport,
+  DetectionVerdict,
+  DeviceFingerprint,
+} from '@openkey/protocols';
 import { IdbStateStore } from './db.js';
 import { summarize } from './status.js';
 import { currentOs } from '../lib/platform.js';
@@ -81,7 +95,11 @@ export interface UnknownSession extends SessionBase {
 
 /** Reports sent to the device; reads and descriptor access are not counted. */
 function countSent(log: PacketLog): number {
-  return log.all().filter((p) => p.direction === 'host->device' && (p.kind === 'output' || p.kind === 'feature-set')).length;
+  return log
+    .all()
+    .filter(
+      (p) => p.direction === 'host->device' && (p.kind === 'output' || p.kind === 'feature-set'),
+    ).length;
 }
 
 export type Session = DeviceSession | UnknownSession;
@@ -128,7 +146,9 @@ export interface AccessProblem {
  * report. Returns the error message when the OS refuses access, null otherwise.
  */
 async function openDenied(group: HidDeviceGroup): Promise<string | null> {
-  const iface = group.interfaces.find((i) => i.collections.some((c) => c.usagePage >= 0xff00)) ?? group.interfaces[0];
+  const iface =
+    group.interfaces.find((i) => i.collections.some((c) => c.usagePage >= 0xff00)) ??
+    group.interfaces[0];
   if (!iface) return null;
   try {
     const t = await group.openInterface(iface);
@@ -200,7 +220,11 @@ interface Ctx {
   reconnect(): Promise<void>;
   disconnect(): Promise<void>;
   /** Runs a read with error reporting. Answers for a previous session are discarded (undefined). */
-  read<T>(label: string, fn: (d: KeyboardDriver) => Promise<T>, opts?: { quiet?: boolean }): Promise<T | undefined>;
+  read<T>(
+    label: string,
+    fn: (d: KeyboardDriver) => Promise<T>,
+    opts?: { quiet?: boolean },
+  ): Promise<T | undefined>;
   /** Write gate for a feature: what the safety policy allows right now. */
   gate(feature: FeatureId): WriteGate;
   /**
@@ -208,7 +232,12 @@ interface Ctx {
    * transaction result, or undefined when the user declined, the policy blocked it, another
    * operation was running, or the device went away.
    */
-  apply<T>(feature: FeatureId, tx: Transaction<T>, previous: T | undefined, next: T): Promise<TxResult<T> | undefined>;
+  apply<T>(
+    feature: FeatureId,
+    tx: Transaction<T>,
+    previous: T | undefined,
+    next: T,
+  ): Promise<TxResult<T> | undefined>;
   /** Safety gate only (policy + confirmation); for multi-section writes such as a restore. */
   confirmWrite(feature: FeatureId, label: string): Promise<boolean>;
   /** Runs a confirmed multi-step write while the connection is in the APPLYING state. */
@@ -243,7 +272,13 @@ function reducer(s: ConnectionState, e: ConnectionEvent): ConnectionState {
   });
 }
 
-export function KeyboardProvider({ children, messages }: { children: ReactNode; messages: ProviderMessages }) {
+export function KeyboardProvider({
+  children,
+  messages,
+}: {
+  children: ReactNode;
+  messages: ProviderMessages;
+}) {
   const support = useMemo(() => webHidSupport(), []);
   const store = useMemo(() => new IdbStateStore(), []);
   const [conn, dispatch] = useReducer(reducer, INITIAL_CONNECTION);
@@ -273,7 +308,8 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
   const notify = useCallback((n: Omit<Notice, 'id'>) => {
     const id = ++noticeId;
     setNotices((xs) => [...xs.slice(-3), { ...n, id }]);
-    if (n.kind === 'ok' || n.kind === 'info') setTimeout(() => setNotices((xs) => xs.filter((x) => x.id !== id)), 6000);
+    if (n.kind === 'ok' || n.kind === 'info')
+      setTimeout(() => setNotices((xs) => xs.filter((x) => x.id !== id)), 6000);
   }, []);
 
   const explainNotice = useCallback(
@@ -290,7 +326,10 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
   const reportError = useCallback(
     (label: string, e: unknown): ErrorExplanation => {
       const x = explainError(e);
-      setRecentErrors((xs) => [...xs.slice(-19), { at: new Date().toISOString(), kind: x.kind, title: x.title }]);
+      setRecentErrors((xs) => [
+        ...xs.slice(-19),
+        { at: new Date().toISOString(), kind: x.kind, title: x.title },
+      ]);
       notify(explainNotice(label, x));
       return x;
     },
@@ -312,7 +351,9 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     if (!support.available) return;
     try {
       const groups = await new WebHidBackend().granted();
-      setAuthorized(groups.map((g) => ({ key: g.key, ...g.identity, interfaces: g.interfaces.length })));
+      setAuthorized(
+        groups.map((g) => ({ key: g.key, ...g.identity, interfaces: g.interfaces.length })),
+      );
     } catch {
       setAuthorized([]);
     }
@@ -322,30 +363,54 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
   const noteAccess = useCallback((group: HidDeviceGroup, detail: string) => {
     const os = currentOs();
     const { productName: name, vendorId, productId } = group.identity;
-    setAccessProblem({ os, kind: os === 'linux' ? 'permission' : 'busy', device: { key: group.key, name, vendorId, productId }, detail });
+    setAccessProblem({
+      os,
+      kind: os === 'linux' ? 'permission' : 'busy',
+      device: { key: group.key, name, vendorId, productId },
+      detail,
+    });
   }, []);
 
   const attach = useCallback(
     async (
       group: HidDeviceGroup,
       demo: boolean,
-      { consent = [], log = new PacketLog(), reidentify = false }: { consent?: string[]; log?: PacketLog; reidentify?: boolean } = {},
+      {
+        consent = [],
+        log = new PacketLog(),
+        reidentify = false,
+      }: { consent?: string[]; log?: PacketLog; reidentify?: boolean } = {},
     ): Promise<boolean> => {
       const my = epoch.current.next();
       const stale = () => !epoch.current.isCurrent(my);
       // The protocol stack is loaded on the first connection, not with the landing page.
-      const { buildFingerprint, createDefaultRegistry, detectionVerdict, openDriver } = await import('@openkey/protocols');
+      const { buildFingerprint, createDefaultRegistry, detectionVerdict, openDriver } =
+        await import('@openkey/protocols');
       const registry = createDefaultRegistry();
       if (!reidentify) {
         dispatch({ type: 'OPENED' });
         dispatch({ type: 'INSPECTED' });
       }
       let detection: DetectionReport | undefined;
-      const unknown = (d: DetectionReport, verdict: DetectionVerdict, reason?: ErrorExplanation): boolean => {
+      const unknown = (
+        d: DetectionReport,
+        verdict: DetectionVerdict,
+        reason?: ErrorExplanation,
+      ): boolean => {
         if (stale()) return false;
         // Unknown-device mode: no driver exists, so nothing can be written from here on.
         setAccessProblem(null);
-        setSession({ id: my, kind: 'unknown', detection: d, fingerprint: buildFingerprint(d), verdict, group, log, sentReports: countSent(log), ...(reason ? { reason } : {}) });
+        setSession({
+          id: my,
+          kind: 'unknown',
+          detection: d,
+          fingerprint: buildFingerprint(d),
+          verdict,
+          group,
+          log,
+          sentReports: countSent(log),
+          ...(reason ? { reason } : {}),
+        });
         dispatch({ type: 'DETECTED', mode: 'unknown' });
         return true;
       };
@@ -355,9 +420,17 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
         if (stale()) return false;
         // Every matching adapter failed to *open* the device: that is a permission or busy problem,
         // not a protocol answer. End the attempt and show the fix instead of a misleading verdict.
-        const probed = detection.candidates.filter((c) => c.match.applicable && c.probe && c.probe.status !== 'skipped');
+        const probed = detection.candidates.filter(
+          (c) => c.match.applicable && c.probe && c.probe.status !== 'skipped',
+        );
         let denied =
-          !demo && probed.length && probed.every((c) => c.probe!.status === 'error' && isAccessFailure(c.probe!.facts.errorCode, c.probe!.summary))
+          !demo &&
+          probed.length &&
+          probed.every(
+            (c) =>
+              c.probe!.status === 'error' &&
+              isAccessFailure(c.probe!.facts.errorCode, c.probe!.summary),
+          )
             ? probed[0]!.probe!.summary
             : null;
         // No probe opened the device (it waits for consent, or nothing matched): check that the OS
@@ -374,10 +447,21 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
         const verdict = detectionVerdict(detection, registry);
         // Only a verdict whose family was identified by the device may open a driver.
         if (!verdict.writeEligible) return unknown(detection, verdict);
-        const opened = await openDriver(group, detection, { registry, log, store, allowExperimental: experimental });
+        const opened = await openDriver(group, detection, {
+          registry,
+          log,
+          store,
+          allowExperimental: experimental,
+        });
         // Defence in depth: the UI gates writes too, but the driver itself refuses anything the
         // policy would not allow, with the opt-in read live from the current session state.
-        const res = { ...opened, driver: guardWrites(opened.driver, () => ({ simulated: demo, experimentalEnabled: experimentalRef.current })) };
+        const res = {
+          ...opened,
+          driver: guardWrites(opened.driver, () => ({
+            simulated: demo,
+            experimentalEnabled: experimentalRef.current,
+          })),
+        };
         if (stale()) {
           await res.driver.disconnect().catch(() => undefined);
           return false;
@@ -409,8 +493,13 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
         return true;
       } catch (e) {
         if (stale()) return false;
-        if (!demo && isOpenKeyError(e) && isAccessFailure(e.code, e.message)) noteAccess(group, e.message);
-        if (detection && isOpenKeyError(e) && (e.code === 'UNSUPPORTED_DEVICE' || e.code === 'UNSUPPORTED_PROTOCOL'))
+        if (!demo && isOpenKeyError(e) && isAccessFailure(e.code, e.message))
+          noteAccess(group, e.message);
+        if (
+          detection &&
+          isOpenKeyError(e) &&
+          (e.code === 'UNSUPPORTED_DEVICE' || e.code === 'UNSUPPORTED_PROTOCOL')
+        )
           return unknown(detection, detectionVerdict(detection, registry), explainError(e));
         reportError(messages.connectLabel, e);
         dispatch({ type: 'FAIL', message: explainError(e).title, recoverable: false });
@@ -440,7 +529,11 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     const protocolId = s.detection.selected?.protocolId;
     await s.driver.disconnect().catch(() => undefined);
     dispatch({ type: 'REIDENTIFY' });
-    await attach(s.group, s.demo, { consent: protocolId ? [protocolId] : [], log: s.log, reidentify: true });
+    await attach(s.group, s.demo, {
+      consent: protocolId ? [protocolId] : [],
+      log: s.log,
+      reidentify: true,
+    });
   }, [attach, lock]);
 
   const request = useCallback(
@@ -451,7 +544,11 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
         const groups = await new WebHidBackend().request(filters);
         if (groups.length === 0) {
           dispatch({ type: 'PERMISSION_DENIED', message: 'no device selected' });
-          notify({ kind: 'info', title: messages.noDeviceSelected, hint: currentOs() === 'linux' ? messages.notListedLinux : messages.noDeviceSelectedHint });
+          notify({
+            kind: 'info',
+            title: messages.noDeviceSelected,
+            hint: currentOs() === 'linux' ? messages.notListedLinux : messages.noDeviceSelectedHint,
+          });
           return;
         }
         dispatch({ type: 'PERMISSION_GRANTED' });
@@ -505,12 +602,21 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     async (kind: DemoKind = 'ak820') => {
       dispatch({ type: 'OPEN_DEMO' });
       const { sonixFeature, byTech, via } = await import('@openkey/protocols');
-      if (kind === 'ak820') return void (await attach(new sonixFeature.SonixFeatureSimulator().device.group(), true));
+      if (kind === 'ak820')
+        return void (await attach(new sonixFeature.SonixFeatureSimulator().device.group(), true));
       if (kind === 'via') return void (await attach(new via.ViaSimulator().device.group(), true));
       const sim =
         kind === 'aula-f75'
           ? new byTech.ByTechSimulator()
-          : new byTech.ByTechSimulator({ identity: { vendorId: 0x258a, productId: 0x015e, productName: 'Gaming Keyboard', manufacturer: 'BY Tech' }, modelCode: byTech.R75_IDENTITY });
+          : new byTech.ByTechSimulator({
+              identity: {
+                vendorId: 0x258a,
+                productId: 0x015e,
+                productName: 'Gaming Keyboard',
+                manufacturer: 'BY Tech',
+              },
+              modelCode: byTech.R75_IDENTITY,
+            });
       // A simulator cannot be harmed, so its identification read needs no consent.
       await attach(sim.device.group(), true, { consent: ['by-tech'] });
     },
@@ -533,13 +639,23 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     const offUnplug = backend.onDisconnect((d) => {
       void refreshAuthorized();
       const s = sessionRef.current;
-      if (s && !(s.kind === 'device' && s.demo) && s.group.identity.vendorId === d.vendorId && s.group.identity.productId === d.productId) {
+      if (
+        s &&
+        !(s.kind === 'device' && s.demo) &&
+        s.group.identity.vendorId === d.vendorId &&
+        s.group.identity.productId === d.productId
+      ) {
         const running = lock.current;
         endSession();
         dispatch({ type: 'LOST', reason: 'unplugged' });
         notify(
           running
-            ? { kind: 'error', title: messages.lostDuring(running.label), reason: messages.lostDuringReason, hint: messages.disconnectedHint }
+            ? {
+                kind: 'error',
+                title: messages.lostDuring(running.label),
+                reason: messages.lostDuringReason,
+                hint: messages.disconnectedHint,
+              }
             : { kind: 'warn', title: messages.disconnected, hint: messages.disconnectedHint },
         );
       }
@@ -547,7 +663,11 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
     const offPlug = backend.onConnect(() => {
       void refreshAuthorized();
       if (sessionRef.current) return;
-      notify({ kind: 'info', title: messages.replugged, action: { label: messages.connectLabel, run: () => void connect() } });
+      notify({
+        kind: 'info',
+        title: messages.replugged,
+        action: { label: messages.connectLabel, run: () => void connect() },
+      });
     });
     return () => {
       offUnplug();
@@ -584,7 +704,8 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
         return epoch.current.isCurrent(my) ? value : undefined;
       } catch (e) {
         if (!epoch.current.isCurrent(my)) return undefined;
-        if (!opts.quiet || !(isOpenKeyError(e) && e.code === 'UNSUPPORTED_FEATURE')) reportError(label, e);
+        if (!opts.quiet || !(isOpenKeyError(e) && e.code === 'UNSUPPORTED_FEATURE'))
+          reportError(label, e);
         if (isOpenKeyError(e) && e.code === 'TRANSPORT') {
           endSession();
           dispatch({ type: 'LOST', reason: 'transport error' });
@@ -596,14 +717,18 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
   );
 
   const safetyCtx = useCallback(
-    () => ({ simulated: sessionRef.current?.kind === 'device' && sessionRef.current.demo, experimentalEnabled: experimental }),
+    () => ({
+      simulated: sessionRef.current?.kind === 'device' && sessionRef.current.demo,
+      experimentalEnabled: experimental,
+    }),
     [experimental],
   );
 
   const gate = useCallback<Ctx['gate']>(
     (feature) => {
       const s = sessionRef.current;
-      if (s?.kind !== 'device') return { decision: { kind: 'blocked', reason: messages.noDevice }, allowed: false };
+      if (s?.kind !== 'device')
+        return { decision: { kind: 'blocked', reason: messages.noDevice }, allowed: false };
       const decision = writeDecision(s.caps[feature], safetyCtx());
       return { decision, allowed: mayWrite(decision, safetyCtx()) };
     },
@@ -625,13 +750,22 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
       const ctx = safetyCtx();
       const decision = writeDecision(support, ctx);
       if (decision.kind === 'blocked') {
-        notify({ kind: 'error', title: messages.blocked(label), reason: decision.reason, hint: messages.blockedHint });
+        notify({
+          kind: 'error',
+          title: messages.blocked(label),
+          reason: decision.reason,
+          hint: messages.blockedHint,
+        });
         return false;
       }
       const safety = support.safety ?? SafetyLevel.UNVERIFIED;
       // Ask when the opt-in is missing, once per feature per session, and every time for
       // high-risk operations. Simulated devices never ask.
-      const needsAsk = !ctx.simulated && (!mayWrite(decision, ctx) || !confirmed.current.has(feature) || safety === SafetyLevel.HIGH_RISK);
+      const needsAsk =
+        !ctx.simulated &&
+        (!mayWrite(decision, ctx) ||
+          !confirmed.current.has(feature) ||
+          safety === SafetyLevel.HIGH_RISK);
       if (needsAsk) {
         // For experimental writes the dialog only confirms after the user enabled the opt-in.
         if (!(await ask(feature, label, decision, safety))) return false;
@@ -704,7 +838,11 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
         });
         // The device went away mid-write: the result belongs to a session that no longer exists.
         if (!epoch.current.isCurrent(op.epoch)) return undefined;
-        const verifying = !!tx.readbackFromDevice && result.outcome !== 'FAILED' && result.outcome !== 'REJECTED' && result.outcome !== 'NO_CHANGES';
+        const verifying =
+          !!tx.readbackFromDevice &&
+          result.outcome !== 'FAILED' &&
+          result.outcome !== 'REJECTED' &&
+          result.outcome !== 'NO_CHANGES';
         dispatch({ type: 'APPLY_SENT', verify: verifying });
         if (verifying) dispatch({ type: 'VERIFY_DONE' });
         if (result.outcome === 'FAILED') {
@@ -715,11 +853,24 @@ export function KeyboardProvider({ children, messages }: { children: ReactNode; 
             hint: messages.failedHint,
             ...(result.error ? { detail: `${result.error.title}: ${result.error.detail}` } : {}),
           });
-          if (result.error) setRecentErrors((xs) => [...xs.slice(-19), { at: new Date().toISOString(), kind: 'WRITE_FAILED', title: result.error!.title }]);
+          if (result.error)
+            setRecentErrors((xs) => [
+              ...xs.slice(-19),
+              { at: new Date().toISOString(), kind: 'WRITE_FAILED', title: result.error!.title },
+            ]);
         } else if (result.outcome === 'MISMATCH') {
-          notify({ kind: 'error', title: messages.txOutcome(tx.label, result.outcome), hint: messages.mismatchHint });
+          notify({
+            kind: 'error',
+            title: messages.txOutcome(tx.label, result.outcome),
+            hint: messages.mismatchHint,
+          });
         }
-        if (result.outcome === 'VERIFIED' || result.outcome === 'SENT_UNVERIFIED' || result.outcome === 'MISMATCH') setRevision((n) => n + 1);
+        if (
+          result.outcome === 'VERIFIED' ||
+          result.outcome === 'SENT_UNVERIFIED' ||
+          result.outcome === 'MISMATCH'
+        )
+          setRevision((n) => n + 1);
         // Successful outcomes are shown persistently by the editor's change bar, not only as a toast.
         return result;
       } finally {

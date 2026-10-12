@@ -1,9 +1,20 @@
 import { createInterface } from 'node:readline/promises';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { DeviceNotFoundError, PacketLog, formatPacket, guardWrites, isDebugEnabled } from '@openkey/core';
+import {
+  DeviceNotFoundError,
+  PacketLog,
+  formatPacket,
+  guardWrites,
+  isDebugEnabled,
+} from '@openkey/core';
 import type { KeyboardDriver, StateStore } from '@openkey/core';
-import { FileStateStore, defaultStateDir, enumerateLinux, enumerateNodeHid } from '@openkey/hid-node';
+import {
+  FileStateStore,
+  defaultStateDir,
+  enumerateLinux,
+  enumerateNodeHid,
+} from '@openkey/hid-node';
 import type { HidDeviceGroup } from '@openkey/hid';
 import { connectKeyboard, createDefaultRegistry } from '@openkey/protocols';
 import type { DetectionReport, ProbeLevel } from '@openkey/protocols';
@@ -31,7 +42,9 @@ export interface GlobalFlags {
  */
 export async function listGroups(): Promise<HidDeviceGroup[]> {
   const groups: HidDeviceGroup[] =
-    process.platform === 'linux' ? await enumerateLinux({ vendorIds: FAMILY_VENDOR_IDS }) : await enumerateNodeHid({ vendorIds: FAMILY_VENDOR_IDS });
+    process.platform === 'linux'
+      ? await enumerateLinux({ vendorIds: FAMILY_VENDOR_IDS })
+      : await enumerateNodeHid({ vendorIds: FAMILY_VENDOR_IDS });
   // The Apple VID is only interesting for the AK820 receiver product.
   return groups.filter((g) => g.identity.vendorId !== 0x05ac || g.identity.productId === 0x024f);
 }
@@ -87,7 +100,10 @@ export async function connect(flags: GlobalFlags): Promise<{
     allowExperimental: flags.experimental,
   });
   // The CLI applies the same write policy as the web app: unverified writes need --experimental.
-  const driver = guardWrites(res.driver, () => ({ simulated: false, experimentalEnabled: flags.experimental }));
+  const driver = guardWrites(res.driver, () => ({
+    simulated: false,
+    experimentalEnabled: flags.experimental,
+  }));
   return { ...res, driver, group };
 }
 

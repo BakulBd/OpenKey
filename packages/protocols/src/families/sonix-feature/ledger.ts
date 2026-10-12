@@ -2,19 +2,25 @@ import { Evidence } from '@openkey/core';
 import type { LedgerEntry } from '../../ledger.js';
 
 const FAMILY = 'sonix-feature';
-const VERSIONS = 'AK820 MAX/MAX PLUS and AK820 PRO Windows-driver firmware (official driver V1.0.0.5)';
+const VERSIONS =
+  'AK820 MAX/MAX PLUS and AK820 PRO Windows-driver firmware (official driver V1.0.0.5)';
 const CONTROL = 'FF13:0001 feature report, report ID 0, 64 bytes';
-const DRIVER = 'AJAZZ AK820 MAX&MAX PLUS driver V1.0.0.5 (docs/reverse-engineering/official-driver-analysis.md)';
+const DRIVER =
+  'AJAZZ AK820 MAX&MAX PLUS driver V1.0.0.5 (docs/reverse-engineering/official-driver-analysis.md)';
 const ACK = 'GET_FEATURE echoes `04 cmd` with byte 3 = 01; byte 3 = FF means busy (retry once)';
-const ACK_RULE = 'acknowledgement must echo the command; a non-echo is rejected as stale (tests/transport/mock-faults.test.ts)';
-const PACING = '35 ms before each SET and each GET; failed SETs inside a table retried up to 10 times';
+const ACK_RULE =
+  'acknowledgement must echo the command; a non-echo is rejected as stale (tests/transport/mock-faults.test.ts)';
+const PACING =
+  '35 ms before each SET and each GET; failed SETs inside a table retried up to 10 times';
 const TEST_UNIT = 'AK820 MAX PLUS TFT, 0C45:8009 "AK820 MAX", bcdDevice 1.07, USB, Linux';
 const AULA = 'VitalyArt/Aula-F75-Max-Driver (MIT): same code on 0C45:800A (independent, INFERRED)';
 /** Owner test of the writes on the same unit; result confirmed on the keyboard (2026-10-11). */
 const OWNER_TEST = 'fixtures/verification/ak820-max-plus-owner-test-hw.json';
 const OWNER_UNIT = `${TEST_UNIT}; owner test 2026-10-11, result confirmed on the keyboard`;
 
-const entry = (e: Omit<LedgerEntry, 'family' | 'versions'> & Partial<Pick<LedgerEntry, 'versions'>>): LedgerEntry => ({
+const entry = (
+  e: Omit<LedgerEntry, 'family' | 'versions'> & Partial<Pick<LedgerEntry, 'versions'>>,
+): LedgerEntry => ({
   family: FAMILY,
   versions: VERSIONS,
   ...e,
@@ -29,7 +35,8 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     class: 'read',
     transport: CONTROL,
     request: 'none',
-    response: 'echo of the last command (all zero after power-up; zero again after SAVE in one observation)',
+    response:
+      'echo of the last command (all zero after power-up; zero again after SAVE in one observation)',
     validation: '64 bytes',
     errors: 'TRANSPORT when the interface is claimed elsewhere',
     timing: 'none',
@@ -37,7 +44,10 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     testedOn: TEST_UNIT,
     sideEffects: 'none observed',
     usedBy: [],
-    sources: ['re/captures/feature-read-*.txt', 'fixtures/device-info/ak820-max-plus-start-handshake-hw.json'],
+    sources: [
+      're/captures/feature-read-*.txt',
+      'fixtures/device-info/ak820-max-plus-start-handshake-hw.json',
+    ],
     implemented: true,
   }),
   entry({
@@ -71,8 +81,24 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     timing: PACING,
     evidence: Evidence.VERIFIED,
     testedOn: `${TEST_UNIT} (as the last step of the per-key read)`,
-    sideEffects: 'flash write; the official per-key read ends with it, so that read also commits unchanged state',
-    usedBy: ['keymap', 'fnLayer', 'macros', 'rgb', 'perKeyRgb', 'realtimeRgb', 'tft', 'tftGif', 'tftClock', 'sleep', 'keyResponse', 'winLock', 'altLocks', 'factoryDefaults'],
+    sideEffects:
+      'flash write; the official per-key read ends with it, so that read also commits unchanged state',
+    usedBy: [
+      'keymap',
+      'fnLayer',
+      'macros',
+      'rgb',
+      'perKeyRgb',
+      'realtimeRgb',
+      'tft',
+      'tftGif',
+      'tftClock',
+      'sleep',
+      'keyResponse',
+      'winLock',
+      'altLocks',
+      'factoryDefaults',
+    ],
     sources: ['fixtures/rgb/ak820-max-plus-read-per-key-hw.json', DRIVER, AULA],
     implemented: true,
   }),
@@ -100,7 +126,8 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     purpose: 'Global lighting effect; one data packet follows.',
     class: 'write-persistent',
     transport: CONTROL,
-    request: '04 13 … arg8=01, then [effect R G B 0×4 colorful brightness speed direction 0 0 AA 55]',
+    request:
+      '04 13 … arg8=01, then [effect R G B 0×4 colorful brightness speed direction 0 0 AA 55]',
     response: ACK,
     validation: 'data packet ends AA 55 (bytes 14–15)',
     errors: '—',
@@ -233,7 +260,8 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     timing: `${PACING}; 30 ms settle around the data`,
     evidence: Evidence.VERIFIED,
     testedOn: OWNER_UNIT,
-    sideEffects: 'replaces all macros; trigger-mode byte values are INFERRED from the online driver',
+    sideEffects:
+      'replaces all macros; trigger-mode byte values are INFERRED from the online driver',
     usedBy: ['macros'],
     sources: [OWNER_TEST, 'FUN_0042d6f0'],
     implemented: true,
@@ -244,7 +272,8 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     purpose: 'Sleep timer, key response and OS-key locks.',
     class: 'write-persistent',
     transport: CONTROL,
-    request: '04 17 01 … arg8=01, then [00 01 altTab altF4 win fnSwitch sleep 00 keyResponse … AA 55]',
+    request:
+      '04 17 01 … arg8=01, then [00 01 altTab altF4 win fnSwitch sleep 00 keyResponse … AA 55]',
     response: ACK,
     validation: 'trailer AA 55 at 62–63',
     errors: '—',
@@ -280,7 +309,8 @@ export const SONIX_FEATURE_LEDGER: readonly LedgerEntry[] = [
     purpose: 'Announce a screen upload; chunks follow on the data pipe.',
     class: 'write-persistent',
     transport: `${CONTROL}; chunks: FF68:0061 output report, 4096 bytes`,
-    request: '04 72 slot … arg8..9 = chunk count (u16 LE); chunks = 256-byte header + RGB565 frames',
+    request:
+      '04 72 slot … arg8..9 = chunk count (u16 LE); chunks = 256-byte header + RGB565 frames',
     response: 'ack; one 64-byte input report per chunk (content ignored)',
     validation: 'header frames ≤ 255, delays in 2 ms units',
     errors: 'missing chunk input report within 300 ms → abort before SAVE',

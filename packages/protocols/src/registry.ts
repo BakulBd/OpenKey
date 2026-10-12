@@ -285,8 +285,12 @@ export class ProtocolRegistry {
       throw new Error(
         `Adapter ${p.id} implements contract v${p.apiVersion}; this OpenKey needs v${ADAPTER_API_VERSION}`,
       );
-    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.id)) throw new Error(`Adapter id "${p.id}" must be kebab-case`);
-    if (this.protocols.some((x) => x.id === p.id) || this.plannedAdapters.some((x) => x.id === p.id))
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.id))
+      throw new Error(`Adapter id "${p.id}" must be kebab-case`);
+    if (
+      this.protocols.some((x) => x.id === p.id) ||
+      this.plannedAdapters.some((x) => x.id === p.id)
+    )
       throw new Error(`Protocol ${p.id} already registered`);
     this.protocols.push(p);
     this.protocols.sort((a, b) => b.priority - a.priority);
@@ -338,7 +342,9 @@ export class ProtocolRegistry {
     if (known) {
       report.catalog = known;
       if (known.status === 'research' || known.status === 'unsupported') {
-        report.notes.push(`Recognised as ${known.brand} ${known.model} (${known.mcu}). OpenKey does not configure it yet: ${known.evidence}.`);
+        report.notes.push(
+          `Recognised as ${known.brand} ${known.model} (${known.mcu}). OpenKey does not configure it yet: ${known.evidence}.`,
+        );
       }
     } else {
       const shared = lookupCatalogAll(group.identity);
@@ -432,12 +438,26 @@ export class ProtocolRegistry {
     for (const p of this.protocols) {
       const m = report?.candidates.find((c) => c.protocol.id === p.id)?.match ?? p.match(group);
       if (m.applicable)
-        out.push({ id: p.id, name: p.name, family: p.family, status: p.manifest.status, score: m.score, reasons: m.reasons });
+        out.push({
+          id: p.id,
+          name: p.name,
+          family: p.family,
+          status: p.manifest.status,
+          score: m.score,
+          reasons: m.reasons,
+        });
     }
     for (const p of this.plannedAdapters) {
       const m = p.signature(group);
       if (m.applicable)
-        out.push({ id: p.id, name: p.name, family: p.family, status: p.manifest.status, score: m.score, reasons: m.reasons });
+        out.push({
+          id: p.id,
+          name: p.name,
+          family: p.family,
+          status: p.manifest.status,
+          score: m.score,
+          reasons: m.reasons,
+        });
     }
     return out.sort((a, b) => b.score - a.score);
   }

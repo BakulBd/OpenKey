@@ -6,60 +6,63 @@ Generated from `packages/devices/src/guide.ts` (the same data the app's Compatib
 
 ## Popular in Bangladesh
 
-| Keyboard | Support | Details |
-| -------- | ------- | ------- |
+| Keyboard             | Support                 | Details                                                                                                                                                                                                                                                                  |
+| -------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Redragon K552 Kumara | ⚪ Vendor software only | Closed, model-specific protocol (Redragon software) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. Some newer Redragon tri-mode boards (K736 PRO) are ROYUAN and get lighting. |
-| Fantech MAXFIT87 | 🟡 Depends on version | Some Fantech MAXFIT boards use the ROYUAN protocol (MAXFIT81 does); if OpenKey identifies ROYUAN, lighting works. Otherwise inspection only. |
-| Fantech ATOM MK874 | ⚪ Vendor software only | Closed, model-specific protocol (Fantech software) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| A4Tech Bloody B820R | ⚪ Vendor software only | Closed, model-specific protocol (Bloody software) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| AJAZZ AK820 | 🟢 Configurable | AK820 Pro (screen): keymap, lighting, macros, screen and settings (community). The wired single-colour CRS revision (1A2C:9605) is not supported yet. |
-| AJAZZ AK820 MAX Plus | ✅ Verified | Sonix revision (0C45:8009): everything verified on hardware over USB. Magnetic YiChip revision: lighting (ROYUAN). CRS and "BY edition" revisions: community adapters. |
-| Royal Kludge RK61 | 🟢 Configurable | RK61, RK61 RGB, RK61 Plus, ISO and Bluetooth dual-mode models: lighting effect, colour, brightness, speed and sleep over USB (classic RK protocol). Key maps not yet. |
-| Royal Kludge RK84 | 🟢 Configurable | RK84 N, RK84 Pro N and RK84 ISO: lighting and sleep (classic RK protocol). The first RK84RGB (258A:0059) and the newest RK84 web-software models are not supported yet. |
-| Royal Kludge RK87 | 🟢 Configurable | RK87, RK87 RGB, RK87T and RK87 (882): lighting and sleep (classic RK protocol). The R87 Pro runs QMK/VIA and works through the VIA adapter. |
-| Royal Kludge R75 | 🟢 Configurable | R75 RGB wired (258A:015E): BY Tech protocol; teach OpenKey its lighting layout with two key presses, then lighting is configurable. Newer R75 revisions using RK’s web software are not supported yet. |
-| AULA F75 | 🟢 Configurable | Wired F75 (258A:010C): lighting effect, colour, brightness, speed and sleep (BY Tech). The F75 Max uses AJAZZ’s Sonix protocol. Settings through the 2.4 GHz receiver: no. |
-| AULA F87 Pro | 🟢 Configurable | Identified by its model code (BY Tech): lighting and sleep over USB. |
+| Fantech MAXFIT87     | 🟡 Depends on version   | Some Fantech MAXFIT boards use the ROYUAN protocol (MAXFIT81 does); if OpenKey identifies ROYUAN, lighting works. Otherwise inspection only.                                                                                                                             |
+| Fantech ATOM MK874   | ⚪ Vendor software only | Closed, model-specific protocol (Fantech software) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.                                                                              |
+| A4Tech Bloody B820R  | ⚪ Vendor software only | Closed, model-specific protocol (Bloody software) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.                                                                               |
+| AJAZZ AK820          | 🟢 Configurable         | AK820 Pro (screen): keymap, lighting, macros, screen and settings (community). The wired single-colour CRS revision (1A2C:9605) is not supported yet.                                                                                                                    |
+| AJAZZ AK820 MAX Plus | ✅ Verified             | Sonix revision (0C45:8009): everything verified on hardware over USB. Magnetic YiChip revision: lighting and key maps (ROYUAN). CRS and "BY edition" revisions: community adapters.                                                                                      |
+| Royal Kludge RK61    | 🟢 Configurable         | RK61, RK61 RGB, RK61 Plus, ISO and Bluetooth dual-mode models: lighting effect, colour, brightness, speed and sleep over USB (classic RK protocol). Key maps not yet.                                                                                                    |
+| Royal Kludge RK84    | 🟢 Configurable         | RK84 N, RK84 Pro N and RK84 ISO: lighting and sleep (classic RK protocol). The first RK84RGB (258A:0059) and the newest RK84 web-software models are not supported yet.                                                                                                  |
+| Royal Kludge RK87    | 🟢 Configurable         | RK87, RK87 RGB, RK87T and RK87 (882): lighting and sleep (classic RK protocol). The R87 Pro runs QMK/VIA and works through the VIA adapter.                                                                                                                              |
+| Royal Kludge R75     | 🟢 Configurable         | R75 RGB wired (258A:015E): BY Tech protocol; teach OpenKey its lighting layout with two key presses, then lighting is configurable. Newer R75 revisions using RK’s web software are not supported yet.                                                                   |
+| AULA F75             | 🟢 Configurable         | Wired F75 (258A:010C): lighting effect, colour, brightness, speed and sleep (BY Tech). The F75 Max uses AJAZZ’s Sonix protocol. Settings through the 2.4 GHz receiver: no.                                                                                               |
+| AULA F99             | 🟢 Configurable         | Cable (258A:010C, model code …00 A4): lighting effect, colour, brightness, speed and sleep. Receiver (3554:FA09): identification, battery and lighting read-only.                                                                                                        |
+| AULA F99 Pro         | 🟢 Configurable         | Cable (258A:010C, model code …01 58): lighting and sleep. Receiver: identification, battery and lighting read-only. Key maps not yet: sources disagree on the table framing.                                                                                             |
+| AULA F99 Max         | 🟡 Depends on version   | No public source documents the F99 Max, and AULA “Max” boards can use a different chip (the F75 Max is Sonix). Not assumed compatible: inspect it and send the diagnostic.                                                                                               |
+| AULA F87 Pro         | 🟢 Configurable         | Identified by its model code (BY Tech): lighting and sleep over USB.                                                                                                                                                                                                     |
 
 ## Asia and custom boards
 
-| Keyboard | Support | Details |
-| -------- | ------- | ------- |
-| Keychron K2 | 🟡 Depends on version | K2 Pro, K2 Max and K2 HE run QMK/VIA: fully configurable through VIA. The original K2 (V1–V3) firmware has no configuration interface at all. |
-| Keychron K8 | 🟡 Depends on version | K8 Pro and K8 Max: QMK/VIA, fully configurable. The original K8 has no configuration interface. |
-| Keychron Q1 (all versions) | 🟢 Via VIA | QMK/VIA firmware: keymaps on every layer, macros and lighting through the VIA adapter. Load the VIA definition once. |
-| Akko 5075B Plus | 🟢 Configurable | ROYUAN protocol (yc500): lighting effect, colour, brightness and speed over USB. Key maps and macros wait for hardware evidence. |
-| MonsGeek M1 | 🟡 Depends on version | M1 V5 and M1 HES are ROYUAN (lighting). M1 boards running QMK/VIA firmware are configured through VIA. |
-| Leobog Hi75 | 🟡 Depends on version | If the firmware exposes VIA, OpenKey configures it through VIA; otherwise inspect it and report it. |
-| VGN V87 | 🟡 Depends on version | Several VGN boards use the ROYUAN protocol; if OpenKey identifies ROYUAN, lighting works. Otherwise inspection only. |
-| Dareu A98 | ⚪ Vendor software only | Closed, model-specific protocol (Dareu software) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| MCHOSE G75 Pro | 🟡 Depends on version | Some G75 boards report the ROYUAN protocol; if identified, lighting works. Otherwise inspection only. |
-| Xinmeng M75 | 🟡 Depends on version | Xinmeng boards commonly use ROYUAN gen2; if identified, lighting works. |
-| MageGee MK-Box | 🟢 Configurable | ROYUAN gen2 (3151:502C): lighting effect, colour, brightness and speed over USB. |
+| Keyboard                   | Support                 | Details                                                                                                                                                                                   |
+| -------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Keychron K2                | 🟡 Depends on version   | K2 Pro, K2 Max and K2 HE run QMK/VIA: fully configurable through VIA. The original K2 (V1–V3) firmware has no configuration interface at all.                                             |
+| Keychron K8                | 🟡 Depends on version   | K8 Pro and K8 Max: QMK/VIA, fully configurable. The original K8 has no configuration interface.                                                                                           |
+| Keychron Q1 (all versions) | 🟢 Via VIA              | QMK/VIA firmware: keymaps on every layer, macros and lighting through the VIA adapter. Load the VIA definition once.                                                                      |
+| Akko 5075B Plus            | 🟢 Configurable         | ROYUAN protocol (yc500): lighting effect, colour, brightness and speed, and key maps on the base and Fn layers (each key written and read back) over USB. Macros not yet.                 |
+| MonsGeek M1                | 🟡 Depends on version   | M1 V5 and M1 HES are ROYUAN (lighting). M1 boards running QMK/VIA firmware are configured through VIA.                                                                                    |
+| Leobog Hi75                | 🟡 Depends on version   | If the firmware exposes VIA, OpenKey configures it through VIA; otherwise inspect it and report it.                                                                                       |
+| VGN V87                    | 🟡 Depends on version   | Several VGN boards use the ROYUAN protocol; if OpenKey identifies ROYUAN, lighting works. Otherwise inspection only.                                                                      |
+| Dareu A98                  | ⚪ Vendor software only | Closed, model-specific protocol (Dareu software) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
+| MCHOSE G75 Pro             | 🟡 Depends on version   | Some G75 boards report the ROYUAN protocol; if identified, lighting works. Otherwise inspection only.                                                                                     |
+| Xinmeng M75                | 🟡 Depends on version   | Xinmeng boards commonly use ROYUAN gen2; if identified, lighting works.                                                                                                                   |
+| MageGee MK-Box             | 🟢 Configurable         | ROYUAN gen2 (3151:502C): lighting effect, colour, brightness and speed over USB; key map shown read-only.                                                                                 |
 
 ## Global gaming
 
-| Keyboard | Support | Details |
-| -------- | ------- | ------- |
-| Wooting 80HE | ⚪ Vendor software only | Configured by Wooting’s own browser app, Wootility. OpenKey shows it in the tester and latency lab; analog settings stay in Wootility. |
-| Wooting 60HE | ⚪ Vendor software only | Configured by Wootility (browser). Tester and latency lab work in OpenKey. |
-| Wooting 60HE V2 | ⚪ Vendor software only | Configured by Wootility (browser). Tester and latency lab work in OpenKey. |
-| Razer Huntsman V3 Pro TKL | ⚪ Vendor software only | Closed, model-specific protocol (Razer Synapse) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| Razer BlackWidow V4 | ⚪ Vendor software only | Closed, model-specific protocol (Razer Synapse) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| Logitech G Pro X TKL | ⚪ Vendor software only | Closed, model-specific protocol (Logitech G HUB) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| Logitech G915 | ⚪ Vendor software only | Closed, model-specific protocol (Logitech G HUB) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| SteelSeries Apex Pro TKL | ⚪ Vendor software only | Closed, model-specific protocol (SteelSeries GG) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| Corsair K70 | ⚪ Vendor software only | Closed, model-specific protocol (Corsair iCUE) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| Corsair K100 | ⚪ Vendor software only | Closed, model-specific protocol (Corsair iCUE) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| HyperX Alloy Origins | ⚪ Vendor software only | Closed, model-specific protocol (HyperX NGENUITY) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
-| ASUS ROG Azoth | ⚪ Vendor software only | Closed, model-specific protocol (Armoury Crate) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
+| Keyboard                  | Support                 | Details                                                                                                                                                                                    |
+| ------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Wooting 80HE              | ⚪ Vendor software only | Configured by Wooting’s own browser app, Wootility. OpenKey shows it in the tester and latency lab; analog settings stay in Wootility.                                                     |
+| Wooting 60HE              | ⚪ Vendor software only | Configured by Wootility (browser). Tester and latency lab work in OpenKey.                                                                                                                 |
+| Wooting 60HE V2           | ⚪ Vendor software only | Configured by Wootility (browser). Tester and latency lab work in OpenKey.                                                                                                                 |
+| Razer Huntsman V3 Pro TKL | ⚪ Vendor software only | Closed, model-specific protocol (Razer Synapse) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.   |
+| Razer BlackWidow V4       | ⚪ Vendor software only | Closed, model-specific protocol (Razer Synapse) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.   |
+| Logitech G Pro X TKL      | ⚪ Vendor software only | Closed, model-specific protocol (Logitech G HUB) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.  |
+| Logitech G915             | ⚪ Vendor software only | Closed, model-specific protocol (Logitech G HUB) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.  |
+| SteelSeries Apex Pro TKL  | ⚪ Vendor software only | Closed, model-specific protocol (SteelSeries GG) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.  |
+| Corsair K70               | ⚪ Vendor software only | Closed, model-specific protocol (Corsair iCUE) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.    |
+| Corsair K100              | ⚪ Vendor software only | Closed, model-specific protocol (Corsair iCUE) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.    |
+| HyperX Alloy Origins      | ⚪ Vendor software only | Closed, model-specific protocol (HyperX NGENUITY) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. |
+| ASUS ROG Azoth            | ⚪ Vendor software only | Closed, model-specific protocol (Armoury Crate) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it.   |
 
 ## Typing and enthusiast
 
-| Keyboard | Support | Details |
-| -------- | ------- | ------- |
-| Ducky One 3 | ⚪ Vendor software only | Closed, model-specific protocol (DuckyHub) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. Boards flashed with community QMK/VIA firmware work through VIA. |
-| Leopold FC750R | ⚪ Nothing to configure | No configuration software exists: layout options are DIP switches on the board. The tester and latency lab work. |
-| PFU HHKB Professional Hybrid | ⚪ Vendor software only | Key maps are written by PFU’s own keymap tool; DIP switches set the layout. The tester works in OpenKey. |
-| Keychron V1 | 🟢 Via VIA | QMK/VIA firmware: keymaps on every layer, macros and lighting through the VIA adapter. Load the VIA definition once. |
-| NuPhy Halo75 | 🟡 Depends on version | Halo75 V2 runs QMK/VIA: configurable through VIA. The original Halo75 uses NuPhy Console (closed). |
+| Keyboard                     | Support                 | Details                                                                                                                                                                                                                                              |
+| ---------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ducky One 3                  | ⚪ Vendor software only | Closed, model-specific protocol (DuckyHub) with no public documentation; OpenKey does not send guessed commands. Typing works everywhere; use the tester, or inspect and report it. Boards flashed with community QMK/VIA firmware work through VIA. |
+| Leopold FC750R               | ⚪ Nothing to configure | No configuration software exists: layout options are DIP switches on the board. The tester and latency lab work.                                                                                                                                     |
+| PFU HHKB Professional Hybrid | ⚪ Vendor software only | Key maps are written by PFU’s own keymap tool; DIP switches set the layout. The tester works in OpenKey.                                                                                                                                             |
+| Keychron V1                  | 🟢 Via VIA              | QMK/VIA firmware: keymaps on every layer, macros and lighting through the VIA adapter. Load the VIA definition once.                                                                                                                                 |
+| NuPhy Halo75                 | 🟡 Depends on version   | Halo75 V2 runs QMK/VIA: configurable through VIA. The original Halo75 uses NuPhy Console (closed).                                                                                                                                                   |

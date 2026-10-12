@@ -33,12 +33,20 @@ import { gridDefinition } from './definition.js';
 import type { ViaDefinition } from './definition.js';
 import { decodeKeycode, encodeKeycode, offeredSpecials } from './keycodes.js';
 import type { KeycodeVersion } from './keycodes.js';
-import { CHANNEL_NAME, hasColor, hasSpeed, hsToRgb, rgbToHs, viaEffectCatalog } from './lighting.js';
+import {
+  CHANNEL_NAME,
+  hasColor,
+  hasSpeed,
+  hsToRgb,
+  rgbToHs,
+  viaEffectCatalog,
+} from './lighting.js';
 import { decodeMacros, encodeMacros } from './macros.js';
 import { ViaSession } from './session.js';
 
 const hex4 = (n: number) => n.toString(16).padStart(4, '0');
-export const definitionKey = (vendorId: number, productId: number): string => `via/definition/${hex4(vendorId)}:${hex4(productId)}`;
+export const definitionKey = (vendorId: number, productId: number): string =>
+  `via/definition/${hex4(vendorId)}:${hex4(productId)}`;
 
 export interface ViaDriverOptions {
   store: StateStore;
@@ -92,8 +100,14 @@ export class ViaDriver extends BaseKeyboardDriver {
     this.firmwareVersion = await s.firmwareVersion().catch(() => null);
     this.layers = await s.layerCount();
     const id = this.group.identity;
-    this.definition = (await this.opts.store.get<ViaDefinition>(definitionKey(id.vendorId, id.productId))) ?? null;
-    for (const c of [Channel.RGB_MATRIX, Channel.RGBLIGHT, Channel.LED_MATRIX, Channel.BACKLIGHT] as const) {
+    this.definition =
+      (await this.opts.store.get<ViaDefinition>(definitionKey(id.vendorId, id.productId))) ?? null;
+    for (const c of [
+      Channel.RGB_MATRIX,
+      Channel.RGBLIGHT,
+      Channel.LED_MATRIX,
+      Channel.BACKLIGHT,
+    ] as const) {
       if ((await s.getValue(c, LightValue.BRIGHTNESS)) !== null) {
         this.channel = c;
         break;
@@ -120,8 +134,11 @@ export class ViaDriver extends BaseKeyboardDriver {
 
   /** Uses a plain rows × columns grid when no definition file is available. */
   async useGrid(rows: number, cols: number): Promise<void> {
-    if (!(rows >= 1 && rows <= 32 && cols >= 1 && cols <= 32)) throw new ProtocolError('Rows and columns must be 1–32.');
-    await this.setDefinition(gridDefinition(rows, cols, this.group.identity.productName || 'VIA keyboard'));
+    if (!(rows >= 1 && rows <= 32 && cols >= 1 && cols <= 32))
+      throw new ProtocolError('Rows and columns must be 1–32.');
+    await this.setDefinition(
+      gridDefinition(rows, cols, this.group.identity.productName || 'VIA keyboard'),
+    );
   }
 
   async forgetDefinition(): Promise<void> {
@@ -130,7 +147,16 @@ export class ViaDriver extends BaseKeyboardDriver {
   }
 
   getLayout(): KeyboardLayout {
-    return this.definition?.layout ?? { id: 'via-unknown', name: 'Layout not loaded', width: 1, height: 1, keys: [], source: 'no definition loaded' };
+    return (
+      this.definition?.layout ?? {
+        id: 'via-unknown',
+        name: 'Layout not loaded',
+        width: 1,
+        height: 1,
+        keys: [],
+        source: 'no definition loaded',
+      }
+    );
   }
 
   override getLayerIds(): readonly LayerId[] {
@@ -138,7 +164,16 @@ export class ViaDriver extends BaseKeyboardDriver {
   }
 
   override getKeyActionKinds(): readonly KeyActionKind[] {
-    return ['disabled', 'keyboard', 'consumer', 'system', 'mouse', 'layer', 'special', ...(this.macroCount ? (['macro'] as const) : [])];
+    return [
+      'disabled',
+      'keyboard',
+      'consumer',
+      'system',
+      'mouse',
+      'layer',
+      'special',
+      ...(this.macroCount ? (['macro'] as const) : []),
+    ];
   }
 
   override getSpecialActions(): readonly { code: number; label: string }[] {
@@ -149,21 +184,58 @@ export class ViaDriver extends BaseKeyboardDriver {
     const c = emptyCapabilities();
     const S = Evidence.OBSERVED;
     const src = 'VIA protocol (QMK quantum/via.c)';
-    c.deviceInfo = feature(FeatureStatus.READ_ONLY, { read: 'device', confidence: Evidence.VERIFIED, source: 'VIA protocol and firmware version' });
-    const keymapNote = this.definition ? 'Read from the keyboard; every change is read back.' : 'Load the keyboard’s VIA definition (or choose a matrix grid) to edit the keymap.';
-    c.keymap = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT, source: src, note: keymapNote });
+    c.deviceInfo = feature(FeatureStatus.READ_ONLY, {
+      read: 'device',
+      confidence: Evidence.VERIFIED,
+      source: 'VIA protocol and firmware version',
+    });
+    const keymapNote = this.definition
+      ? 'Read from the keyboard; every change is read back.'
+      : 'Load the keyboard’s VIA definition (or choose a matrix grid) to edit the keymap.';
+    c.keymap = configurable('device', true, S, {
+      safety: SafetyLevel.SAFE_PERSISTENT,
+      source: src,
+      note: keymapNote,
+    });
     c.fnLayer =
       this.layers > 1
-        ? configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT, source: src, value: `${this.layers} layers` })
-        : feature(FeatureStatus.NOT_SUPPORTED, { confidence: Evidence.VERIFIED, note: 'The firmware reports one layer.' });
+        ? configurable('device', true, S, {
+            safety: SafetyLevel.SAFE_PERSISTENT,
+            source: src,
+            value: `${this.layers} layers`,
+          })
+        : feature(FeatureStatus.NOT_SUPPORTED, {
+            confidence: Evidence.VERIFIED,
+            note: 'The firmware reports one layer.',
+          });
     c.macros = this.macroCount
-      ? configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT, source: src, value: `${this.macroCount} macros, ${this.macroSize} bytes` })
-      : feature(FeatureStatus.NOT_SUPPORTED, { confidence: Evidence.VERIFIED, note: 'The firmware has no dynamic macros.' });
+      ? configurable('device', true, S, {
+          safety: SafetyLevel.SAFE_PERSISTENT,
+          source: src,
+          value: `${this.macroCount} macros, ${this.macroSize} bytes`,
+        })
+      : feature(FeatureStatus.NOT_SUPPORTED, {
+          confidence: Evidence.VERIFIED,
+          note: 'The firmware has no dynamic macros.',
+        });
     c.rgb = this.channel
-      ? configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT, source: src, value: CHANNEL_NAME[this.channel] })
-      : feature(FeatureStatus.NOT_SUPPORTED, { confidence: Evidence.OBSERVED, note: 'No QMK lighting channel answered.' });
-    c.factoryDefaults = feature(FeatureStatus.NOT_SUPPORTED, { confidence: S, note: 'VIA can reset the keymap and EEPROM; OpenKey does not send those commands. Use a backup instead.' });
-    c.firmware = feature(FeatureStatus.NOT_SUPPORTED, { confidence: S, note: 'Bootloader entry exists in VIA; OpenKey never sends it.' });
+      ? configurable('device', true, S, {
+          safety: SafetyLevel.SAFE_PERSISTENT,
+          source: src,
+          value: CHANNEL_NAME[this.channel],
+        })
+      : feature(FeatureStatus.NOT_SUPPORTED, {
+          confidence: Evidence.OBSERVED,
+          note: 'No QMK lighting channel answered.',
+        });
+    c.factoryDefaults = feature(FeatureStatus.NOT_SUPPORTED, {
+      confidence: S,
+      note: 'VIA can reset the keymap and EEPROM; OpenKey does not send those commands. Use a backup instead.',
+    });
+    c.firmware = feature(FeatureStatus.NOT_SUPPORTED, {
+      confidence: S,
+      note: 'Bootloader entry exists in VIA; OpenKey never sends it.',
+    });
     return c;
   }
 
@@ -171,7 +243,10 @@ export class ViaDriver extends BaseKeyboardDriver {
     const id = this.group.identity;
     const v = this.protocolVersion;
     return {
-      model: this.definition && this.definition.format !== 'grid' ? this.definition.name : id.productName || 'QMK keyboard',
+      model:
+        this.definition && this.definition.format !== 'grid'
+          ? this.definition.name
+          : id.productName || 'QMK keyboard',
       profileId: `via-${hex4(id.vendorId)}-${hex4(id.productId)}`,
       identity: id,
       firmware: {
@@ -180,27 +255,67 @@ export class ViaDriver extends BaseKeyboardDriver {
         confidence: Evidence.VERIFIED,
       },
       transport: this.transport,
-      protocol: { id: this.protocolId, name: 'VIA (QMK raw HID)', revision: `0x${v.toString(16).padStart(4, '0')}` },
+      protocol: {
+        id: this.protocolId,
+        name: 'VIA (QMK raw HID)',
+        revision: `0x${v.toString(16).padStart(4, '0')}`,
+      },
       battery: null,
       fields: [
-        { key: 'viaProtocol', label: 'VIA protocol', value: `0x${v.toString(16).padStart(4, '0')} (keycodes v${this.keycodeVersion})`, confidence: Evidence.VERIFIED, source: 'id_get_protocol_version' },
-        { key: 'layers', label: 'Layers', value: this.layers, confidence: Evidence.VERIFIED, source: 'id_dynamic_keymap_get_layer_count' },
-        { key: 'matrix', label: 'Matrix', value: this.definition ? `${this.definition.rows} × ${this.definition.cols}` : 'needs a definition', confidence: this.definition ? Evidence.OBSERVED : Evidence.UNKNOWN, source: this.definition?.layout.source ?? '—' },
-        { key: 'lighting', label: 'Lighting', value: this.channel ? CHANNEL_NAME[this.channel] : 'none', confidence: Evidence.VERIFIED, source: 'id_custom_get_value' },
-        { key: 'macros', label: 'Macros', value: this.macroCount ? `${this.macroCount} (${this.macroSize} bytes)` : 'none', confidence: Evidence.VERIFIED, source: 'id_dynamic_keymap_macro_get_count' },
+        {
+          key: 'viaProtocol',
+          label: 'VIA protocol',
+          value: `0x${v.toString(16).padStart(4, '0')} (keycodes v${this.keycodeVersion})`,
+          confidence: Evidence.VERIFIED,
+          source: 'id_get_protocol_version',
+        },
+        {
+          key: 'layers',
+          label: 'Layers',
+          value: this.layers,
+          confidence: Evidence.VERIFIED,
+          source: 'id_dynamic_keymap_get_layer_count',
+        },
+        {
+          key: 'matrix',
+          label: 'Matrix',
+          value: this.definition
+            ? `${this.definition.rows} × ${this.definition.cols}`
+            : 'needs a definition',
+          confidence: this.definition ? Evidence.OBSERVED : Evidence.UNKNOWN,
+          source: this.definition?.layout.source ?? '—',
+        },
+        {
+          key: 'lighting',
+          label: 'Lighting',
+          value: this.channel ? CHANNEL_NAME[this.channel] : 'none',
+          confidence: Evidence.VERIFIED,
+          source: 'id_custom_get_value',
+        },
+        {
+          key: 'macros',
+          label: 'Macros',
+          value: this.macroCount ? `${this.macroCount} (${this.macroSize} bytes)` : 'none',
+          confidence: Evidence.VERIFIED,
+          source: 'id_dynamic_keymap_macro_get_count',
+        },
       ],
     };
   }
 
   private requireMatrix(): ViaDefinition {
-    if (!this.definition) throw new ProtocolError('Load the keyboard’s VIA definition (or choose a matrix grid) first.');
+    if (!this.definition)
+      throw new ProtocolError(
+        'Load the keyboard’s VIA definition (or choose a matrix grid) first.',
+      );
     return this.definition;
   }
 
   private async readLayer(layer: number): Promise<Uint16Array> {
     const d = this.requireMatrix();
     const n = d.rows * d.cols;
-    if (layer < 0 || layer >= this.layers) throw new ProtocolError(`Layer ${layer} does not exist (the keyboard has ${this.layers}).`);
+    if (layer < 0 || layer >= this.layers)
+      throw new ProtocolError(`Layer ${layer} does not exist (the keyboard has ${this.layers}).`);
     // The bulk read takes an absolute offset into the whole keymap buffer.
     const out = new Uint16Array(n);
     const buf = await this.s().readKeymapBuffer(layer * n * 2, n * 2);
@@ -211,7 +326,8 @@ export class ViaDriver extends BaseKeyboardDriver {
   override async getKeymap(layer: LayerId = 'base'): Promise<KeymapState> {
     const codes = await this.readLayer(layerIndex(layer));
     const slots: Record<number, KeyAction> = {};
-    for (const k of this.requireMatrix().layout.keys) slots[k.slot] = decodeKeycode(codes[k.slot] ?? 0, this.keycodeVersion);
+    for (const k of this.requireMatrix().layout.keys)
+      slots[k.slot] = decodeKeycode(codes[k.slot] ?? 0, this.keycodeVersion);
     return { layer, slots, provenance: 'device', updatedAt: new Date().toISOString() };
   }
 
@@ -227,11 +343,15 @@ export class ViaDriver extends BaseKeyboardDriver {
       const code = encodeKeycode(action, this.keycodeVersion);
       if (before[slot] !== code) changes.push([slot, code]);
     }
-    for (const [slot, code] of changes) await s.setKeycode(L, Math.floor(slot / d.cols), slot % d.cols, code);
+    for (const [slot, code] of changes)
+      await s.setKeycode(L, Math.floor(slot / d.cols), slot % d.cols, code);
     if (!changes.length) return;
     const after = await this.readLayer(L);
     const wrong = changes.filter(([slot, code]) => after[slot] !== code);
-    if (wrong.length) throw new ReadbackMismatchError(`${wrong.length} key(s) did not keep their new keycode.`, { slots: wrong.map(([sl]) => sl) });
+    if (wrong.length)
+      throw new ReadbackMismatchError(`${wrong.length} key(s) did not keep their new keycode.`, {
+        slots: wrong.map(([sl]) => sl),
+      });
   }
 
   override async getFnLayers(): Promise<KeymapState[]> {
@@ -245,19 +365,29 @@ export class ViaDriver extends BaseKeyboardDriver {
   }
 
   override getMacroLimits(): MacroLimits {
-    return { slots: this.macroCount, storageBytes: this.macroSize, minDelayMs: 1, maxDelayMs: 60000 };
+    return {
+      slots: this.macroCount,
+      storageBytes: this.macroSize,
+      minDelayMs: 1,
+      maxDelayMs: 60000,
+    };
   }
 
   override async getMacros(): Promise<Macro[]> {
     if (!this.macroCount) return [];
-    return decodeMacros(await this.s().readMacroBuffer(this.macroSize), this.macroCount, this.keycodeVersion);
+    return decodeMacros(
+      await this.s().readMacroBuffer(this.macroSize),
+      this.macroCount,
+      this.keycodeVersion,
+    );
   }
 
   override async setMacros(macros: Macro[]): Promise<void> {
     const buf = encodeMacros(macros, this.macroCount, this.macroSize, this.keycodeVersion);
     await this.s().writeMacroBuffer(buf);
     const back = await this.s().readMacroBuffer(this.macroSize);
-    if (back.some((b, i) => b !== buf[i])) throw new ReadbackMismatchError('The keyboard did not keep the macro buffer.');
+    if (back.some((b, i) => b !== buf[i]))
+      throw new ReadbackMismatchError('The keyboard did not keep the macro buffer.');
   }
 
   private requireChannel(): LightingChannel {
@@ -297,6 +427,8 @@ export class ViaDriver extends BaseKeyboardDriver {
     await s.save(c);
     const back = await this.getRgbConfig();
     if (back.effect !== clamp(config.effect))
-      throw new ReadbackMismatchError(`The keyboard reports effect ${back.effect} after OpenKey set ${config.effect}; this firmware may not include that effect.`);
+      throw new ReadbackMismatchError(
+        `The keyboard reports effect ${back.effect} after OpenKey set ${config.effect}; this firmware may not include that effect.`,
+      );
   }
 }

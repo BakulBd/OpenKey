@@ -9,9 +9,19 @@ import { Icon } from '../../components/Icon.js';
 import { CONTRIBUTE_KEYBOARD_URL } from '../../config.js';
 import { ModelGuide } from './ModelGuide.js';
 
-const STATUSES: CatalogStatus[] = ['verified', 'experimental', 'community', 'research', 'unsupported'];
+const STATUSES: CatalogStatus[] = [
+  'verified',
+  'experimental',
+  'community',
+  'research',
+  'unsupported',
+];
 const LINKS = ['usb', '2.4ghz', 'bluetooth'] as const;
-const LINK_LABEL: Record<(typeof LINKS)[number], string> = { usb: 'USB', '2.4ghz': '2.4 GHz', bluetooth: 'Bluetooth' };
+const LINK_LABEL: Record<(typeof LINKS)[number], string> = {
+  usb: 'USB',
+  '2.4ghz': '2.4 GHz',
+  bluetooth: 'Bluetooth',
+};
 const HARDWARE: [keyof CatalogEntry['hardware'], MessageKey][] = [
   ['rgb', 'compat.hw.rgb'],
   ['perKeyRgb', 'compat.hw.perKey'],
@@ -26,12 +36,15 @@ function linkConfig(e: CatalogEntry, link: (typeof LINKS)[number]): string | nul
   return getProfile(e.definition)?.transportModes[link]?.configuration ?? null;
 }
 
-const keyOf = (e: CatalogEntry) => `${e.vendorId}-${e.productId}-${e.productName ?? ''}-${e.model}-${e.link}`;
+const keyOf = (e: CatalogEntry) =>
+  `${e.vendorId}-${e.productId}-${e.productName ?? ''}-${e.model}-${e.link}`;
 
 function DeviceCard({ e }: { e: CatalogEntry }) {
   const t = useT();
   const hw = HARDWARE.filter(([k]) => e.hardware[k]);
-  const links = LINKS.map((l) => [l, linkConfig(e, l)] as const).filter(([, v]) => v && v !== 'unsupported');
+  const links = LINKS.map((l) => [l, linkConfig(e, l)] as const).filter(
+    ([, v]) => v && v !== 'unsupported',
+  );
   return (
     <li className={`device-card cs-border-${e.status}`}>
       <div className="device-card-top">
@@ -40,7 +53,8 @@ function DeviceCard({ e }: { e: CatalogEntry }) {
       </div>
       <h3>{e.model}</h3>
       <p className="mono small muted">
-        {hex4(e.vendorId)}:{hex4(e.productId)} · {LINK_LABEL[e.link as (typeof LINKS)[number]] ?? e.link} · {e.mcu}
+        {hex4(e.vendorId)}:{hex4(e.productId)} ·{' '}
+        {LINK_LABEL[e.link as (typeof LINKS)[number]] ?? e.link} · {e.mcu}
       </p>
       {hw.length > 0 && (
         <ul className="hw-chips" aria-label={t('compat.hardware')}>
@@ -51,7 +65,8 @@ function DeviceCard({ e }: { e: CatalogEntry }) {
       )}
       {links.length > 0 && (
         <p className="small">
-          <span className="muted">{t('compat.configures')}</span> {links.map(([l, v]) => `${LINK_LABEL[l]} (${v})`).join(' · ')}
+          <span className="muted">{t('compat.configures')}</span>{' '}
+          {links.map(([l, v]) => `${LINK_LABEL[l]} (${v})`).join(' · ')}
         </p>
       )}
       <p className="small muted">
@@ -80,10 +95,19 @@ export default function Compatibility() {
     const needle = q.trim().toLowerCase();
     return CATALOG.filter((e) => status === 'all' || e.status === status)
       .filter((e) => brand === 'all' || e.brand === brand)
-      .filter((e) => !needle || `${e.brand} ${e.model} ${e.family} ${e.mcu} ${hex4(e.vendorId)}:${hex4(e.productId)}`.toLowerCase().includes(needle));
+      .filter(
+        (e) =>
+          !needle ||
+          `${e.brand} ${e.model} ${e.family} ${e.mcu} ${hex4(e.vendorId)}:${hex4(e.productId)}`
+            .toLowerCase()
+            .includes(needle),
+      );
   }, [q, status, brand]);
   const registry = useMemo(() => createDefaultRegistry(), []);
-  const families = [...registry.list().map((p) => ({ id: p.id, name: p.name, m: p.manifest })), ...registry.planned().map((p) => ({ id: p.id, name: p.name, m: p.manifest }))];
+  const families = [
+    ...registry.list().map((p) => ({ id: p.id, name: p.name, m: p.manifest })),
+    ...registry.planned().map((p) => ({ id: p.id, name: p.name, m: p.manifest })),
+  ];
   const notYet = CATALOG.filter((e) => e.status === 'research' || e.status === 'unsupported');
 
   return (
@@ -96,7 +120,12 @@ export default function Compatibility() {
           const on = status === s;
           return (
             <li key={s}>
-              <button type="button" className={`stat-card cs-border-${s} ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => setStatus(on ? 'all' : s)}>
+              <button
+                type="button"
+                className={`stat-card cs-border-${s} ${on ? 'on' : ''}`}
+                aria-pressed={on}
+                onClick={() => setStatus(on ? 'all' : s)}
+              >
                 <span className="stat-num">{n}</span>
                 <span className={`pill cs-${s}`}>{t(`compat.status.${s}`)}</span>
                 <span className="small muted">{t(`compat.statusMeans.${s}` as MessageKey)}</span>
@@ -109,11 +138,22 @@ export default function Compatibility() {
       <div className="filter-bar">
         <label className="search grow">
           <Icon name="search" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('compat.search')} aria-label={t('compat.search')} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t('compat.search')}
+            aria-label={t('compat.search')}
+          />
         </label>
         <div className="chips" role="group" aria-label={t('compat.brand')}>
           {['all', ...brands].map((b) => (
-            <button key={b} type="button" className={`chip ${brand === b ? 'on' : ''}`} aria-pressed={brand === b} onClick={() => setBrand(b)}>
+            <button
+              key={b}
+              type="button"
+              className={`chip ${brand === b ? 'on' : ''}`}
+              aria-pressed={brand === b}
+              onClick={() => setBrand(b)}
+            >
               {b === 'all' ? t('compat.all') : b}
             </button>
           ))}
@@ -156,11 +196,18 @@ export default function Compatibility() {
               <code className="muted small">
                 {hex4(e.vendorId)}:{hex4(e.productId)}
               </code>
-              <div className="small muted">{t(e.status === 'unsupported' ? 'compat.why.unsupported' : 'compat.why.research')}</div>
+              <div className="small muted">
+                {t(e.status === 'unsupported' ? 'compat.why.unsupported' : 'compat.why.research')}
+              </div>
             </li>
           ))}
         </ul>
-        <a className="btn small" href={CONTRIBUTE_KEYBOARD_URL} target="_blank" rel="noopener noreferrer">
+        <a
+          className="btn small"
+          href={CONTRIBUTE_KEYBOARD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {t('footer.contribute')}
         </a>
       </section>
@@ -175,7 +222,13 @@ export default function Compatibility() {
               <span className={`pill cs-${f.m.status}`}>{t(`compat.status.${f.m.status}`)}</span>
               <strong>{f.name}</strong>
               <span className="small muted">{f.m.verification}</span>
-              <span className="small muted">{t('compat.familyMeta', { units: f.m.verifiedIdentities.length, license: f.m.license, version: f.m.version })}</span>
+              <span className="small muted">
+                {t('compat.familyMeta', {
+                  units: f.m.verifiedIdentities.length,
+                  license: f.m.license,
+                  version: f.m.version,
+                })}
+              </span>
               {f.m.limitations.length > 0 && (
                 <details className="small">
                   <summary>{t('compat.limitations', { n: f.m.limitations.length })}</summary>

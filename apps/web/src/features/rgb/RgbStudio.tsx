@@ -7,7 +7,14 @@ import { Card, Field, Loading, SourceNote } from '../../components/ui.js';
 import { ChangeBar, useChangeTracking } from '../../components/ChangeBar.js';
 import { WriteGateNote } from '../shared/WriteGateNote.js';
 
-const FIELDS: (keyof RgbConfig)[] = ['effect', 'color', 'colorful', 'brightness', 'speed', 'direction'];
+const FIELDS: (keyof RgbConfig)[] = [
+  'effect',
+  'color',
+  'colorful',
+  'brightness',
+  'speed',
+  'direction',
+];
 
 /**
  * Hardware lighting effects: they run on the keyboard's own controller. Controls change a local
@@ -19,7 +26,8 @@ export function RgbStudio() {
   const { device, read, apply, gate, revision } = useKeyboard();
   const [applied, setApplied] = useState<RgbConfig | null>(null);
   const [draft, setDraft] = useState<RgbConfig | null>(null);
-  const changed = draft && applied ? FIELDS.filter((f) => !deepEqual(draft[f], applied[f])).length : 0;
+  const changed =
+    draft && applied ? FIELDS.filter((f) => !deepEqual(draft[f], applied[f])).length : 0;
   const track = useChangeTracking('rgb', ['rgb'], changed);
 
   // Read on open, and again after another editor wrote (per-key colours switch the effect), unless
@@ -41,7 +49,10 @@ export function RgbStudio() {
   const ctl = effect?.controls;
   const set = (p: Partial<RgbConfig>) => setDraft({ ...draft, ...p });
   const g = gate('rgb');
-  const leavingPerKey = cat.customEffect !== undefined && applied.effect === cat.customEffect && draft.effect !== cat.customEffect;
+  const leavingPerKey =
+    cat.customEffect !== undefined &&
+    applied.effect === cat.customEffect &&
+    draft.effect !== cat.customEffect;
 
   const doApply = async () => {
     const tx: Transaction<RgbConfig> = {
@@ -65,7 +76,14 @@ export function RgbStudio() {
         <p className="small muted">{t('rgb.hardwareNative')}</p>
         <div className="chips wrap" role="radiogroup" aria-label={t('rgb.effects')}>
           {cat.effects.map((e) => (
-            <button key={e.id} type="button" role="radio" aria-checked={e.id === draft.effect} className={`chip ${e.id === draft.effect ? 'on' : ''}`} onClick={() => set({ effect: e.id })}>
+            <button
+              key={e.id}
+              type="button"
+              role="radio"
+              aria-checked={e.id === draft.effect}
+              className={`chip ${e.id === draft.effect ? 'on' : ''}`}
+              onClick={() => set({ effect: e.id })}
+            >
               {e.name}
             </button>
           ))}
@@ -81,28 +99,53 @@ export function RgbStudio() {
         <div className="form-grid">
           {(ctl?.color ?? true) && (
             <Field label={t('rgb.color')} hint={rgbToHex(draft.color).toUpperCase()}>
-              <input type="color" value={rgbToHex(draft.color)} onChange={(e) => set({ color: hexToRgb(e.target.value) })} />
+              <input
+                type="color"
+                value={rgbToHex(draft.color)}
+                onChange={(e) => set({ color: hexToRgb(e.target.value) })}
+              />
             </Field>
           )}
           {(ctl?.colorful ?? true) && (
             <label className="check field-check">
-              <input type="checkbox" checked={draft.colorful} onChange={(e) => set({ colorful: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={draft.colorful}
+                onChange={(e) => set({ colorful: e.target.checked })}
+              />
               {t('rgb.rainbow')}
             </label>
           )}
           {(ctl?.brightness ?? true) && (
             <Field label={t('rgb.brightness', { v: draft.brightness })}>
-              <input type="range" min={cat.brightness.min} max={cat.brightness.max} value={draft.brightness} aria-valuetext={`${draft.brightness} / ${cat.brightness.max}`} onChange={(e) => set({ brightness: Number(e.target.value) })} />
+              <input
+                type="range"
+                min={cat.brightness.min}
+                max={cat.brightness.max}
+                value={draft.brightness}
+                aria-valuetext={`${draft.brightness} / ${cat.brightness.max}`}
+                onChange={(e) => set({ brightness: Number(e.target.value) })}
+              />
             </Field>
           )}
           {(ctl?.speed ?? true) && (
             <Field label={t('rgb.speed', { v: draft.speed })}>
-              <input type="range" min={cat.speed.min} max={cat.speed.max} value={draft.speed} aria-valuetext={`${draft.speed} / ${cat.speed.max}`} onChange={(e) => set({ speed: Number(e.target.value) })} />
+              <input
+                type="range"
+                min={cat.speed.min}
+                max={cat.speed.max}
+                value={draft.speed}
+                aria-valuetext={`${draft.speed} / ${cat.speed.max}`}
+                onChange={(e) => set({ speed: Number(e.target.value) })}
+              />
             </Field>
           )}
           {ctl && ctl.direction.length > 0 && (
             <Field label={t('rgb.direction')}>
-              <select value={draft.direction} onChange={(e) => set({ direction: e.target.value as Direction })}>
+              <select
+                value={draft.direction}
+                onChange={(e) => set({ direction: e.target.value as Direction })}
+              >
                 {ctl.direction.map((d) => (
                   <option key={d} value={d}>
                     {t(`rgb.dir.${d}`)}

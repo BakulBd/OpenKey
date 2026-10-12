@@ -51,7 +51,14 @@ export class OperationLock {
 
   begin(epoch: number, label: string, phase: OperationPhase, feature?: FeatureId): Operation {
     if (this.active) throw new BusyError(this.active.label);
-    this.active = { id: ++this.seq, epoch, label, phase, startedAt: Date.now(), ...(feature ? { feature } : {}) };
+    this.active = {
+      id: ++this.seq,
+      epoch,
+      label,
+      phase,
+      startedAt: Date.now(),
+      ...(feature ? { feature } : {}),
+    };
     this.onChange(this.active);
     return this.active;
   }
@@ -76,7 +83,13 @@ export class OperationLock {
   }
 
   /** Runs `fn` under the lock; the lock is released however `fn` ends. */
-  async run<T>(epoch: number, label: string, phase: OperationPhase, fn: (op: Operation) => Promise<T>, feature?: FeatureId): Promise<T> {
+  async run<T>(
+    epoch: number,
+    label: string,
+    phase: OperationPhase,
+    fn: (op: Operation) => Promise<T>,
+    feature?: FeatureId,
+  ): Promise<T> {
     const op = this.begin(epoch, label, phase, feature);
     try {
       return await fn(op);
@@ -97,7 +110,16 @@ export class OperationLock {
  * - failed: the write failed; the device state is unknown.
  * - reverted: local edits were discarded.
  */
-export type ConfigStatus = 'clean' | 'modified' | 'saving' | 'verifying' | 'verified' | 'saved-unverified' | 'mismatch' | 'failed' | 'reverted';
+export type ConfigStatus =
+  | 'clean'
+  | 'modified'
+  | 'saving'
+  | 'verifying'
+  | 'verified'
+  | 'saved-unverified'
+  | 'mismatch'
+  | 'failed'
+  | 'reverted';
 
 export interface ConfigStatusInput {
   /** Local draft differs from the last applied state. */

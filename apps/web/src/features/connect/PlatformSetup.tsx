@@ -11,7 +11,8 @@ import type { OsName } from '../../lib/platform.js';
 /** Files served by the app itself (emitted from udev/ in the repository at build time). */
 export const RULE_URL = './linux/70-openkey.rules';
 export const INSTALLER_URL = './linux/install-openkey-udev.sh';
-const MANUAL_CMD = 'sudo cp ~/Downloads/70-openkey.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger';
+const MANUAL_CMD =
+  'sudo cp ~/Downloads/70-openkey.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger';
 
 function CopyLine({ text, label }: { text: string; label?: string }) {
   const t = useT();
@@ -29,7 +30,8 @@ function CopyLine({ text, label }: { text: string; label?: string }) {
           )
         }
       >
-        <Icon name={done ? 'check' : 'copy'} size={14} /> {done ? t('lab.report.copied') : t('setup.copy')}
+        <Icon name={done ? 'check' : 'copy'} size={14} />{' '}
+        {done ? t('lab.report.copied') : t('setup.copy')}
       </button>
     </div>
   );
@@ -53,7 +55,13 @@ function LinuxSteps({ device, onRetry }: { device?: SetupDevice; onRetry?: () =>
         <strong>{t('setup.linux.paste')}</strong>
         <CopyLine text={installCommand(installer, device)} label={t('setup.linux.paste')} />
         <span className="small muted">{t('setup.linux.pasteNote')}</span>
-        {!listed && device && <span className="small">{t('setup.linux.addsDevice', { id: usbId(device.vendorId, device.productId).toUpperCase() })}</span>}
+        {!listed && device && (
+          <span className="small">
+            {t('setup.linux.addsDevice', {
+              id: usbId(device.vendorId, device.productId).toUpperCase(),
+            })}
+          </span>
+        )}
         <details className="small">
           <summary>{t('setup.linux.manual')}</summary>
           <div className="row wrap">
@@ -116,7 +124,12 @@ export function AccessHelp({ problem }: { problem: AccessProblem }) {
         <li>{t(problem.os === 'macos' ? 'setup.busy.step2mac' : 'setup.busy.step2')}</li>
         <li>{t('setup.busy.step3')}</li>
       </ol>
-      <button type="button" className="btn primary" disabled={busy} onClick={() => void retryAccess()}>
+      <button
+        type="button"
+        className="btn primary"
+        disabled={busy}
+        onClick={() => void retryAccess()}
+      >
         {t('setup.retry')}
       </button>
       <details className="small">
@@ -139,7 +152,14 @@ export function PlatformGuide({ defaultOpen = true }: { defaultOpen?: boolean })
       <summary>{t('setup.guide', { os: t(`os.${detected}` as MessageKey) })}</summary>
       <div className="tabs" role="tablist" aria-label={t('setup.guideTabs')}>
         {TABS.map((x) => (
-          <button key={x} type="button" role="tab" aria-selected={os === x} className={`tab ${os === x ? 'on' : ''}`} onClick={() => setOs(x)}>
+          <button
+            key={x}
+            type="button"
+            role="tab"
+            aria-selected={os === x}
+            className={`tab ${os === x ? 'on' : ''}`}
+            onClick={() => setOs(x)}
+          >
             {t(`os.${x}` as MessageKey)}
             {x === detected && <span className="muted small"> · {t('setup.thisDevice')}</span>}
           </button>

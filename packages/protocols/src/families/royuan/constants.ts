@@ -22,6 +22,16 @@ export const Cmd = {
   /** Lighting read/write; same opcode and payload in both families. */
   GET_LEDPARAM: 0x87,
   SET_LEDPARAM: 0x07,
+  /** Active profile; yc500 0x85, gen2 0x84 (both hardware-observed GETs). */
+  GET_PROFILE_YC500: 0x85,
+  GET_PROFILE_GEN2: 0x84,
+  /** Key-map page reads: yc500 base 0x89 / Fn 0x90 `[profile, page]`; gen2 base 0x8A `[profile, FF, page, os]`. */
+  GET_KEYMAP_YC500: 0x89,
+  GET_FN_YC500: 0x90,
+  GET_KEYMAP_GEN2: 0x8a,
+  /** yc500 single-slot writes: `[profile, slot]`, value at bytes 8..11. */
+  SET_KEY_YC500: 0x13,
+  SET_FN_KEY_YC500: 0x15,
 } as const;
 
 /** Never sent: factory reset (yc500 / gen2), flash and display erase, USB and display boot entry. */

@@ -4,7 +4,9 @@ import { describeCollections, parseReportDescriptor } from '@openkey/hid';
 import { scanHidraw } from '@openkey/hid-node';
 
 if (process.platform !== 'linux') {
-  console.error('This tool reads Linux sysfs. On macOS and Windows use "pnpm openkey list" / "pnpm openkey detect" instead.');
+  console.error(
+    'This tool reads Linux sysfs. On macOS and Windows use "pnpm openkey list" / "pnpm openkey detect" instead.',
+  );
   process.exit(1);
 }
 

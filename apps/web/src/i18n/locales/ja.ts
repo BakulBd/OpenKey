@@ -61,9 +61,11 @@ const m: Partial<Messages> = {
   'notice.demoDetail': 'シミュレーションのキーボードです。ハードウェアには何も送信しません。',
   'notice.unknownDevice': '{name}：検証済みアダプターがありません。読み取り専用の調査モードです。',
   'notice.noDeviceSelected': 'デバイスが選択されていません',
-  'notice.noDeviceSelectedHint': 'ブラウザのダイアログでキーボードを選んでください。USB データケーブルと有線モードを使用します。',
+  'notice.noDeviceSelectedHint':
+    'ブラウザのダイアログでキーボードを選んでください。USB データケーブルと有線モードを使用します。',
   'notice.disconnected': 'キーボードが切断されました',
-  'notice.disconnectedHint': 'ローカルの編集は保持されています。再接続すると続行できます。自動で書き込むことはありません。',
+  'notice.disconnectedHint':
+    'ローカルの編集は保持されています。再接続すると続行できます。自動で書き込むことはありません。',
   'notice.replugged': 'キーボードが接続されました。',
   'notice.noDevice': 'キーボードが接続されていません。',
   'notice.blocked': '{label}：安全ポリシーによりブロックされました',
@@ -82,19 +84,24 @@ const m: Partial<Messages> = {
   'browser.ok': 'このブラウザは WebHID に対応しています。',
   'browser.noWebHid': 'このブラウザは WebHID に対応していません。',
   'browser.insecure': 'WebHID には安全なコンテキスト（HTTPS）が必要です。',
-  'browser.useDemo': 'デスクトップの Chrome、Edge、Opera、Brave をご利用いただくか、デモをお試しください。',
+  'browser.useDemo':
+    'デスクトップの Chrome、Edge、Opera、Brave をご利用いただくか、デモをお試しください。',
   'landing.eyebrow': 'オープンソース · ローカルファースト · アカウント不要',
   'landing.title': 'キーボードをブラウザで設定。',
-  'landing.lead': 'OpenKey は WebHID でキーボードと直接通信します。インストール不要、クラウドなし、テレメトリーなし。何が分かっていて何が検証済みかを率直に示します。',
-  'landing.honest': 'OpenKey はまだ万能ではありません。設定できるのは OpenKey アダプターのあるキーボードだけです。それ以外のキーボードも安全に調べて報告できます。',
+  'landing.lead':
+    'OpenKey は WebHID でキーボードと直接通信します。インストール不要、クラウドなし、テレメトリーなし。何が分かっていて何が検証済みかを率直に示します。',
+  'landing.honest':
+    'OpenKey はまだ万能ではありません。設定できるのは OpenKey アダプターのあるキーボードだけです。それ以外のキーボードも安全に調べて報告できます。',
   'landing.devices': '対応デバイス',
   'landing.pipelineTitle': 'OpenKey がキーボードを識別する仕組み',
   'landing.pipe.transport': 'トランスポート',
   'landing.pipe.transport.d': 'ブラウザ内の WebHID。サーバーを経由しません。',
   'landing.pipe.discovery': '検出',
-  'landing.pipe.discovery.d': 'HID コレクション、Usage、レポートサイズ——VID/PID だけではありません。',
+  'landing.pipe.discovery.d':
+    'HID コレクション、Usage、レポートサイズ——VID/PID だけではありません。',
   'landing.pipe.detection': 'プロトコル判定',
-  'landing.pipe.detection.d': 'ディスクリプタの特徴を照合し、文書化された読み取り専用ハンドシェイクを行います。',
+  'landing.pipe.detection.d':
+    'ディスクリプタの特徴を照合し、文書化された読み取り専用ハンドシェイクを行います。',
   'landing.pipe.adapter': 'アダプター',
   'landing.pipe.adapter.d': 'プロトコルファミリーごとに一つ。根拠と安全ポリシー付き。',
   'landing.pipe.capabilities': '機能',
@@ -102,29 +109,36 @@ const m: Partial<Messages> = {
   'landing.pipe.ui': 'インターフェース',
   'landing.pipe.ui.d': 'キーボードが実際にできることだけを表示します。',
   'landing.hardwareTitle': 'ハードウェアの状況',
-  'landing.countsNote': '数値は検証状態ごとのカタログ件数です。合算して一つの「対応」数にすることはありません。',
+  'landing.countsNote':
+    '数値は検証状態ごとのカタログ件数です。合算して一つの「対応」数にすることはありません。',
   'landing.privacyTitle': 'プライバシー重視の設計',
   'landing.privacy.noAccount': 'アカウント、解析、トラッキングはありません。',
-  'landing.privacy.local': 'プロファイル、バックアップ、プロジェクトはこのブラウザ内に保存されます。',
+  'landing.privacy.local':
+    'プロファイル、バックアップ、プロジェクトはこのブラウザ内に保存されます。',
   'landing.privacy.typing': '入力内容を記録することはありません。テスターは実行中のみ記録します。',
   'landing.privacy.permission': 'OpenKey がデバイスを扱う前に、ブラウザが一台ずつ許可を求めます。',
   'landing.privacyLink': 'プライバシーについて読む',
   'landing.unknownTitle': '別のキーボードをお持ちですか？',
-  'landing.unknownBody': '読み取り専用で調べられます。HID インターフェースと可能性のあるプロトコルファミリーを表示し、サポート依頼を手伝います。何も書き込みません。',
+  'landing.unknownBody':
+    '読み取り専用で調べられます。HID インターフェースと可能性のあるプロトコルファミリーを表示し、サポート依頼を手伝います。何も書き込みません。',
   'landing.contributeTitle': 'キーボードを追加する',
   'landing.contribute.1': 'デバイスを調べて診断パッケージをエクスポートします。',
   'landing.contribute.2': 'それを添えてデバイスサポートの issue を作成します。',
   'landing.contribute.3': 'プロトコル調査：キャプチャ、フィクスチャ、モックテスト付きアダプター。',
   'landing.contribute.4': '実機で検証された後、デバイスのステータスが上がります。',
   'connect.title': 'キーボードを接続',
-  'connect.lead': 'このページにはキーボードが必要です。接続するか、シミュレーションのデモを試すか、任意の HID デバイスを読み取り専用で調べてください。',
+  'connect.lead':
+    'このページにはキーボードが必要です。接続するか、シミュレーションのデモを試すか、任意の HID デバイスを読み取り専用で調べてください。',
   'connect.troubleTitle': 'キーボードが表示されない場合',
   'connect.trouble.cable': 'USB データケーブルを使用してください（充電専用のケーブルもあります）。',
-  'connect.trouble.wired': 'キーボードを有線モードにしてください。多くのキーボードは Bluetooth では設定できません。',
-  'connect.trouble.linux': 'Linux では OpenKey の udev ルールをインストールし、キーボードを挿し直してください。',
+  'connect.trouble.wired':
+    'キーボードを有線モードにしてください。多くのキーボードは Bluetooth では設定できません。',
+  'connect.trouble.linux':
+    'Linux では OpenKey の udev ルールをインストールし、キーボードを挿し直してください。',
   'connect.trouble.busy': 'メーカー製ソフトや他の設定ツールのタブを閉じてください。',
   'research.title': 'ハードウェアを検出——プロトコルの調査が必要です',
-  'research.body': 'このキーボードにはこの機能がありますが、OpenKey はまだ設定プロトコルを把握していません。何も送信しません。公式ソフトのキャプチャを提供して協力できます。',
+  'research.body':
+    'このキーボードにはこの機能がありますが、OpenKey はまだ設定プロトコルを把握していません。何も送信しません。公式ソフトのキャプチャを提供して協力できます。',
   'research.lab': 'リサーチラボを開く',
   'status.SUPPORTED': '対応',
   'status.CONFIGURABLE': '設定可能',
@@ -151,9 +165,11 @@ const m: Partial<Messages> = {
   'gate.enabled': 'このセッションでは実験的な書き込みが有効です。',
   'safety.title': 'キーボードに書き込む：{label}',
   'safety.write': '書き込む',
-  'safety.never': 'OpenKey がファームウェア、ブートローダー、消去のコマンドを送ることはありません。',
+  'safety.never':
+    'OpenKey がファームウェア、ブートローダー、消去のコマンドを送ることはありません。',
   'safety.experimentalTitle': '実験的な書き込み',
-  'safety.experimentalBody': 'このコマンドは文書化された情報源から再現したものですが、OpenKey はまだ実機で検証していません。結果がおかしい場合はバックアップを復元するか、キーボードの工場出荷時リセットを使用してください。',
+  'safety.experimentalBody':
+    'このコマンドは文書化された情報源から再現したものですが、OpenKey はまだ実機で検証していません。結果がおかしい場合はバックアップを復元するか、キーボードの工場出荷時リセットを使用してください。',
   'safety.optIn': 'このブラウザセッションで実験的な書き込みを有効にする',
   'safety.level.READ_ONLY': '読み取り専用',
   'safety.level.SAFE_VOLATILE': '一時的',
@@ -182,7 +198,8 @@ const m: Partial<Messages> = {
   'settings.theme.dark': 'ダーク',
   'pwa.updateReady': 'OpenKey の新しいバージョンがあります。',
   'pwa.reload': '再読み込み',
-  'footer.cta': 'OpenKey はオープンソースのコミュニティ主導プロジェクトです。役に立ったら GitHub でスターをお願いします。より多くの人に見つけてもらえ、開発の継続にもつながります。',
+  'footer.cta':
+    'OpenKey はオープンソースのコミュニティ主導プロジェクトです。役に立ったら GitHub でスターをお願いします。より多くの人に見つけてもらえ、開発の継続にもつながります。',
   'footer.star': 'GitHub でスター',
   'footer.contribute': 'キーボードを追加する',
   'footer.bug': 'バグを報告',

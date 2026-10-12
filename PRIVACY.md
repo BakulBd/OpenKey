@@ -56,7 +56,7 @@ the connection state and the titles of recent errors.
 It excludes typing data, macro contents, keymaps, packet payloads, file names and — unless you opt in —
 the serial number.
 
-**Research lab → Offline analysis** opens a diagnostic file *in your browser* and analyses it with the
+**Research lab → Offline analysis** opens a diagnostic file _in your browser_ and analyses it with the
 same detection code. The file is not uploaded; serial numbers in it are ignored; the analysed device
 cannot be contacted. Review the file before attaching it to an issue. Opening an issue happens on
 GitHub, under GitHub's privacy terms, and only when you choose to.

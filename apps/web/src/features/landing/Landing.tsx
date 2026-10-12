@@ -12,7 +12,15 @@ import { href } from '../../app/router.js';
 import { CONTRIBUTE_KEYBOARD_URL, REPO_URL } from '../../config.js';
 
 const PIPELINE = ['transport', 'discovery', 'detection', 'adapter', 'capabilities', 'ui'] as const;
-const BRANDS = ['AJAZZ AK820', 'AULA F75 · F87 · F99', 'RK R75', 'Akko · MonsGeek (ROYUAN)', 'QMK / VIA', 'Vial', 'Any HID device: inspect'];
+const BRANDS = [
+  'AJAZZ AK820',
+  'AULA F75 · F87 · F99',
+  'RK R75',
+  'Akko · MonsGeek (ROYUAN)',
+  'QMK / VIA',
+  'Vial',
+  'Any HID device: inspect',
+];
 const FEATURES: [IconName, string][] = [
   ['keymap', 'keymap'],
   ['rgb', 'lighting'],
@@ -21,13 +29,21 @@ const FEATURES: [IconName, string][] = [
   ['backup', 'backup'],
   ['tester', 'tester'],
 ];
-const STATUS_ORDER: CatalogStatus[] = ['verified', 'experimental', 'community', 'research', 'unsupported'];
+const STATUS_ORDER: CatalogStatus[] = [
+  'verified',
+  'experimental',
+  'community',
+  'research',
+  'unsupported',
+];
 
 export function Landing() {
   const t = useT();
   const { support, inspect, conn } = useKeyboard();
   const busy = conn.status !== 'DISCONNECTED';
-  const counts = STATUS_ORDER.map((s) => [s, CATALOG.filter((e) => e.status === s).length] as const);
+  const counts = STATUS_ORDER.map(
+    (s) => [s, CATALOG.filter((e) => e.status === s).length] as const,
+  );
 
   return (
     <main id="main" className="landing" tabIndex={-1}>
@@ -57,7 +73,9 @@ export function Landing() {
       </div>
 
       <section className="brand-strip" aria-labelledby="works-h">
-        <h2 id="works-h" className="small muted">{t('landing.worksWith')}</h2>
+        <h2 id="works-h" className="small muted">
+          {t('landing.worksWith')}
+        </h2>
         <ul>
           {BRANDS.map((b) => (
             <li key={b}>{b}</li>
@@ -100,7 +118,8 @@ export function Landing() {
           <ul className="status-counts">
             {counts.map(([s, n]) => (
               <li key={s}>
-                <span className={`pill cs-${s}`}>{t(`compat.status.${s}`)}</span> <span className="num">{n}</span>
+                <span className={`pill cs-${s}`}>{t(`compat.status.${s}`)}</span>{' '}
+                <span className="num">{n}</span>
               </li>
             ))}
           </ul>
@@ -118,7 +137,12 @@ export function Landing() {
             <li>{t('landing.privacy.typing')}</li>
             <li>{t('landing.privacy.permission')}</li>
           </ul>
-          <a className="small" href={`${REPO_URL}/blob/main/PRIVACY.md`} target="_blank" rel="noopener noreferrer">
+          <a
+            className="small"
+            href={`${REPO_URL}/blob/main/PRIVACY.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {t('landing.privacyLink')}
           </a>
         </div>
@@ -126,7 +150,12 @@ export function Landing() {
         <div className="card">
           <h2>{t('landing.unknownTitle')}</h2>
           <p>{t('landing.unknownBody')}</p>
-          <button type="button" className="btn small" disabled={!support.available || busy} onClick={() => void inspect()}>
+          <button
+            type="button"
+            className="btn small"
+            disabled={!support.available || busy}
+            onClick={() => void inspect()}
+          >
             <Icon name="lab" /> {t('action.inspect')}
           </button>
         </div>
@@ -139,7 +168,12 @@ export function Landing() {
             <li>{t('landing.contribute.3')}</li>
             <li>{t('landing.contribute.4')}</li>
           </ol>
-          <a className="btn small" href={CONTRIBUTE_KEYBOARD_URL} target="_blank" rel="noopener noreferrer">
+          <a
+            className="btn small"
+            href={CONTRIBUTE_KEYBOARD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {t('footer.contribute')}
           </a>
         </div>

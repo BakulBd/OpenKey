@@ -8,7 +8,9 @@ describe('keycode search', () => {
     expect(searchKeycodes('letter a')[0]?.name).toBe('A');
   });
   it('finds shortcuts and media keys by intent', () => {
-    expect(searchKeycodes('copy').map((e) => e.name)).toEqual(expect.arrayContaining(['Copy', 'Copy (macOS)']));
+    expect(searchKeycodes('copy').map((e) => e.name)).toEqual(
+      expect.arrayContaining(['Copy', 'Copy (macOS)']),
+    );
     expect(searchKeycodes('volume').every((e) => e.group === 'media')).toBe(true);
     expect(searchKeycodes('volume').length).toBeGreaterThan(1);
   });

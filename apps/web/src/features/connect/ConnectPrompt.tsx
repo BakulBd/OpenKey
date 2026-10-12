@@ -22,7 +22,10 @@ export function ConnectPrompt() {
 export function ResearchNeeded({ route }: { route: RouteDef }) {
   const t = useT();
   const { device } = useKeyboard();
-  const notes = (route.features ?? []).map((f) => device?.caps[f]).filter((s) => s?.note).map((s) => s!.note!);
+  const notes = (route.features ?? [])
+    .map((f) => device?.caps[f])
+    .filter((s) => s?.note)
+    .map((s) => s!.note!);
   return (
     <div className="page narrow">
       <div className="card">

@@ -21,7 +21,10 @@ export function HeroVisual() {
     let alive = true;
     void import('@openkey/tft').then(({ renderGallery, galleryAnimation }) => {
       if (!alive) return;
-      const clips = SHOWS.map((id) => ({ frames: renderGallery(id, SCREEN, SCREEN), delay: galleryAnimation(id)!.delayMs }));
+      const clips = SHOWS.map((id) => ({
+        frames: renderGallery(id, SCREEN, SCREEN),
+        delay: galleryAnimation(id)!.delayMs,
+      }));
       let clip = 0;
       let i = 0;
       let shown = 0;
@@ -62,7 +65,16 @@ export function HeroVisual() {
             <stop offset="1" stopColor="var(--hv-case-bottom)" />
           </linearGradient>
         </defs>
-        <rect x="2" y="2" width={w + 146} height={5 * u + 56} rx="18" fill="url(#hv-case)" stroke="var(--border)" strokeWidth="2" />
+        <rect
+          x="2"
+          y="2"
+          width={w + 146}
+          height={5 * u + 56}
+          rx="18"
+          fill="url(#hv-case)"
+          stroke="var(--border)"
+          strokeWidth="2"
+        />
         {ROWS.flatMap((n, r) =>
           Array.from({ length: n }, (_, c) => {
             const wide = c === n - 1 ? (15 - n) * u + u : u;
@@ -89,7 +101,11 @@ export function HeroVisual() {
         width={SCREEN}
         height={SCREEN}
         className="hero-screen"
-        style={{ left: `${((w + 21) / (w + 150)) * 100}%`, top: `${(33 / (5 * u + 60)) * 100}%`, width: `${(96 / (w + 150)) * 100}%` }}
+        style={{
+          left: `${((w + 21) / (w + 150)) * 100}%`,
+          top: `${(33 / (5 * u + 60)) * 100}%`,
+          width: `${(96 / (w + 150)) * 100}%`,
+        }}
       />
     </div>
   );

@@ -29,7 +29,11 @@ export function DefinitionPanel() {
   if (!device) return null;
   const host = device.driver as unknown as DefinitionHost;
   const id = device.info.identity;
-  const mismatch = preview && preview.vendorId !== undefined && preview.productId !== undefined && (preview.vendorId !== id.vendorId || preview.productId !== id.productId);
+  const mismatch =
+    preview &&
+    preview.vendorId !== undefined &&
+    preview.productId !== undefined &&
+    (preview.vendorId !== id.vendorId || preview.productId !== id.productId);
 
   const load = async (file: File) => {
     setError(null);
@@ -60,19 +64,36 @@ export function DefinitionPanel() {
       <ul className="small">
         <li>
           {t('def.whereVia')}{' '}
-          <a href="https://github.com/the-via/keyboards/tree/master/v3" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://github.com/the-via/keyboards/tree/master/v3"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             the-via/keyboards
           </a>
         </li>
         <li>
           {t('def.whereQmk')}{' '}
-          <a href="https://github.com/qmk/qmk_firmware/tree/master/keyboards" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://github.com/qmk/qmk_firmware/tree/master/keyboards"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             qmk/qmk_firmware
           </a>
         </li>
       </ul>
       <div className="row wrap">
-        <FileButton variant="primary" accept=".json,application/json" label={<><Icon name="backup" /> {t('def.load')}</>} onFile={(f) => void load(f)} />
+        <FileButton
+          variant="primary"
+          accept=".json,application/json"
+          label={
+            <>
+              <Icon name="backup" /> {t('def.load')}
+            </>
+          }
+          onFile={(f) => void load(f)}
+        />
       </div>
       {error && (
         <p className="callout danger small" role="alert">
@@ -82,12 +103,33 @@ export function DefinitionPanel() {
       {preview && (
         <div className="stack">
           <p className="small">
-            <strong>{preview.name}</strong> · {t('def.facts', { rows: preview.rows, cols: preview.cols, keys: preview.layout.keys.length })}
+            <strong>{preview.name}</strong> ·{' '}
+            {t('def.facts', {
+              rows: preview.rows,
+              cols: preview.cols,
+              keys: preview.layout.keys.length,
+            })}
           </p>
-          {mismatch && <p className="callout warn small">{t('def.mismatch', { file: `${hex4(preview.vendorId!)}:${hex4(preview.productId!)}` })}</p>}
-          <KeyboardView layout={preview.layout} label={preview.name} selected={null} scrollHint={t('kb.scrollHint')} />
+          {mismatch && (
+            <p className="callout warn small">
+              {t('def.mismatch', {
+                file: `${hex4(preview.vendorId!)}:${hex4(preview.productId!)}`,
+              })}
+            </p>
+          )}
+          <KeyboardView
+            layout={preview.layout}
+            label={preview.name}
+            selected={null}
+            scrollHint={t('kb.scrollHint')}
+          />
           <div>
-            <button type="button" className="btn primary" disabled={busy} onClick={() => void use(() => host.setDefinition(preview))}>
+            <button
+              type="button"
+              className="btn primary"
+              disabled={busy}
+              onClick={() => void use(() => host.setDefinition(preview))}
+            >
               <Icon name="check" /> {t('def.use')}
             </button>
           </div>
@@ -99,13 +141,30 @@ export function DefinitionPanel() {
         <div className="row wrap">
           <label>
             {t('def.rows')}{' '}
-            <input type="number" min={1} max={32} value={rows} onChange={(e) => setRows(Number(e.target.value))} />
+            <input
+              type="number"
+              min={1}
+              max={32}
+              value={rows}
+              onChange={(e) => setRows(Number(e.target.value))}
+            />
           </label>
           <label>
             {t('def.cols')}{' '}
-            <input type="number" min={1} max={32} value={cols} onChange={(e) => setCols(Number(e.target.value))} />
+            <input
+              type="number"
+              min={1}
+              max={32}
+              value={cols}
+              onChange={(e) => setCols(Number(e.target.value))}
+            />
           </label>
-          <button type="button" className="btn" disabled={busy} onClick={() => void use(() => host.useGrid(rows, cols))}>
+          <button
+            type="button"
+            className="btn"
+            disabled={busy}
+            onClick={() => void use(() => host.useGrid(rows, cols))}
+          >
             {t('def.useGrid')}
           </button>
         </div>

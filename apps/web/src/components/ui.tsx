@@ -29,7 +29,15 @@ export function Card({
   );
 }
 
-export function PageHeader({ title, lead, actions }: { title: ReactNode; lead?: ReactNode; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  lead,
+  actions,
+}: {
+  title: ReactNode;
+  lead?: ReactNode;
+  actions?: ReactNode;
+}) {
   return (
     <header className="page-head">
       <div>
@@ -59,7 +67,11 @@ export function StatusBadge({ status }: { status: FeatureStatus }) {
 export function SupportSummary({ s }: { s: FeatureSupport }) {
   const t = useT();
   const parts = [
-    s.read === 'device' ? t('support.readDevice') : s.read === 'mirror' ? t('support.readMirror') : null,
+    s.read === 'device'
+      ? t('support.readDevice')
+      : s.read === 'mirror'
+        ? t('support.readMirror')
+        : null,
     s.write ? t('support.write') : null,
   ].filter(Boolean);
   return <span className="muted small">{parts.join(' · ') || t('support.none')}</span>;
@@ -89,7 +101,14 @@ export function MirrorNote() {
 }
 
 export function Spinner({ label }: { label?: string }) {
-  return <span className="spinner" role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} />;
+  return (
+    <span
+      className="spinner"
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    />
+  );
 }
 
 /** A styled file picker: a real <input type=file> inside a label, reachable by keyboard. */
@@ -122,7 +141,15 @@ export function FileButton({
 }
 
 /** An empty state that says why the area is empty and what to do next. */
-export function EmptyState({ title, children, actions }: { title: ReactNode; children?: ReactNode; actions?: ReactNode }) {
+export function EmptyState({
+  title,
+  children,
+  actions,
+}: {
+  title: ReactNode;
+  children?: ReactNode;
+  actions?: ReactNode;
+}) {
   return (
     <div className="empty-state">
       <strong>{title}</strong>
@@ -133,7 +160,19 @@ export function EmptyState({ title, children, actions }: { title: ReactNode; chi
 }
 
 /** What happened, what it means, and the safest next step; technical detail stays collapsed. */
-export function ErrorPanel({ title, reason, hint, detail, tone = 'danger' }: { title: ReactNode; reason?: ReactNode; hint?: ReactNode; detail?: string; tone?: 'danger' | 'warn' }) {
+export function ErrorPanel({
+  title,
+  reason,
+  hint,
+  detail,
+  tone = 'danger',
+}: {
+  title: ReactNode;
+  reason?: ReactNode;
+  hint?: ReactNode;
+  detail?: string;
+  tone?: 'danger' | 'warn';
+}) {
   const t = useT();
   return (
     <div className={`error-panel callout ${tone}`} role="alert">
@@ -158,12 +197,52 @@ export function ErrorPanel({ title, reason, hint, detail, tone = 'danger' }: { t
   );
 }
 
-export function Field({ label, children, hint }: { label: ReactNode; children: ReactNode; hint?: ReactNode }) {
+export function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: ReactNode;
+  children: ReactNode;
+  hint?: ReactNode;
+}) {
   return (
     <label className="field">
       <span className="field-label">{label}</span>
       {children}
       {hint && <span className="field-hint">{hint}</span>}
+    </label>
+  );
+}
+
+/** An on/off setting as a switch row: label and hint on the left, the switch on the right. */
+export function Toggle({
+  label,
+  hint,
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  label: ReactNode;
+  hint?: ReactNode;
+  checked: boolean;
+  onChange: (on: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="toggle-row">
+      <span className="toggle-text">
+        <span className="toggle-label">{label}</span>
+        {hint && <span className="field-hint">{hint}</span>}
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        className="switch"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
     </label>
   );
 }

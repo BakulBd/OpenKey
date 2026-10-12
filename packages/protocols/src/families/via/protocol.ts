@@ -1,7 +1,12 @@
 import { Evidence, hex16, toHex } from '@openkey/core';
 import { LoggingTransport, findInterface } from '@openkey/hid';
 import type { HidCollection } from '@openkey/hid';
-import type { CandidateMatch, ProbeContext, ProbeResult, ProtocolDefinition } from '../../registry.js';
+import type {
+  CandidateMatch,
+  ProbeContext,
+  ProbeResult,
+  ProtocolDefinition,
+} from '../../registry.js';
 import { ADAPTER_API_VERSION } from '../../registry.js';
 import { RAW_USAGE, RAW_USAGE_PAGE, VIA_PROTOCOL_ID } from './constants.js';
 import { ViaDriver } from './driver.js';
@@ -21,8 +26,16 @@ export const viaProtocol: ProtocolDefinition = {
     safety:
       'Keymaps, macros and lighting are read back after every write. The keymap reset, EEPROM reset, macro reset and bootloader commands are never sent, and bootloader/erase keycodes are never offered for assignment.',
     provenance: [
-      { source: 'public-specification', reference: 'QMK quantum/via.h, via.c, dynamic_keymap.c, keycodes.h (GPL-2.0; facts only)', status: Evidence.OBSERVED },
-      { source: 'public-specification', reference: 'VIA definition specification (the-via/website docs/specification.md)', status: Evidence.OBSERVED },
+      {
+        source: 'public-specification',
+        reference: 'QMK quantum/via.h, via.c, dynamic_keymap.c, keycodes.h (GPL-2.0; facts only)',
+        status: Evidence.OBSERVED,
+      },
+      {
+        source: 'public-specification',
+        reference: 'VIA definition specification (the-via/website docs/specification.md)',
+        status: Evidence.OBSERVED,
+      },
     ],
     license: 'MIT',
     limitations: [
@@ -37,7 +50,8 @@ export const viaProtocol: ProtocolDefinition = {
   name: 'VIA (QMK raw HID): any keyboard with VIA or Vial firmware',
   family: 'qmk-via',
   priority: 60,
-  supportedDevices: 'Keyboards running QMK with VIA enabled (Keychron, GMMK Pro, many custom boards) and Vial firmware',
+  supportedDevices:
+    'Keyboards running QMK with VIA enabled (Keychron, GMMK Pro, many custom boards) and Vial firmware',
   supportedFirmware: 'VIA protocol 0x0009 and later (keycodes v1 and v2)',
   requiredUsagePages: [RAW_USAGE_PAGE],
   requiredReports: ['FF60:0061 output 32B'],
@@ -50,7 +64,8 @@ export const viaProtocol: ProtocolDefinition = {
         collection: 'FF60:0061',
         reportId: 0,
         payloadPrefix: '01',
-        purpose: 'VIA id_get_protocol_version: read-only, the first command every VIA client sends.',
+        purpose:
+          'VIA id_get_protocol_version: read-only, the first command every VIA client sends.',
         effect: 'none',
         evidence: Evidence.OBSERVED,
       },
@@ -65,18 +80,39 @@ export const viaProtocol: ProtocolDefinition = {
         evidence: Evidence.OBSERVED,
       },
     ],
-    autoConsent: () => ({ auto: true, reason: 'public specification: FF60:0061 is QMK raw HID and the query is read-only' }),
+    autoConsent: () => ({
+      auto: true,
+      reason: 'public specification: FF60:0061 is QMK raw HID and the query is read-only',
+    }),
   },
   match(group): CandidateMatch {
     const i = findInterface(group, isRaw);
     // The AK820 2.4 GHz receiver also exposes FF60 (afonsusousa/mrworldwide); leave it to sonix-dongle.
-    const dongle = /dongle|2\.4g/i.test(group.identity.productName) || group.identity.productId === 0xfdfd;
+    const dongle =
+      /dongle|2\.4g/i.test(group.identity.productName) || group.identity.productId === 0xfdfd;
     return i && !dongle
-      ? { applicable: true, score: 70, reasons: ['QMK raw HID collection FF60:0061 (VIA)'], rejections: [] }
-      : { applicable: false, score: 0, reasons: [], rejections: [dongle ? 'receiver identity' : 'no FF60:0061 raw HID collection'] };
+      ? {
+          applicable: true,
+          score: 70,
+          reasons: ['QMK raw HID collection FF60:0061 (VIA)'],
+          rejections: [],
+        }
+      : {
+          applicable: false,
+          score: 0,
+          reasons: [],
+          rejections: [dongle ? 'receiver identity' : 'no FF60:0061 raw HID collection'],
+        };
   },
   async probe(ctx: ProbeContext): Promise<ProbeResult> {
-    if (ctx.level !== 'handshake') return { status: 'skipped', confidence: Evidence.INFERRED, summary: 'Descriptor signature only.', steps: [], facts: {} };
+    if (ctx.level !== 'handshake')
+      return {
+        status: 'skipped',
+        confidence: Evidence.INFERRED,
+        summary: 'Descriptor signature only.',
+        steps: [],
+        facts: {},
+      };
     const iface = findInterface(ctx.group, isRaw)!;
     const s = new ViaSession(await ctx.open(iface));
     const version = await s.protocolVersion().catch(() => null);
@@ -85,7 +121,14 @@ export const viaProtocol: ProtocolDefinition = {
       status: ok ? 'pass' : 'fail',
       confidence: ok ? Evidence.VERIFIED : Evidence.HYPOTHESIS,
       summary: ok ? `VIA protocol version ${hex16(version!)}` : 'No VIA answer',
-      steps: [{ name: 'VIA id_get_protocol_version', status: ok ? 'pass' : 'fail', detail: ok ? 'answered' : 'no answer', ...(ok ? { raw: toHex(Uint8Array.of(version! >> 8, version! & 0xff)) } : {}) }],
+      steps: [
+        {
+          name: 'VIA id_get_protocol_version',
+          status: ok ? 'pass' : 'fail',
+          detail: ok ? 'answered' : 'no answer',
+          ...(ok ? { raw: toHex(Uint8Array.of(version! >> 8, version! & 0xff)) } : {}),
+        },
+      ],
       facts: { viaVersion: version },
       identified: ok,
     };
@@ -93,6 +136,9 @@ export const viaProtocol: ProtocolDefinition = {
   async createDriver(group, opts) {
     const iface = findInterface(group, isRaw);
     if (!iface) throw new Error('VIA raw HID interface missing');
-    return new ViaDriver(group, iface, { store: opts.store, open: async (i) => new LoggingTransport(await group.openInterface(i), opts.log) });
+    return new ViaDriver(group, iface, {
+      store: opts.store,
+      open: async (i) => new LoggingTransport(await group.openInterface(i), opts.log),
+    });
   },
 };

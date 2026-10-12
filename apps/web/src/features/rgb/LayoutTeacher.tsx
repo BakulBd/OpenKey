@@ -14,7 +14,11 @@ interface Learnable {
 }
 
 export function isLearnable(d: KeyboardDriver | undefined): d is KeyboardDriver & Learnable {
-  return !!d && typeof (d as Partial<Learnable>).readSettingsPage === 'function' && typeof (d as Partial<Learnable>).learnLayout === 'function';
+  return (
+    !!d &&
+    typeof (d as Partial<Learnable>).readSettingsPage === 'function' &&
+    typeof (d as Partial<Learnable>).learnLayout === 'function'
+  );
 }
 
 type Step = 'start' | 'effect' | 'brightness' | 'done';
@@ -66,7 +70,13 @@ export function LayoutTeacher() {
     const prev = pages[pages.length - 1]!;
     const change = byTech.singleChange(prev, p);
     if (!change.ok) {
-      setProblem(change.reason === 'nothing-changed' ? 'teach.nothing' : change.reason === 'too-many-changes' ? 'teach.tooMany' : 'teach.invalid');
+      setProblem(
+        change.reason === 'nothing-changed'
+          ? 'teach.nothing'
+          : change.reason === 'too-many-changes'
+            ? 'teach.tooMany'
+            : 'teach.invalid',
+      );
       // Keep the latest read as the new baseline, so the next press is compared with it.
       setPages([...pages.slice(0, -1), p]);
       return;
@@ -78,7 +88,11 @@ export function LayoutTeacher() {
       setStep('brightness');
       return;
     }
-    const result = byTech.inferLayout(effectStep!, change, p[(effectStep as { offset: number }).offset]!);
+    const result = byTech.inferLayout(
+      effectStep!,
+      change,
+      p[(effectStep as { offset: number }).offset]!,
+    );
     if (!result.ok) {
       setProblem('teach.inconsistent');
       setPages([p]);
@@ -108,7 +122,12 @@ export function LayoutTeacher() {
           <strong>{t('teach.s1')}</strong>
           {step === 'start' && (
             <div>
-              <button type="button" className="btn primary" disabled={busy} onClick={() => void begin()}>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy}
+                onClick={() => void begin()}
+              >
                 {busy ? <Spinner /> : <Icon name="play" />} {t('teach.start')}
               </button>
             </div>
@@ -119,7 +138,12 @@ export function LayoutTeacher() {
           <span className="small muted">{t('teach.s2Note')}</span>
           {step === 'effect' && (
             <div>
-              <button type="button" className="btn primary" disabled={busy} onClick={() => void observe()}>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy}
+                onClick={() => void observe()}
+              >
                 {busy ? <Spinner /> : <Icon name="check" />} {t('teach.pressed')}
               </button>
             </div>
@@ -130,7 +154,12 @@ export function LayoutTeacher() {
           <span className="small muted">{t('teach.s3Note')}</span>
           {step === 'brightness' && (
             <div>
-              <button type="button" className="btn primary" disabled={busy} onClick={() => void observe()}>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy}
+                onClick={() => void observe()}
+              >
                 {busy ? <Spinner /> : <Icon name="check" />} {t('teach.pressed')}
               </button>
             </div>
@@ -140,12 +169,18 @@ export function LayoutTeacher() {
           <strong>{t('teach.s4')}</strong>
           {step === 'done' && layout && (
             <div className="stack">
-              <p className="small">{t('teach.found', { effect: hex2(layout.effect), table: hex2(layout.effectTable) })}</p>
+              <p className="small">
+                {t('teach.found', { effect: hex2(layout.effect), table: hex2(layout.effectTable) })}
+              </p>
               <div className="row wrap">
                 <button type="button" className="btn primary" onClick={() => void save()}>
                   <Icon name="check" /> {t('teach.save')}
                 </button>
-                <button type="button" className="btn ghost" onClick={() => (setStep('start'), setPages([]), setLayout(null))}>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => (setStep('start'), setPages([]), setLayout(null))}
+                >
                   {t('teach.again')}
                 </button>
               </div>

@@ -13,7 +13,9 @@ const VISIBLE_SLOTS = 32;
 function eventText(e: MacroEvent, t: ReturnType<typeof useT>): string {
   if (e.type === 'delay') return t('macros.wait', { ms: e.ms });
   const verb = e.down ? '↓' : '↑';
-  return e.type === 'key' ? `${verb} ${usageName(0x07, e.usage)}` : `${verb} ${t(`macros.mouse.${e.button}`)}`;
+  return e.type === 'key'
+    ? `${verb} ${usageName(0x07, e.usage)}`
+    : `${verb} ${t(`macros.mouse.${e.button}`)}`;
 }
 
 /** Moves item i by delta within an array (reorder). */
@@ -28,7 +30,9 @@ function move<T>(xs: T[], i: number, delta: number): T[] {
 /** Slots whose event list differs between the draft and what was last written. */
 function countChanged(draft: Macro[], applied: Macro[]): number {
   const eventsOf = (list: Macro[], i: number) => list.find((m) => m.index === i)?.events ?? [];
-  return [...new Set([...draft, ...applied].map((m) => m.index))].filter((i) => !deepEqual(eventsOf(draft, i), eventsOf(applied, i))).length;
+  return [...new Set([...draft, ...applied].map((m) => m.index))].filter(
+    (i) => !deepEqual(eventsOf(draft, i), eventsOf(applied, i)),
+  ).length;
 }
 
 /**
@@ -65,7 +69,10 @@ export default function MacroStudio() {
     return <Empty>{t('macros.unavailable')}</Empty>;
   }
   const current = macros.find((m) => m.index === sel) ?? { index: sel, events: [] };
-  const update = (m: Macro) => setMacros((xs) => [...xs.filter((x) => x.index !== m.index), m].sort((a, b) => a.index - b.index));
+  const update = (m: Macro) =>
+    setMacros((xs) =>
+      [...xs.filter((x) => x.index !== m.index), m].sort((a, b) => a.index - b.index),
+    );
   const setEvents = (events: MacroEvent[]) => update({ ...current, events });
   const problems = validateMacro(current, limits);
   const allProblems = macros.flatMap((m) => validateMacro(m, limits));
@@ -78,7 +85,14 @@ export default function MacroStudio() {
     if (usage === undefined) return;
     const now = performance.now();
     const events = [...current.events];
-    if (events.length) events.push({ type: 'delay', ms: Math.min(limits.maxDelayMs, Math.max(limits.minDelayMs, Math.round(now - last.current))) });
+    if (events.length)
+      events.push({
+        type: 'delay',
+        ms: Math.min(
+          limits.maxDelayMs,
+          Math.max(limits.minDelayMs, Math.round(now - last.current)),
+        ),
+      });
     last.current = now;
     events.push({ type: 'key', usage, down });
     setEvents(events);
@@ -91,15 +105,27 @@ export default function MacroStudio() {
       acknowledged: true,
       apply: (ms) => device.driver.setMacros(ms),
       validate: () => allProblems,
-      ...(device.caps.macros.read === 'device' ? { readbackFromDevice: () => device.driver.getMacros() } : {}),
+      ...(device.caps.macros.read === 'device'
+        ? { readbackFromDevice: () => device.driver.getMacros() }
+        : {}),
     };
-    const r = await apply('macros', tx, applied.filter((m) => m.events.length), next);
+    const r = await apply(
+      'macros',
+      tx,
+      applied.filter((m) => m.events.length),
+      next,
+    );
     track.record(r);
     if (r && (r.outcome === 'VERIFIED' || r.outcome === 'SENT_UNVERIFIED')) setApplied(macros);
   };
 
   const saveProject = async () => {
-    await saveRecord({ id: newId(), kind: 'macro-project', name: `${device.info.model} — ${new Date().toLocaleString()}`, data: macros });
+    await saveRecord({
+      id: newId(),
+      kind: 'macro-project',
+      name: `${device.info.model} — ${new Date().toLocaleString()}`,
+      data: macros,
+    });
     notify({ kind: 'ok', title: t('macros.projectSaved') });
   };
   const loadProject = async () => {
@@ -130,7 +156,8 @@ export default function MacroStudio() {
         <WriteGateNote gate={gate('macros')} />
       )}
       <p className="small muted">
-        <SourceNote source={device.caps.macros.read === 'device' ? 'device' : 'mirror'} /> {t('macros.localNote')}
+        <SourceNote source={device.caps.macros.read === 'device' ? 'device' : 'mirror'} />{' '}
+        {t('macros.localNote')}
       </p>
       <div className="grid-side">
         <Card title={t('macros.slots')}>
@@ -140,8 +167,16 @@ export default function MacroStudio() {
               const n = m?.events.filter((e) => e.type !== 'delay').length ?? 0;
               return (
                 <li key={i}>
-                  <button type="button" className={sel === i ? 'on' : ''} aria-current={sel === i} onClick={() => setSel(i)}>
-                    {t('macros.slot', { n: i + 1 })} <span className="muted small">{n ? t('macros.events', { n }) : t('macros.empty')}</span>
+                  <button
+                    type="button"
+                    className={sel === i ? 'on' : ''}
+                    aria-current={sel === i}
+                    onClick={() => setSel(i)}
+                  >
+                    {t('macros.slot', { n: i + 1 })}{' '}
+                    <span className="muted small">
+                      {n ? t('macros.events', { n }) : t('macros.empty')}
+                    </span>
                   </button>
                 </li>
               );
@@ -164,17 +199,38 @@ export default function MacroStudio() {
               >
                 {recording ? t('macros.stop') : t('macros.record')}
               </button>
-              <button type="button" className="btn ghost" onClick={() => setEvents([...current.events, { type: 'delay', ms: Math.max(limits.minDelayMs, 50) }])}>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() =>
+                  setEvents([
+                    ...current.events,
+                    { type: 'delay', ms: Math.max(limits.minDelayMs, 50) },
+                  ])
+                }
+              >
                 {t('macros.addDelay')}
               </button>
               <button
                 type="button"
                 className="btn ghost"
-                onClick={() => setEvents([...current.events, { type: 'mouse', button: 'left', down: true }, { type: 'delay', ms: Math.max(limits.minDelayMs, 20) }, { type: 'mouse', button: 'left', down: false }])}
+                onClick={() =>
+                  setEvents([
+                    ...current.events,
+                    { type: 'mouse', button: 'left', down: true },
+                    { type: 'delay', ms: Math.max(limits.minDelayMs, 20) },
+                    { type: 'mouse', button: 'left', down: false },
+                  ])
+                }
               >
                 {t('macros.addClick')}
               </button>
-              <button type="button" className="btn ghost" disabled={!current.events.length} onClick={() => setEvents([])}>
+              <button
+                type="button"
+                className="btn ghost"
+                disabled={!current.events.length}
+                onClick={() => setEvents([])}
+              >
                 {t('macros.clear')}
               </button>
             </>
@@ -205,7 +261,13 @@ export default function MacroStudio() {
                         min={limits.minDelayMs}
                         max={limits.maxDelayMs}
                         value={e.ms}
-                        onChange={(ev) => setEvents(current.events.map((x, j) => (j === i ? { type: 'delay', ms: Number(ev.target.value) } : x)))}
+                        onChange={(ev) =>
+                          setEvents(
+                            current.events.map((x, j) =>
+                              j === i ? { type: 'delay', ms: Number(ev.target.value) } : x,
+                            ),
+                          )
+                        }
                       />{' '}
                       ms
                     </label>
@@ -213,16 +275,42 @@ export default function MacroStudio() {
                     <span>{eventText(e, t)}</span>
                   )}
                   <span className="ev-actions">
-                    <button type="button" className="btn ghost tiny" onClick={() => setEvents(move(current.events, i, -1))} aria-label={t('macros.up')}>
+                    <button
+                      type="button"
+                      className="btn ghost tiny"
+                      onClick={() => setEvents(move(current.events, i, -1))}
+                      aria-label={t('macros.up')}
+                    >
                       ↑
                     </button>
-                    <button type="button" className="btn ghost tiny" onClick={() => setEvents(move(current.events, i, 1))} aria-label={t('macros.down')}>
+                    <button
+                      type="button"
+                      className="btn ghost tiny"
+                      onClick={() => setEvents(move(current.events, i, 1))}
+                      aria-label={t('macros.down')}
+                    >
                       ↓
                     </button>
-                    <button type="button" className="btn ghost tiny" onClick={() => setEvents([...current.events.slice(0, i + 1), e, ...current.events.slice(i + 1)])} aria-label={t('macros.duplicate')}>
+                    <button
+                      type="button"
+                      className="btn ghost tiny"
+                      onClick={() =>
+                        setEvents([
+                          ...current.events.slice(0, i + 1),
+                          e,
+                          ...current.events.slice(i + 1),
+                        ])
+                      }
+                      aria-label={t('macros.duplicate')}
+                    >
                       ⧉
                     </button>
-                    <button type="button" className="btn ghost tiny" onClick={() => setEvents(current.events.filter((_, j) => j !== i))} aria-label={t('common.remove')}>
+                    <button
+                      type="button"
+                      className="btn ghost tiny"
+                      onClick={() => setEvents(current.events.filter((_, j) => j !== i))}
+                      aria-label={t('common.remove')}
+                    >
                       ×
                     </button>
                   </span>
@@ -238,9 +326,19 @@ export default function MacroStudio() {
         status={track.status}
         count={changedSlots}
         verifies={device.caps.macros.read === 'device'}
-        canApply={device.caps.macros.write && allProblems.length === 0 && gate('macros').decision.kind !== 'blocked'}
+        canApply={
+          device.caps.macros.write &&
+          allProblems.length === 0 &&
+          gate('macros').decision.kind !== 'blocked'
+        }
         busy={track.busy}
-        blockedReason={allProblems.length ? allProblems.join(' · ') : gate('macros').decision.kind === 'blocked' ? (gate('macros').decision as { reason: string }).reason : undefined}
+        blockedReason={
+          allProblems.length
+            ? allProblems.join(' · ')
+            : gate('macros').decision.kind === 'blocked'
+              ? (gate('macros').decision as { reason: string }).reason
+              : undefined
+        }
         onDiscard={() => {
           setMacros(applied);
           track.discarded();

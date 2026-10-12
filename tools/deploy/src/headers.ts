@@ -16,7 +16,11 @@ export function toSplatPattern(source: string): string {
 /** Netlify and Cloudflare Pages `_headers` file. */
 export function headersFile(rules: HeaderRule[]): string {
   return (
-    rules.map((r) => [toSplatPattern(r.source), ...r.headers.map((h) => `  ${h.key}: ${h.value}`)].join('\n')).join('\n\n') + '\n'
+    rules
+      .map((r) =>
+        [toSplatPattern(r.source), ...r.headers.map((h) => `  ${h.key}: ${h.value}`)].join('\n'),
+      )
+      .join('\n\n') + '\n'
   );
 }
 

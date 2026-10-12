@@ -24,7 +24,7 @@ Evidence-platform upgrade ([PROJECT_AUDIT.md](PROJECT_AUDIT.md), [ARCHITECTURE_D
 - [x] Phase 2 — unknown-device lab: verdict card, consent-gated identification, diagnostic package
       v2, offline analysis (web + CLI), fixtures A/B regression guards
 - [~] Phase 3 — AK820 vertical slice: identification and per-key read verified on hardware (earlier);
-      evidence ledger and `openkey verify per-key` ready; **writes still unverified** (no hardware attached)
+  evidence ledger and `openkey verify per-key` ready; **writes still unverified** (no hardware attached)
 - [x] Phase 4 — backup/restore: cross-model guard; formats documented
 - [x] Phase 5 — contributor platform: conformance kit, template adapter, adapter guide, ledger rules
 - [x] Phase 6 — e2e extended (consent flow, offline analysis), docs, deployment ignore list

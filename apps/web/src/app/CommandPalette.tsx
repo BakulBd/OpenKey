@@ -29,7 +29,9 @@ export function CommandPalette({ onClose, go }: { onClose: () => void; go: (r: s
   const [sel, setSel] = useState(0);
   const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
-    void listRecords('profile').then((rs) => setProfiles(rs.map((r) => ({ id: r.id, name: r.name }))));
+    void listRecords('profile').then((rs) =>
+      setProfiles(rs.map((r) => ({ id: r.id, name: r.name }))),
+    );
   }, []);
 
   const commands = useMemo<Command[]>(() => {
@@ -40,18 +42,61 @@ export function CommandPalette({ onClose, go }: { onClose: () => void; go: (r: s
     const caps = kb.device?.caps ?? null;
     const list: Command[] = [];
     if (!kb.session) {
-      list.push({ id: 'connect', label: t('action.connect'), icon: 'plug', keywords: 'connect keyboard webhid', run: done(() => void kb.connect()) });
-      list.push({ id: 'demo', label: t('action.demo'), icon: 'play', keywords: 'demo try simulate', run: done(() => void kb.connectDemo()) });
-      list.push({ id: 'inspect', label: t('action.inspect'), icon: 'lab', keywords: 'inspect unknown device diagnostics', run: done(() => void kb.inspect()) });
+      list.push({
+        id: 'connect',
+        label: t('action.connect'),
+        icon: 'plug',
+        keywords: 'connect keyboard webhid',
+        run: done(() => void kb.connect()),
+      });
+      list.push({
+        id: 'demo',
+        label: t('action.demo'),
+        icon: 'play',
+        keywords: 'demo try simulate',
+        run: done(() => void kb.connectDemo()),
+      });
+      list.push({
+        id: 'inspect',
+        label: t('action.inspect'),
+        icon: 'lab',
+        keywords: 'inspect unknown device diagnostics',
+        run: done(() => void kb.inspect()),
+      });
     } else {
-      list.push({ id: 'disconnect', label: t('action.disconnect'), icon: 'x', keywords: 'disconnect close', run: done(() => void kb.disconnect()) });
-      list.push({ id: 'read', label: t('palette.read'), icon: 'overview', keywords: 'read configuration refresh overview', run: done(() => go('overview')) });
+      list.push({
+        id: 'disconnect',
+        label: t('action.disconnect'),
+        icon: 'x',
+        keywords: 'disconnect close',
+        run: done(() => void kb.disconnect()),
+      });
+      list.push({
+        id: 'read',
+        label: t('palette.read'),
+        icon: 'overview',
+        keywords: 'read configuration refresh overview',
+        run: done(() => go('overview')),
+      });
     }
     for (const r of ROUTES) {
       if (routeVisibility(r, caps, !!kb.device, !!kb.session) === 'hide') continue;
-      list.push({ id: `go-${r.id}`, label: t(r.label), hint: t('palette.page'), icon: r.icon, keywords: `${r.id} page open`, run: done(() => go(r.id)) });
+      list.push({
+        id: `go-${r.id}`,
+        label: t(r.label),
+        hint: t('palette.page'),
+        icon: r.icon,
+        keywords: `${r.id} page open`,
+        run: done(() => go(r.id)),
+      });
     }
-    list.push({ id: 'diagnostics', label: t('palette.diagnostics'), icon: 'lab', keywords: 'diagnostics support bundle export', run: done(() => go('lab')) });
+    list.push({
+      id: 'diagnostics',
+      label: t('palette.diagnostics'),
+      icon: 'lab',
+      keywords: 'diagnostics support bundle export',
+      run: done(() => go('lab')),
+    });
     list.push({
       id: 'theme',
       label: t('palette.theme'),
@@ -60,13 +105,21 @@ export function CommandPalette({ onClose, go }: { onClose: () => void; go: (r: s
       run: done(() => setTheme(themePref() === 'dark' ? 'light' : 'dark')),
     });
     for (const p of profiles)
-      list.push({ id: `profile-${p.id}`, label: t('palette.profile', { name: p.name }), icon: 'profiles', keywords: `profile switch ${p.name}`, run: done(() => go(`profiles?${p.id}`)) });
+      list.push({
+        id: `profile-${p.id}`,
+        label: t('palette.profile', { name: p.name }),
+        icon: 'profiles',
+        keywords: `profile switch ${p.name}`,
+        run: done(() => go(`profiles?${p.id}`)),
+      });
     return list;
   }, [go, kb, onClose, profiles, t]);
 
   const results = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const cmds = needle ? commands.filter((c) => `${c.label} ${c.keywords}`.toLowerCase().includes(needle)) : commands;
+    const cmds = needle
+      ? commands.filter((c) => `${c.label} ${c.keywords}`.toLowerCase().includes(needle))
+      : commands;
     const keys: Command[] = needle
       ? searchKeycodes(needle)
           .slice(0, 8)
@@ -89,7 +142,11 @@ export function CommandPalette({ onClose, go }: { onClose: () => void; go: (r: s
   useEffect(() => setSel(0), [q]);
 
   return (
-    <Dialog title={t('palette.title')} onClose={onClose} actions={<span className="muted small">{t('palette.help')}</span>}>
+    <Dialog
+      title={t('palette.title')}
+      onClose={onClose}
+      actions={<span className="muted small">{t('palette.help')}</span>}
+    >
       <div className="palette">
         <label className="search">
           <Icon name="search" />

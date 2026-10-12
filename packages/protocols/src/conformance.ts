@@ -25,13 +25,15 @@ function isProtocol(def: ProtocolDefinition | PlannedAdapter): def is ProtocolDe
 /** Static checks of the manifest and probe plan. */
 export function checkManifest(def: ProtocolDefinition | PlannedAdapter): ConformanceIssue[] {
   const out: ConformanceIssue[] = [];
-  const bad = (rule: string, detail: string): void => void out.push({ adapter: def.id, rule, detail });
+  const bad = (rule: string, detail: string): void =>
+    void out.push({ adapter: def.id, rule, detail });
   const m = def.manifest;
   if (!KEBAB.test(def.id)) bad('id', 'id must be kebab-case');
   if (!SEMVER.test(m.version)) bad('version', `"${m.version}" is not x.y.z`);
   if (!m.license.trim()) bad('license', 'the adapter must declare the licence of its own code');
   if (m.provenance.length === 0) bad('provenance', 'every adapter cites at least one source');
-  if (m.transports.input.length === 0) bad('transports', 'declare the links the keyboard types over');
+  if (m.transports.input.length === 0)
+    bad('transports', 'declare the links the keyboard types over');
   if (m.status !== 'verified' && m.limitations.length === 0)
     bad('limitations', 'an adapter that is not fully verified must list its limitations');
   if (m.status === 'verified' && m.verifiedIdentities.length === 0)
@@ -40,17 +42,22 @@ export function checkManifest(def: ProtocolDefinition | PlannedAdapter): Conform
     if (!v.evidence.trim()) bad('verifiedIdentities', 'each verified identity cites its evidence');
 
   if (!isProtocol(def)) {
-    if (m.transports.configuration.length) bad('planned', 'a planned adapter configures nothing on any link');
+    if (m.transports.configuration.length)
+      bad('planned', 'a planned adapter configures nothing on any link');
     return out;
   }
-  if (def.apiVersion !== ADAPTER_API_VERSION) bad('apiVersion', `implements v${def.apiVersion}, expected v${ADAPTER_API_VERSION}`);
+  if (def.apiVersion !== ADAPTER_API_VERSION)
+    bad('apiVersion', `implements v${def.apiVersion}, expected v${ADAPTER_API_VERSION}`);
   for (const [i, op] of def.probePlan.operations.entries()) {
     const at = `probePlan.operations[${i}]`;
     if (!op.purpose.trim()) bad('probe-plan', `${at} has no purpose`);
-    if (!HEX_BYTES.test(op.payloadPrefix)) bad('probe-plan', `${at}.payloadPrefix must be upper-case hex bytes`);
+    if (!HEX_BYTES.test(op.payloadPrefix))
+      bad('probe-plan', `${at}.payloadPrefix must be upper-case hex bytes`);
     const sends = op.op === 'feature-set' || op.op === 'output';
-    if (sends && op.level === 'passive') bad('probe-plan', `${at}: a passive probe never sends anything`);
-    if (sends && !op.payloadPrefix) bad('probe-plan', `${at}: a sent report must declare its identifying bytes`);
+    if (sends && op.level === 'passive')
+      bad('probe-plan', `${at}: a passive probe never sends anything`);
+    if (sends && !op.payloadPrefix)
+      bad('probe-plan', `${at}: a sent report must declare its identifying bytes`);
     if (sends && (op.evidence === 'HYPOTHESIS' || op.evidence === 'UNKNOWN'))
       bad('probe-plan', `${at}: probes never send operations without evidence`);
   }
@@ -61,7 +68,10 @@ export function checkManifest(def: ProtocolDefinition | PlannedAdapter): Conform
  * `match()` must be a pure function of the descriptors: no transport is opened and two calls give
  * the same answer.
  */
-export function checkMatchPurity(def: ProtocolDefinition, group: HidDeviceGroup): ConformanceIssue[] {
+export function checkMatchPurity(
+  def: ProtocolDefinition,
+  group: HidDeviceGroup,
+): ConformanceIssue[] {
   let opened = 0;
   const guarded: HidDeviceGroup = {
     ...group,
@@ -73,8 +83,10 @@ export function checkMatchPurity(def: ProtocolDefinition, group: HidDeviceGroup)
   const a = JSON.stringify(def.match(guarded));
   const b = JSON.stringify(def.match(guarded));
   const out: ConformanceIssue[] = [];
-  if (opened) out.push({ adapter: def.id, rule: 'match-pure', detail: 'match() opened an interface' });
-  if (a !== b) out.push({ adapter: def.id, rule: 'match-pure', detail: 'match() is not deterministic' });
+  if (opened)
+    out.push({ adapter: def.id, rule: 'match-pure', detail: 'match() opened an interface' });
+  if (a !== b)
+    out.push({ adapter: def.id, rule: 'match-pure', detail: 'match() is not deterministic' });
   return out;
 }
 
@@ -90,7 +102,11 @@ const LEVEL_RANK: Record<ProbeLevel, number> = { descriptor: 0, passive: 1, hand
  * Every report a probe exchanged at `level` must be one its probe plan declares, at or below that
  * level, with the declared report ID and identifying bytes. Anything else is an undeclared packet.
  */
-export function checkProbeTraffic(def: ProtocolDefinition, traffic: readonly TrafficRecord[], level: ProbeLevel): ConformanceIssue[] {
+export function checkProbeTraffic(
+  def: ProtocolDefinition,
+  traffic: readonly TrafficRecord[],
+  level: ProbeLevel,
+): ConformanceIssue[] {
   const out: ConformanceIssue[] = [];
   const allowed = def.probePlan.operations.filter((o) => LEVEL_RANK[o.level] <= LEVEL_RANK[level]);
   for (const [i, t] of traffic.entries()) {

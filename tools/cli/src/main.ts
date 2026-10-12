@@ -176,7 +176,9 @@ async function cmdAnalyze(flags: GlobalFlags, file: string | undefined): Promise
       formatDetectionReport(a.detection, flags.verbose),
       '',
       formatVerdict(a.verdict),
-      ...(a.missingUsages ? [`(${a.missingUsages} collection usage(s) not recorded in the file)`] : []),
+      ...(a.missingUsages
+        ? [`(${a.missingUsages} collection usage(s) not recorded in the file)`]
+        : []),
     ].join('\n'),
   );
 }
@@ -576,12 +578,17 @@ async function cmdTft(
  */
 async function cmdVerify(flags: GlobalFlags, sub: string | undefined): Promise<void> {
   if (sub !== 'per-key') throw new Error('Usage: openkey verify per-key --experimental');
-  if (!flags.experimental) throw new Error('This writes to the keyboard with a not-yet-verified command; pass --experimental to confirm you want to verify it.');
+  if (!flags.experimental)
+    throw new Error(
+      'This writes to the keyboard with a not-yet-verified command; pass --experimental to confirm you want to verify it.',
+    );
   const { driver, detection, log, group } = await connect(flags);
   try {
     const caps = driver.getCapabilities();
     if (caps.perKeyRgb.read !== 'device' || !caps.perKeyRgb.write)
-      throw new Error(`${detection.selected?.protocolId ?? 'this adapter'} cannot read per-key colours back; nothing to verify.`);
+      throw new Error(
+        `${detection.selected?.protocolId ?? 'this adapter'} cannot read per-key colours back; nothing to verify.`,
+      );
     const ok = await confirm(
       flags,
       [
@@ -607,14 +614,19 @@ async function cmdVerify(flags: GlobalFlags, sub: string | undefined): Promise<v
     }
     const after = writeError ? null : await driver.getPerKeyRgb();
     const differences = after
-      ? Object.keys(before).filter((k) => JSON.stringify(before[Number(k)]) !== JSON.stringify(after[Number(k)]))
+      ? Object.keys(before).filter(
+          (k) => JSON.stringify(before[Number(k)]) !== JSON.stringify(after[Number(k)]),
+        )
       : [];
     const outcome = writeError ? 'FAILED' : differences.length ? 'MISMATCH' : 'VERIFIED';
     const evidence = {
       description: 'Per-key colour write verified by read-back (openkey verify per-key)',
       date: new Date().toISOString().slice(0, 10),
       device: `${group.identity.productName} (${hex16(group.identity.vendorId)}:${hex16(group.identity.productId)})`,
-      firmware: group.identity.release !== undefined ? `bcdDevice ${hex16(group.identity.release)}` : 'unknown',
+      firmware:
+        group.identity.release !== undefined
+          ? `bcdDevice ${hex16(group.identity.release)}`
+          : 'unknown',
       transport: group.transportHint,
       adapter: detection.selected?.protocolId,
       outcome,
@@ -625,7 +637,9 @@ async function cmdVerify(flags: GlobalFlags, sub: string | undefined): Promise<v
     };
     const evidenceFile = path.join(backupDir(), `evidence-per-key-${stamp}.json`);
     await writeJsonFile(evidenceFile, evidence);
-    console.log(`Outcome: ${outcome}${writeError ? ` (${writeError})` : differences.length ? ` (${differences.length} LEDs differ)` : ''}`);
+    console.log(
+      `Outcome: ${outcome}${writeError ? ` (${writeError})` : differences.length ? ` (${differences.length} LEDs differ)` : ''}`,
+    );
     console.log(`Evidence record: ${evidenceFile}`);
   } finally {
     await driver.disconnect();

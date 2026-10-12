@@ -14,7 +14,14 @@ import {
   undo,
   usageName,
 } from '@openkey/core';
-import type { FeatureId, History, KeyAction, KeymapState, LayerId, Transaction } from '@openkey/core';
+import type {
+  FeatureId,
+  History,
+  KeyAction,
+  KeymapState,
+  LayerId,
+  Transaction,
+} from '@openkey/core';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
 import { KeyboardView } from '../../components/KeyboardView.js';
@@ -32,7 +39,10 @@ type Slots = Record<number, KeyAction>;
 const DEFAULT: KeyAction = { kind: 'default' };
 
 /** Slot-level changes between two keymaps (missing slots are `default`). */
-export function keymapChanges(before: Slots, after: Slots): { slot: number; before: KeyAction; after: KeyAction }[] {
+export function keymapChanges(
+  before: Slots,
+  after: Slots,
+): { slot: number; before: KeyAction; after: KeyAction }[] {
   const slots = new Set([...Object.keys(before), ...Object.keys(after)].map(Number));
   return [...slots]
     .sort((a, b) => a - b)
@@ -58,8 +68,12 @@ export default function KeymapStudio() {
   const inspector = useRef<HTMLDivElement>(null);
 
   const h = histories[layer];
-  const setH = useCallback((next: History<Slots>) => setHistories((x) => ({ ...x, [layer]: next })), [layer]);
-  const pendingFor = (l: LayerId) => (histories[l] ? keymapChanges(histories[l]!.applied, histories[l]!.present).length : 0);
+  const setH = useCallback(
+    (next: History<Slots>) => setHistories((x) => ({ ...x, [layer]: next })),
+    [layer],
+  );
+  const pendingFor = (l: LayerId) =>
+    histories[l] ? keymapChanges(histories[l]!.applied, histories[l]!.present).length : 0;
   const changes = useMemo(() => (h ? keymapChanges(h.applied, h.present) : []), [h]);
   const totalPending = (Object.keys(histories) as LayerId[]).reduce((n, l) => n + pendingFor(l), 0);
   const track = useChangeTracking('keymap', ['keymap', 'fnLayer', 'factoryDefaults'], totalPending);
@@ -120,12 +134,20 @@ export default function KeymapStudio() {
   const caps = device.caps;
   const kinds = device.driver.getKeyActionKinds();
   const layers = device.driver.getLayerIds();
-  const layerName = (l: LayerId) => (l === 'base' ? t('keymap.layerBase') : l === 'fn' && layers.length <= 2 ? t('keymap.layerFn') : t('keymap.layerN', { n: layerIndex(l) }));
+  const layerName = (l: LayerId) =>
+    l === 'base'
+      ? t('keymap.layerBase')
+      : l === 'fn' && layers.length <= 2
+        ? t('keymap.layerFn')
+        : t('keymap.layerN', { n: layerIndex(l) });
   const key = selected !== null ? keyBySlot(layout, selected) : undefined;
   const current = selected !== null ? (h.present[selected] ?? DEFAULT) : DEFAULT;
   const appliedAction = selected !== null ? (h.applied[selected] ?? DEFAULT) : DEFAULT;
   const keyChanged = selected !== null && !actionsEqual(current, appliedAction);
-  const macroSlots = caps.macros.write && kinds.includes('macro') ? safeMacroSlots(() => device.driver.getMacroLimits().slots) : 0;
+  const macroSlots =
+    caps.macros.write && kinds.includes('macro')
+      ? safeMacroSlots(() => device.driver.getMacroLimits().slots)
+      : 0;
   const support = caps[feature(layer)];
   const g = gate(feature(layer));
   const describe = (a: KeyAction) => describeAction(a, usageName);
@@ -142,23 +164,40 @@ export default function KeymapStudio() {
   const select = (slot: number) => {
     setSelected(slot);
     // On narrow screens the inspector is below the board: bring it into view.
-    if (matchMedia('(max-width: 1080px)').matches) requestAnimationFrame(() => inspector.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    if (matchMedia('(max-width: 1080px)').matches)
+      requestAnimationFrame(() =>
+        inspector.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+      );
   };
 
   const doApply = async () => {
     setReview(false);
     const tx: Transaction<Slots> = {
-      label: layer === 'base' ? t('keymap.applyBase') : layers.length <= 2 ? t('keymap.applyFn') : t('keymap.applyLayer', { n: layerIndex(layer) }),
+      label:
+        layer === 'base'
+          ? t('keymap.applyBase')
+          : layers.length <= 2
+            ? t('keymap.applyFn')
+            : t('keymap.applyLayer', { n: layerIndex(layer) }),
       acknowledged: true,
       // Validate the whole layer before anything is sent: only encodable actions (or encodings read
       // from the device and preserved as raw) may be written.
       validate: (slots) => {
-        const bad = Object.entries(slots).filter(([, a]) => a.kind !== 'raw' && !kinds.includes(a.kind));
-        return bad.map(([slot, a]) => t('keymap.unsupportedAction', { key: keyBySlot(layout, Number(slot))?.label ?? slot, kind: a.kind }));
+        const bad = Object.entries(slots).filter(
+          ([, a]) => a.kind !== 'raw' && !kinds.includes(a.kind),
+        );
+        return bad.map(([slot, a]) =>
+          t('keymap.unsupportedAction', {
+            key: keyBySlot(layout, Number(slot))?.label ?? slot,
+            kind: a.kind,
+          }),
+        );
       },
       apply: (slots) => device.driver.setKeymap({ layer, slots, provenance: 'mirror' }),
       // Only a firmware read counts as verification; a remembered mirror would fake it.
-      ...(support.read === 'device' ? { readbackFromDevice: async () => (await device.driver.getKeymap(layer)).slots } : {}),
+      ...(support.read === 'device'
+        ? { readbackFromDevice: async () => (await device.driver.getKeymap(layer)).slots }
+        : {}),
     };
     const r = await apply(feature(layer), tx, h.applied, h.present);
     track.record(r);
@@ -173,11 +212,14 @@ export default function KeymapStudio() {
     };
     const r = await apply('factoryDefaults', tx, h.applied, {});
     track.record(r);
-    if (r && r.outcome !== 'FAILED' && r.outcome !== 'REJECTED') setH(markApplied(pushHistory(h, {}), {}));
+    if (r && r.outcome !== 'FAILED' && r.outcome !== 'REJECTED')
+      setH(markApplied(pushHistory(h, {}), {}));
   };
 
   const label = (slot: number) => keyBySlot(layout, slot)?.label ?? `#${slot}`;
-  const physical = (['encoder', 'tft'] as const).filter((f) => caps[f].status !== 'UNKNOWN' && caps[f].status !== 'NOT_SUPPORTED');
+  const physical = (['encoder', 'tft'] as const).filter(
+    (f) => caps[f].status !== 'UNKNOWN' && caps[f].status !== 'NOT_SUPPORTED',
+  );
 
   return (
     <div className="page">
@@ -198,16 +240,32 @@ export default function KeymapStudio() {
                 }}
               >
                 {layerName(l)}
-                {pendingFor(l) > 0 && <span className="dot-badge" aria-label={t('keymap.unsaved')} />}
+                {pendingFor(l) > 0 && (
+                  <span className="dot-badge" aria-label={t('keymap.unsaved')} />
+                )}
               </button>
             ))}
           </div>
         )}
         <div className="toolbar" role="toolbar" aria-label={t('keymap.tools')}>
-          <button type="button" className="btn ghost icon-only" disabled={!canUndo(h)} onClick={() => setH(undo(h))} aria-label={t('common.undo')} title={`${t('common.undo')} (Ctrl+Z)`}>
+          <button
+            type="button"
+            className="btn ghost icon-only"
+            disabled={!canUndo(h)}
+            onClick={() => setH(undo(h))}
+            aria-label={t('common.undo')}
+            title={`${t('common.undo')} (Ctrl+Z)`}
+          >
             <Icon name="undo" />
           </button>
-          <button type="button" className="btn ghost icon-only" disabled={!canRedo(h)} onClick={() => setH(redo(h))} aria-label={t('common.redo')} title={`${t('common.redo')} (Ctrl+Shift+Z)`}>
+          <button
+            type="button"
+            className="btn ghost icon-only"
+            disabled={!canRedo(h)}
+            onClick={() => setH(redo(h))}
+            aria-label={t('common.redo')}
+            title={`${t('common.redo')} (Ctrl+Shift+Z)`}
+          >
             <Icon name="redo" />
           </button>
           <SourceNote source={provenance === 'device' ? 'device' : 'mirror'} />
@@ -222,7 +280,9 @@ export default function KeymapStudio() {
             label={t('keymap.boardLabel', { name: layout.name })}
             selected={selected}
             legend={(k) => (h.present[k.slot] ? describe(h.present[k.slot]!) : undefined)}
-            highlight={(k) => !actionsEqual(h.present[k.slot] ?? DEFAULT, h.applied[k.slot] ?? DEFAULT)}
+            highlight={(k) =>
+              !actionsEqual(h.present[k.slot] ?? DEFAULT, h.applied[k.slot] ?? DEFAULT)
+            }
             locked={(k) => locked(k.slot)}
             onKey={(k) => select(k.slot)}
           />
@@ -243,15 +303,22 @@ export default function KeymapStudio() {
             <ul className="physical small">
               {physical.map((f) => (
                 <li key={f}>
-                  <strong>{t(`feature.${f}`)}:</strong> {caps[f].value ?? t(`status.${caps[f].status}`)}
-                  {f === 'encoder' && caps[f].write === false && <span className="muted"> — {t('keymap.encoderFixed')}</span>}
+                  <strong>{t(`feature.${f}`)}:</strong>{' '}
+                  {caps[f].value ?? t(`status.${caps[f].status}`)}
+                  {f === 'encoder' && caps[f].write === false && (
+                    <span className="muted"> — {t('keymap.encoderFixed')}</span>
+                  )}
                 </li>
               ))}
             </ul>
           )}
         </Card>
         <div ref={inspector} className="studio-side">
-          <Card title={key ? t('keymap.keyTitle', { key: key.label, slot: key.slot }) : t('keymap.pickKey')}>
+          <Card
+            title={
+              key ? t('keymap.keyTitle', { key: key.label, slot: key.slot }) : t('keymap.pickKey')
+            }
+          >
             {!key ? (
               <p className="muted">{t('keymap.pickKeyHelp')}</p>
             ) : locked(key.slot) ? (
@@ -264,7 +331,9 @@ export default function KeymapStudio() {
                     <strong>{describe(current)}</strong>
                   </div>
                   {keyChanged ? (
-                    <span className="pill staged-pill">{t('keymap.changedFrom', { was: describe(appliedAction) })}</span>
+                    <span className="pill staged-pill">
+                      {t('keymap.changedFrom', { was: describe(appliedAction) })}
+                    </span>
                   ) : current.kind !== 'default' ? (
                     <span className="pill">{t('keymap.remapped')}</span>
                   ) : (
@@ -272,21 +341,45 @@ export default function KeymapStudio() {
                   )}
                 </div>
                 <div className="row wrap">
-                  <button type="button" className="btn small" disabled={!keyChanged} onClick={() => setAction(appliedAction)}>
+                  <button
+                    type="button"
+                    className="btn small"
+                    disabled={!keyChanged}
+                    onClick={() => setAction(appliedAction)}
+                  >
                     {t('keymap.revertKey')}
                   </button>
-                  <button type="button" className="btn small ghost" disabled={current.kind === 'default'} onClick={() => setAction(DEFAULT)}>
+                  <button
+                    type="button"
+                    className="btn small ghost"
+                    disabled={current.kind === 'default'}
+                    onClick={() => setAction(DEFAULT)}
+                  >
                     {t('keymap.resetKey')}
                   </button>
                 </div>
-                <KeyPicker value={current} onChange={setAction} kinds={kinds} macroSlots={macroSlots} query={query} onQuery={setQuery} specials={device.driver.getSpecialActions()} layerCount={layers.length} />
+                <KeyPicker
+                  value={current}
+                  onChange={setAction}
+                  kinds={kinds}
+                  macroSlots={macroSlots}
+                  query={query}
+                  onQuery={setQuery}
+                  specials={device.driver.getSpecialActions()}
+                  layerCount={layers.length}
+                />
               </>
             )}
             {caps.factoryDefaults.write && (
               <details className="small danger-zone">
                 <summary>{t('keymap.dangerZone')}</summary>
                 <p>{t('keymap.restoreDefaultsHelp')}</p>
-                <button type="button" className="btn danger small" disabled={track.busy} onClick={() => void restoreDefaults()}>
+                <button
+                  type="button"
+                  className="btn danger small"
+                  disabled={track.busy}
+                  onClick={() => void restoreDefaults()}
+                >
                   {t('keymap.restoreDefaults')}
                 </button>
               </details>
@@ -337,7 +430,8 @@ export default function KeymapStudio() {
               <span className="muted">{t('plan.persistence')}</span> {t('plan.onboard')}
             </li>
             <li>
-              <span className="muted">{t('plan.verification')}</span> {support.read === 'device' ? t('keymap.willVerify') : t('keymap.cannotVerify')}
+              <span className="muted">{t('plan.verification')}</span>{' '}
+              {support.read === 'device' ? t('keymap.willVerify') : t('keymap.cannotVerify')}
             </li>
           </ul>
           {support.read !== 'device' && !device.demo && (

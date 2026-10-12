@@ -157,10 +157,24 @@ describe('sonix-feature driver against the firmware simulator', () => {
   });
 
   it('does not send START to an unrecognised product string without consent', async () => {
-    const sim = new sonixFeature.SonixFeatureSimulator({ vendorId: 0x0c45, productId: 0x8009, productName: 'AK980 PRO' });
+    const sim = new sonixFeature.SonixFeatureSimulator({
+      vendorId: 0x0c45,
+      productId: 0x8009,
+      productName: 'AK980 PRO',
+    });
     await expect(
-      connectKeyboard(sim.device.group(), { registry: createDefaultRegistry(), level: 'handshake', cmdDelayMs: 0, sleep: noSleep }),
-    ).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'UNSUPPORTED_PROTOCOL' && e.details.awaitingConsent === true);
+      connectKeyboard(sim.device.group(), {
+        registry: createDefaultRegistry(),
+        level: 'handshake',
+        cmdDelayMs: 0,
+        sleep: noSleep,
+      }),
+    ).rejects.toSatisfy(
+      (e) =>
+        isOpenKeyError(e) &&
+        e.code === 'UNSUPPORTED_PROTOCOL' &&
+        e.details.awaitingConsent === true,
+    );
     expect(featureSets(sim)).toEqual([]);
   });
 

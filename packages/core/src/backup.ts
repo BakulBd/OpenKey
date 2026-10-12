@@ -101,11 +101,14 @@ export function validateBackup(raw: unknown): ValidationResult {
   } else {
     if (input.format !== BACKUP_FORMAT) errors.push(`Unknown format "${String(input.format)}"`);
     else if (typeof input.version === 'number' && input.version > BACKUP_VERSION)
-      errors.push(`Backup version ${input.version} is newer than this OpenKey supports (${BACKUP_VERSION}); update OpenKey.`);
+      errors.push(
+        `Backup version ${input.version} is newer than this OpenKey supports (${BACKUP_VERSION}); update OpenKey.`,
+      );
     else if (input.version !== BACKUP_VERSION)
       errors.push(`Unsupported backup version ${String(input.version)}`);
   }
-  if (!isObject(input.adapter) || typeof input.adapter.id !== 'string') errors.push('Missing adapter');
+  if (!isObject(input.adapter) || typeof input.adapter.id !== 'string')
+    errors.push('Missing adapter');
   if (!isObject(input.device) || !isObject(input.device.identity))
     errors.push('Missing device identity');
   if (!isObject(input.protocol) || typeof input.protocol.id !== 'string')

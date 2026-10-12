@@ -39,10 +39,7 @@ export class OpenKeyError extends Error {
 }
 
 export class DeviceNotFoundError extends OpenKeyError {
-  constructor(
-    message = 'No supported keyboard was found.',
-    details: Record<string, unknown> = {},
-  ) {
+  constructor(message = 'No supported keyboard was found.', details: Record<string, unknown> = {}) {
     super('DEVICE_NOT_FOUND', message, details);
   }
 }
@@ -146,11 +143,7 @@ export class ReadbackMismatchError extends OpenKeyError {
 }
 
 export type ErrorKind =
-  | OpenKeyErrorCode
-  | 'UNSUPPORTED_BROWSER'
-  | 'DEVICE_IN_USE'
-  | 'DEVICE_DISCONNECTED'
-  | 'UNEXPECTED';
+  OpenKeyErrorCode | 'UNSUPPORTED_BROWSER' | 'DEVICE_IN_USE' | 'DEVICE_DISCONNECTED' | 'UNEXPECTED';
 
 export interface ErrorExplanation {
   /** Stable key for translations and tests. */
@@ -210,7 +203,10 @@ const EXPLAIN: Partial<Record<ErrorKind, { title: string; reason?: string; hint?
     reason: 'The device reports different values than were written.',
     hint: 'Do not write again. Export a diagnostic package and report it; restore a backup if needed.',
   },
-  TFT_UPLOAD: { title: 'Screen upload failed', hint: 'Replug the keyboard; it keeps its previous image when an upload is interrupted.' },
+  TFT_UPLOAD: {
+    title: 'Screen upload failed',
+    hint: 'Replug the keyboard; it keeps its previous image when an upload is interrupted.',
+  },
   UNSUPPORTED_FEATURE: { title: 'Feature not available' },
   UNSUPPORTED_DEVICE: {
     title: 'Unsupported keyboard or firmware',
@@ -282,5 +278,11 @@ export function explainError(e: unknown): ErrorExplanation {
   const detail = e instanceof Error ? e.message : String(e);
   const x = EXPLAIN[kind];
   if (!x) return { kind, title: isOpenKeyError(e) ? e.name : 'Unexpected error', detail };
-  return { kind, title: x.title, detail, ...(x.reason ? { reason: x.reason } : {}), ...(x.hint ? { hint: x.hint } : {}) };
+  return {
+    kind,
+    title: x.title,
+    detail,
+    ...(x.reason ? { reason: x.reason } : {}),
+    ...(x.hint ? { hint: x.hint } : {}),
+  };
 }
