@@ -25,3 +25,5 @@ export * from './connection.js';
 export * from './latency.js';
 export * from './support-bundle.js';
 export * from './keycodes.js';
+export * from './doctor.js';
+export * from './link.js';

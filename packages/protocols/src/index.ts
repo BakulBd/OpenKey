@@ -8,6 +8,7 @@ import { byTechProtocol } from './families/by-tech/protocol.js';
 import { royuanProtocol } from './families/royuan/protocol.js';
 import { rkClassicProtocol } from './families/rk-classic/protocol.js';
 import { aulaReceiverProtocol } from './families/aula-receiver/protocol.js';
+import { hmkProtocol } from './families/hmk/protocol.js';
 import { PLANNED_ADAPTERS } from './families/planned.js';
 
 export * from './registry.js';
@@ -29,6 +30,8 @@ export * as via from './families/via/index.js';
 export * as royuan from './families/royuan/index.js';
 export * as rkClassic from './families/rk-classic/index.js';
 export * as aulaReceiver from './families/aula-receiver/index.js';
+export * as zmk from './families/zmk/index.js';
+export * as hmk from './families/hmk/index.js';
 
 /** Registry with every protocol family OpenKey knows, plus research-only planned adapters. */
 export function createDefaultRegistry(): ProtocolRegistry {
@@ -41,7 +44,8 @@ export function createDefaultRegistry(): ProtocolRegistry {
     .register(byTechProtocol)
     .register(royuanProtocol)
     .register(rkClassicProtocol)
-    .register(aulaReceiverProtocol);
+    .register(aulaReceiverProtocol)
+    .register(hmkProtocol);
   for (const p of PLANNED_ADAPTERS) r.plan(p);
   return r;
 }

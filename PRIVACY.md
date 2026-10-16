@@ -70,3 +70,6 @@ GitHub, under GitHub's privacy terms, and only when you choose to.
 
 Links to GitHub (source, issues) open only when you click them. The app loads no third-party scripts,
 fonts or images; the Content-Security-Policy forbids it.
+
+The contributor avatars in the footer are copies served by OpenKey itself (refreshed by maintainers
+with `pnpm contributors`), so showing them sends nothing to GitHub.

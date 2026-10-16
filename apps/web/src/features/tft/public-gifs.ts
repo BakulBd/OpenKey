@@ -1,3 +1,5 @@
+import type { GalleryCategory } from '@openkey/tft';
+
 /**
  * Animated GIFs from Wikimedia Commons that are in the public domain or CC0, so they can be shared
  * and uploaded to a keyboard without conditions. Each was checked against the Commons licence
@@ -7,6 +9,7 @@
 export interface PublicGif {
   id: string;
   name: string;
+  category: GalleryCategory;
   file: string;
   frames: number;
   loopMs: number;
@@ -21,6 +24,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'cat-tail',
     name: 'Cat with a waving tail',
+    category: 'cute',
     file: 'cat-tail.gif',
     frames: 2,
     loopMs: 1000,
@@ -31,6 +35,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'cat-1919',
     name: 'Cartoon cat, 1919',
+    category: 'cute',
     file: 'cat-1919.gif',
     frames: 45,
     loopMs: 16080,
@@ -41,6 +46,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'heart',
     name: 'Heart',
+    category: 'cute',
     file: 'heart.gif',
     frames: 6,
     loopMs: 600,
@@ -51,6 +57,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'dog',
     name: 'Galloping dog',
+    category: 'cute',
     file: 'dog.gif',
     frames: 5,
     loopMs: 750,
@@ -61,6 +68,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'race-horse',
     name: 'Race horse',
+    category: 'nature',
     file: 'race-horse.gif',
     frames: 15,
     loopMs: 1500,
@@ -71,6 +79,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'earth',
     name: 'Earth from space',
+    category: 'space',
     file: 'earth.gif',
     frames: 21,
     loopMs: 10500,
@@ -81,6 +90,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'globe',
     name: 'Rotating globe',
+    category: 'space',
     file: 'globe.gif',
     frames: 36,
     loopMs: 11360,
@@ -91,6 +101,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'newton',
     name: 'Newton’s cradle',
+    category: 'tech',
     file: 'newton.gif',
     frames: 19,
     loopMs: 2560,
@@ -101,6 +112,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'tesseract',
     name: 'Rotating tesseract',
+    category: 'abstract',
     file: 'tesseract.gif',
     frames: 48,
     loopMs: 3360,
@@ -111,6 +123,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'hurricane',
     name: 'Hurricane from space',
+    category: 'nature',
     file: 'hurricane.gif',
     frames: 15,
     loopMs: 2600,
@@ -121,6 +134,7 @@ export const PUBLIC_GIFS: readonly PublicGif[] = [
   {
     id: 'zoetrope',
     name: 'Zoetrope birds',
+    category: 'abstract',
     file: 'zoetrope.gif',
     frames: 10,
     loopMs: 1000,

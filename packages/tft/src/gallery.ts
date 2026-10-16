@@ -8,9 +8,20 @@ import type { AnimationFrame } from './gif.js';
  * deterministic (seeded), resolution-independent and loop seamlessly: every motion is periodic in the
  * loop phase `t` ∈ [0, 1), so frame N wraps exactly to frame 0.
  */
+export type GalleryCategory = 'cute' | 'nature' | 'space' | 'abstract' | 'festive' | 'tech';
+export const GALLERY_CATEGORIES: readonly GalleryCategory[] = [
+  'cute',
+  'nature',
+  'space',
+  'abstract',
+  'festive',
+  'tech',
+];
+
 export interface GalleryAnimation {
   id: string;
   name: string;
+  category: GalleryCategory;
   /** One line for the gallery card. */
   description: string;
   frames: number;
@@ -211,10 +222,28 @@ const EQ = (() => {
   }));
 })();
 
+const GHOST_PAL: Palette = { X: [1, 0.45, 0.7], W: [1, 1, 1] };
+const GHOST_TOP = [
+  '.....XXXX.....',
+  '...XXXXXXXX...',
+  '..XXXXXXXXXX..',
+  '.XXXXXXXXXXXX.',
+  '.XXWWXXXXWWXX.',
+  'XXWWWWXXWWWWXX',
+  'XXWWWWXXWWWWXX',
+  'XXXWWXXXXWWXXX',
+  'XXXXXXXXXXXXXX',
+  'XXXXXXXXXXXXXX',
+  'XXXXXXXXXXXXXX',
+];
+const GHOST_A = [...GHOST_TOP, 'XX.XXX..XXX.XX', 'X...XX..XX...X'];
+const GHOST_B = [...GHOST_TOP, 'XXXX.XXXX.XXXX', '.XX...XX...XX.'];
+
 export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'openkey-pulse',
     name: 'OpenKey pulse',
+    category: 'tech',
     description: 'The OpenKey keyboard mark with a breathing glow.',
     frames: 24,
     delayMs: 60,
@@ -250,6 +279,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'aurora',
     name: 'Aurora',
+    category: 'nature',
     description: 'Northern-light curtains drifting over a starry sky.',
     frames: 30,
     delayMs: 60,
@@ -277,6 +307,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'plasma',
     name: 'Plasma',
+    category: 'abstract',
     description: 'Flowing rainbow plasma, a classic demoscene effect.',
     frames: 30,
     delayMs: 50,
@@ -295,6 +326,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'starfield',
     name: 'Warp',
+    category: 'space',
     description: 'A starfield rushing towards you.',
     frames: 24,
     delayMs: 50,
@@ -321,6 +353,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'equalizer',
     name: 'Equalizer',
+    category: 'tech',
     description: 'Bouncing level meter bars in green, amber and red.',
     frames: 24,
     delayMs: 70,
@@ -350,6 +383,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'ripple',
     name: 'Ripple',
+    category: 'abstract',
     description: 'Calm rings spreading from the centre.',
     frames: 30,
     delayMs: 60,
@@ -366,6 +400,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'keycap-wave',
     name: 'Keycap wave',
+    category: 'tech',
     description: 'A rainbow wave rolling across a grid of keycaps.',
     frames: 24,
     delayMs: 60,
@@ -389,6 +424,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'rain',
     name: 'Glyph rain',
+    category: 'tech',
     description: 'Falling columns of tiny glyphs.',
     frames: 30,
     delayMs: 60,
@@ -413,6 +449,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'orbit',
     name: 'Orbit',
+    category: 'space',
     description: 'Three planets circling a glowing sun.',
     frames: 36,
     delayMs: 60,
@@ -438,6 +475,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'kitty',
     name: 'Kitty',
+    category: 'cute',
     description: 'A pixel-art kitten that bobs, blinks and sends floating hearts.',
     frames: 32,
     delayMs: 60,
@@ -467,6 +505,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'kitty-walk',
     name: 'Cat walk',
+    category: 'cute',
     description: 'An orange pixel cat strolling under the stars.',
     frames: 24,
     delayMs: 70,
@@ -523,6 +562,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'fireworks',
     name: 'Fireworks',
+    category: 'festive',
     description: 'Three bursts of colour over a starry city night.',
     frames: 36,
     delayMs: 55,
@@ -605,6 +645,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'snowfall',
     name: 'Snowfall',
+    category: 'nature',
     description: 'Soft snow drifting over a quiet winter night.',
     frames: 40,
     delayMs: 60,
@@ -630,6 +671,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'ocean',
     name: 'Ocean Sunset',
+    category: 'nature',
     description: 'Rolling waves under a warm setting sun.',
     frames: 40,
     delayMs: 60,
@@ -665,6 +707,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'sakura',
     name: 'Sakura',
+    category: 'nature',
     description: 'Cherry blossom petals floating on a spring breeze.',
     frames: 40,
     delayMs: 60,
@@ -699,6 +742,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'bd-flag',
     name: 'Bangladesh Flag',
+    category: 'festive',
     description: 'The flag of Bangladesh waving in the wind.',
     frames: 36,
     delayMs: 55,
@@ -723,6 +767,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'fish-tank',
     name: 'Fish Tank',
+    category: 'cute',
     description: 'Pixel fish and rising bubbles in a calm aquarium.',
     frames: 40,
     delayMs: 70,
@@ -758,6 +803,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'lava-lamp',
     name: 'Lava Lamp',
+    category: 'abstract',
     description: 'Slow glowing blobs that merge and split.',
     frames: 48,
     delayMs: 60,
@@ -783,6 +829,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'spiral-galaxy',
     name: 'Spiral Galaxy',
+    category: 'space',
     description: 'A two-armed galaxy turning in deep space.',
     frames: 48,
     delayMs: 60,
@@ -805,6 +852,7 @@ export const GALLERY: readonly GalleryAnimation[] = [
   {
     id: 'heartbeat',
     name: 'Heartbeat',
+    category: 'cute',
     description: 'A heart beating twice per loop.',
     frames: 30,
     delayMs: 50,
@@ -819,6 +867,258 @@ export const GALLERY: readonly GalleryAnimation[] = [
         const glow = Math.exp(-Math.max(f, 0) * 6) * (0.25 + 0.5 * beat);
         if (f <= 0) return [mix(0.85, 1, beat), mix(0.12, 0.3, beat), mix(0.25, 0.4, beat)];
         return [0.04 + glow * 0.9, 0.01 + glow * 0.15, 0.04 + glow * 0.3];
+      });
+    },
+  },
+  {
+    id: 'crescent-moon',
+    name: 'Eid crescent',
+    category: 'festive',
+    description: 'A glowing crescent and star with a swaying lantern.',
+    frames: 32,
+    delayMs: 60,
+    paint(img, t) {
+      const glow = 0.5 + 0.5 * Math.cos(TAU * t);
+      const swing = 0.16 * Math.sin(TAU * t);
+      const px = 0.78 + Math.sin(swing) * 0.5;
+      const py = Math.cos(swing) * 0.5;
+      shade(img, (u, v) => {
+        let r = 0.02;
+        let g = 0.03 + 0.04 * v;
+        let b = 0.1 + 0.14 * v;
+        // Crescent: a disc with an offset disc cut out of it.
+        const d1 = Math.hypot(u - 0.36, v - 0.42) - 0.21;
+        const d2 = Math.hypot(u - 0.45, v - 0.36) - 0.19;
+        const moon = Math.max(d1, -d2);
+        const halo = Math.exp(-Math.max(moon, 0) * (22 - 8 * glow)) * (0.3 + 0.25 * glow);
+        r += 0.9 * halo;
+        g += 0.75 * halo;
+        b += 0.35 * halo;
+        if (moon < 0) [r, g, b] = [1, 0.9, 0.55];
+        // Four-point star beside the crescent.
+        const sx = Math.abs(u - 0.54);
+        const sy = Math.abs(v - 0.38);
+        const star =
+          (Math.exp(-sx * 70) * Math.exp(-sy * 9) + Math.exp(-sy * 70) * Math.exp(-sx * 9)) *
+          (0.7 + 0.3 * glow);
+        r += star;
+        g += star * 0.95;
+        b += star * 0.7;
+        // Lantern on a rope, swinging from the top edge.
+        const along = (u - 0.78) * Math.sin(swing) + v * Math.cos(swing);
+        const across = (u - 0.78) * Math.cos(swing) - v * Math.sin(swing);
+        if (along > 0 && along < 0.4 && Math.abs(across) < 0.004) [r, g, b] = [0.75, 0.6, 0.35];
+        const lx = (u - px) * Math.cos(swing) - (v - py) * Math.sin(swing);
+        const ly = (u - px) * Math.sin(swing) + (v - py) * Math.cos(swing);
+        const body = sdBox(lx, ly, 0.06, 0.09, 0.03);
+        const light = Math.exp(-Math.max(body, 0) * 25) * (0.35 + 0.2 * glow);
+        r += light;
+        g += light * 0.55;
+        b += light * 0.15;
+        if (body < 0)
+          [r, g, b] =
+            Math.abs(lx) < 0.035 && Math.abs(ly) < 0.06 ? [1, 0.82, 0.4] : [0.85, 0.35, 0.12];
+        return [r, g, b];
+      });
+      const sky = rng(77);
+      for (let i = 0; i < 26; i++) {
+        const x = sky();
+        const y = sky() * 0.85;
+        if (Math.hypot(x - 0.36, y - 0.42) < 0.27) continue;
+        dot(img, x, y, 0.004, [0.9, 0.9, 1], 0.25 + 0.6 * Math.sin(TAU * (t + sky())) ** 2);
+      }
+    },
+  },
+  {
+    id: 'alpona',
+    name: 'Alpona',
+    category: 'festive',
+    description: 'A turning Pohela Boishakh alpona in red, white and gold.',
+    frames: 32,
+    delayMs: 60,
+    paint(img, t) {
+      // Eight-fold pattern turning one petal per loop, so the last frame meets the first.
+      const turn = (TAU / 8) * t;
+      shade(img, (u, v) => {
+        const x = u - 0.5;
+        const y = v - 0.5;
+        const r = Math.hypot(x, y);
+        const th = Math.atan2(y, x);
+        const petal = 0.17 + 0.09 * Math.cos(8 * (th - turn));
+        const outer = 0.31 + 0.025 * Math.cos(16 * (th + turn));
+        let c: Rgb = [0.55, 0.04, 0.05];
+        if (r < 0.06) c = [1, 0.78, 0.2];
+        else if (r < 0.075) c = [1, 0.97, 0.9];
+        else if (r < petal) c = Math.abs(r - petal) < 0.012 ? [1, 0.78, 0.2] : [1, 0.97, 0.9];
+        else if (Math.abs(r - outer) < 0.01) c = [1, 0.97, 0.9];
+        else if (r > 0.36 && r < 0.4) {
+          // Ring of dots turning the other way.
+          const k = frac(((th + turn) / TAU) * 24);
+          c = Math.hypot((k - 0.5) * 0.09, r - 0.38) < 0.014 ? [1, 0.78, 0.2] : c;
+        } else if (r >= 0.44) c = [0.4, 0.02, 0.03];
+        return c;
+      });
+    },
+  },
+  {
+    id: 'synthwave',
+    name: 'Synthwave',
+    category: 'abstract',
+    description: 'A striped retro sun over a neon grid racing towards you.',
+    frames: 30,
+    delayMs: 50,
+    paint(img, t) {
+      shade(img, (u, v) => {
+        const horizon = 0.62;
+        if (v < horizon) {
+          let r = mix(0.12, 0.85, v / horizon);
+          let g = mix(0.02, 0.2, v / horizon);
+          let b = mix(0.25, 0.45, v / horizon);
+          const d = Math.hypot(u - 0.5, v - 0.42) - 0.22;
+          const gap = v > 0.42 && frac(v * 22 - t) < 0.28 + (v - 0.42) * 2;
+          if (d < 0 && !gap) [r, g, b] = [1, mix(0.85, 0.3, (v - 0.2) / 0.42), mix(0.3, 0.55, v)];
+          else if (d >= 0) {
+            const halo = Math.exp(-d * 18) * 0.35;
+            r += halo;
+            g += halo * 0.4;
+            b += halo * 0.3;
+          }
+          return [r, g, b];
+        }
+        const z = 0.08 / (v - horizon + 0.004);
+        const across = (u - 0.5) * z;
+        // Rows scroll one spacing per loop; columns converge on the vanishing point.
+        const row = frac(z * 3 + t);
+        const col = frac(across * 9 + 0.5);
+        const line = Math.max(
+          Math.exp(-Math.min(row, 1 - row) * 40),
+          Math.exp(-Math.min(col, 1 - col) * 30),
+        );
+        const fade = 0.35 + 0.65 * clamp((v - horizon) * 4);
+        return [0.08 + line * fade * 0.95, 0.02 + line * fade * 0.3, 0.16 + line * fade * 0.9];
+      });
+    },
+  },
+  {
+    id: 'rain-window',
+    name: 'Rainy window',
+    category: 'nature',
+    description: 'Raindrops sliding down glass in front of city lights.',
+    frames: 36,
+    delayMs: 50,
+    paint(img, t) {
+      shade(img, (u, v) => [0.03 + 0.03 * v, 0.05 + 0.04 * v, 0.12 + 0.08 * v]);
+      const city = rng(19);
+      for (let i = 0; i < 22; i++) {
+        const c = hsv(0.05 + city() * 0.6, 0.6, 1);
+        dot(img, city(), 0.35 + city() * 0.6, 0.03 + city() * 0.04, c, 0.12 + city() * 0.15);
+      }
+      const drops = rng(23);
+      for (let i = 0; i < 34; i++) {
+        const x = drops();
+        const k = drops() < 0.5 ? 1 : 2;
+        const y = frac(drops() + k * t) * 1.1 - 0.05;
+        const size = 0.01 + drops() * 0.012;
+        for (let j = 1; j <= 4; j++)
+          dot(img, x, y - j * size * 1.6, size * 0.45, [0.6, 0.7, 0.85], 0.18 / j);
+        dot(img, x, y, size, [0.75, 0.85, 1], 0.75);
+      }
+    },
+  },
+  {
+    id: 'floating-hearts',
+    name: 'Floating hearts',
+    category: 'cute',
+    description: 'Little hearts drifting up a soft pink sky.',
+    frames: 36,
+    delayMs: 50,
+    paint(img, t) {
+      const r = rng(5);
+      const hearts = Array.from({ length: 13 }, () => {
+        const k = r() < 0.6 ? 1 : 2;
+        const x0 = 0.08 + r() * 0.84;
+        const off = r();
+        const size = 0.035 + r() * 0.04;
+        const phase = r();
+        return {
+          x: x0 + 0.03 * Math.sin(TAU * (k * t + phase)),
+          y: 1.12 - frac(off + k * t) * 1.24,
+          size,
+          hue: r(),
+        };
+      });
+      shade(img, (u, v) => {
+        let c: Rgb = [mix(1, 0.98, v), mix(0.8, 0.6, v), mix(0.88, 0.75, v)];
+        for (const h of hearts) {
+          const x = (u - h.x) / h.size;
+          const y = (h.y - v) / h.size + 0.2;
+          const f = Math.pow(x * x + y * y - 1, 3) - x * x * y * y * y;
+          if (f <= 0) c = h.hue < 0.5 ? [0.95, 0.25, 0.42] : [1, 0.45, 0.6];
+        }
+        return c;
+      });
+    },
+  },
+  {
+    id: 'loading-ring',
+    name: 'Comet ring',
+    category: 'tech',
+    description: 'A comet chasing its tail around a glowing ring.',
+    frames: 30,
+    delayMs: 40,
+    paint(img, t) {
+      shade(img, (u, v) => {
+        const x = u - 0.5;
+        const y = v - 0.5;
+        const ring = Math.abs(Math.hypot(x, y) - 0.3);
+        const behind = frac((TAU * t - Math.atan2(y, x)) / TAU);
+        // The tail fades in just behind the head, so there is no hard seam where it starts.
+        const tail = Math.pow(1 - behind, 2) * smooth(0, 0.04, behind);
+        const core = Math.exp(-ring * 55) * tail * 1.3;
+        const halo = Math.exp(-ring * 16) * tail * 0.5;
+        const [r, g, b] = hsv(0.55 + behind * 0.3, 0.7, 1);
+        const base = Math.exp(-ring * 60) * 0.12;
+        return [
+          0.02 + (core + halo) * r + base,
+          0.03 + (core + halo) * g + base,
+          0.07 + (core + halo) * b + base * 1.5,
+        ];
+      });
+      dot(
+        img,
+        0.5 + 0.3 * Math.cos(TAU * t),
+        0.5 + 0.3 * Math.sin(TAU * t),
+        0.02,
+        [0.8, 0.95, 1],
+        0.9,
+      );
+    },
+  },
+  {
+    id: 'pixel-ghost',
+    name: 'Pixel ghost',
+    category: 'cute',
+    description: 'A friendly pixel ghost bobbing along a row of pellets.',
+    frames: 24,
+    delayMs: 70,
+    paint(img, t) {
+      const bob = Math.round(Math.sin(TAU * t));
+      const look = Math.sin(TAU * t) > 0 ? 1 : 0;
+      const sprite = frac(t * 4) < 0.5 ? GHOST_A : GHOST_B;
+      pixels(img, 20, (x, y) => {
+        const c = spriteAt(sprite, GHOST_PAL, 3, 2 + bob, x, y);
+        if (c) {
+          const wy = y - (2 + bob);
+          const wx = x - 3;
+          if ((wy === 5 || wy === 6) && (wx === 3 + look || wx === 9 + look))
+            return [0.15, 0.25, 0.9];
+          return c;
+        }
+        // Pellets moving towards the ghost.
+        if (y === 17)
+          for (let i = 0; i < 5; i++)
+            if (x === (((i * 4 - Math.floor(t * 20)) % 20) + 20) % 20) return [1, 0.85, 0.6];
+        return [0.04, 0.04, 0.12];
       });
     },
   },

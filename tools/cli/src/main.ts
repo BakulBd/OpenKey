@@ -48,13 +48,15 @@ import {
 import type { GlobalFlags } from './context.js';
 import { loadFrames, savePng } from './images.js';
 import { inspectText } from './inspect.js';
+import { doctorReport, formatDoctor } from './doctor.js';
 
-const HELP = `openkey – open-source configurator for the AJAZZ AK820 keyboard family
+const HELP = `openkey – open-source keyboard configurator (AJAZZ, AULA, RK, ROYUAN, VIA and more)
 
 Usage: openkey <command> [options]
 
 Discovery
-  list                         List AK820-family HID devices (no I/O, no permissions needed)
+  list                         List supported-family and VIA keyboards (no I/O, no permissions needed)
+  doctor                       Why a keyboard does not connect, with the fix (opens and closes; sends nothing)
   detect [--verbose]           Detect the protocol (--level descriptor|passive|handshake, default handshake)
                                Handshakes run automatically only for identities where they are known
                                to be harmless; allow one for another device with --allow-probe <adapter>
@@ -202,8 +204,15 @@ async function cmdList(flags: GlobalFlags): Promise<void> {
                 `[${i}] ${g.identity.productName}  ${g.identity.vendorId.toString(16).padStart(4, '0')}:${g.identity.productId.toString(16).padStart(4, '0')}  ${g.transportHint}  ${g.interfaces.length} HID interface(s)`,
             )
             .join('\n')
-        : 'No AK820-family devices found.',
+        : 'No supported keyboards found. Run openkey doctor.',
   );
+}
+
+async function cmdDoctor(flags: GlobalFlags): Promise<void> {
+  const groups = await listGroups();
+  const picked = flags.device ? [await pickGroup(flags)] : groups;
+  const report = await doctorReport(picked);
+  out(flags, report, () => formatDoctor(report));
 }
 
 async function cmdDetect(flags: GlobalFlags): Promise<void> {
@@ -705,6 +714,8 @@ async function main(): Promise<void> {
   switch (cmd) {
     case 'list':
       return cmdList(flags);
+    case 'doctor':
+      return cmdDoctor(flags);
     case 'detect':
       return cmdDetect(flags);
     case 'analyze':

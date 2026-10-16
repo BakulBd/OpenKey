@@ -43,6 +43,8 @@ import {
   DATA_CHUNK_SIZE,
   DATA_USAGE_PAGE,
   MACRO_SLOTS,
+  PRO_ANIMATION_SUB,
+  PRO_STILL_SUB,
   TABLE_PACKETS,
   TFT_DELAY_UNIT_MS,
   REPORT_ID,
@@ -65,7 +67,7 @@ import {
   encodeSettingsData,
 } from './codecs/settings.js';
 import { encodeTimeData } from './codecs/time.js';
-import { planTftUpload, tftChunks } from './codecs/tft.js';
+import { planTftUpload, proStillChunks, tftChunks } from './codecs/tft.js';
 import { commandPacketU16 } from './frame.js';
 import { SonixFeatureSession } from './session.js';
 import type { SonixFeatureVariant } from './variants.js';
@@ -427,11 +429,16 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
         );
     };
     aborted();
+    const pro = this.variant.profile.tft?.framing === 'pro';
+    if (pro && plan.frames === 1) {
+      await this.uploadProStill(frames[0]!, info, onProgress, aborted);
+      return;
+    }
     onProgress?.({ phase: 'prepare', sent: 0, total: plan.chunks });
     await s.transaction(async () => {
       await s.command(Cmd.START);
       const { ack, response } = await s.sendPacket(
-        commandPacketU16(Cmd.IMAGE, slot, plan.chunks),
+        commandPacketU16(Cmd.IMAGE, pro ? PRO_ANIMATION_SUB : slot, plan.chunks),
         true,
       );
       if (ack && !ack.ok)
@@ -449,6 +456,39 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
     });
     await this.store.set(MIRROR.tft, { frames: plan.frames, at: new Date().toISOString() });
     onProgress?.({ phase: 'done', sent: plan.chunks, total: plan.chunks });
+  }
+
+  /** AK820 Pro still image: START (enable 1), IMAGE 02, raw frame chunks, FINISH (enable 1). */
+  private async uploadProStill(
+    frame: TftFrame,
+    info: TftInfo,
+    onProgress: ProgressCallback | undefined,
+    aborted: () => void,
+  ): Promise<void> {
+    const s = this.s();
+    const chunks = proStillChunks(frame, info.width, info.height);
+    onProgress?.({ phase: 'prepare', sent: 0, total: chunks.length });
+    await s.transaction(async () => {
+      await s.command(Cmd.START, { arg8: 1 });
+      const { ack, response } = await s.sendPacket(
+        commandPacketU16(Cmd.IMAGE, PRO_STILL_SUB, chunks.length),
+        true,
+      );
+      if (ack && !ack.ok)
+        throw new TftUploadError('Keyboard rejected the image header', {
+          response: response ? toHex(response) : '',
+        });
+      let i = 0;
+      for (const chunk of chunks) {
+        aborted();
+        await s.sendDataChunk(chunk);
+        onProgress?.({ phase: 'transfer', sent: ++i, total: chunks.length });
+      }
+      onProgress?.({ phase: 'commit', sent: chunks.length, total: chunks.length });
+      await s.command(Cmd.FINISH, { arg8: 1 });
+    });
+    await this.store.set(MIRROR.tft, { frames: 1, at: new Date().toISOString() });
+    onProgress?.({ phase: 'done', sent: chunks.length, total: chunks.length });
   }
 
   override async getTftStatus(): Promise<TftStatus> {

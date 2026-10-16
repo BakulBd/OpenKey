@@ -30,6 +30,8 @@ const PATHS = {
   warn: 'M12 3l10 18H2zM12 10v4M12 17h0',
   info: 'M12 21a9 9 0 110-18 9 9 0 010 18zM12 11v6M12 7h0',
   menu: 'M4 7h16M4 12h16M4 17h16',
+  doctor: 'M3 12h4l2-5 4 10 2-5h6',
+  heart: 'M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z',
 } as const;
 
 export type IconName = keyof typeof PATHS;

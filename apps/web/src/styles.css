@@ -2956,3 +2956,213 @@ input[type='checkbox'].switch:checked {
   display: grid;
   gap: 2px;
 }
+
+/* ---------- Connection doctor ---------- */
+.doctor-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.doctor-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+}
+.doctor-item > .icon {
+  flex: none;
+  margin-top: 2px;
+}
+.doctor-item p {
+  margin: 4px 0 0;
+}
+.doctor-item .fix {
+  color: var(--text);
+}
+.doctor-item.st-pass {
+  border-left-color: var(--ok);
+}
+.doctor-item.st-pass > .icon {
+  color: var(--ok);
+}
+.doctor-item.st-info {
+  border-left-color: var(--info);
+}
+.doctor-item.st-info > .icon {
+  color: var(--info);
+}
+.doctor-item.st-warn {
+  border-left-color: var(--warn);
+}
+.doctor-item.st-warn > .icon {
+  color: var(--warn);
+}
+.doctor-item.st-fail {
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
+}
+.doctor-item.st-fail > .icon {
+  color: var(--danger);
+}
+
+/* ---------- Model revisions ---------- */
+.revisions {
+  margin-top: 6px;
+}
+.revisions summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.revisions .tbl {
+  margin-top: 6px;
+}
+.id-chip {
+  display: inline-block;
+  margin: 0 4px 2px 0;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--bg-sunken);
+  white-space: nowrap;
+}
+
+.layout-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.layout-options legend {
+  padding: 0 4px;
+  color: var(--text-2);
+}
+
+/* ---------- Gallery tools ---------- */
+.gallery-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.gallery-item .fav {
+  align-self: flex-start;
+  color: var(--text-3);
+}
+.gallery-item .fav.on {
+  color: var(--danger);
+}
+.gallery-item .fav.on .icon path {
+  fill: currentColor;
+}
+
+/* ---------- Contributor wall ---------- */
+.contributors {
+  margin: 20px 0 12px;
+  text-align: center;
+}
+.footer .contributors-title {
+  margin: 0 0 16px;
+  color: var(--text-2);
+}
+.contributors-title .icon {
+  color: var(--danger);
+  vertical-align: -3px;
+}
+.contributors-title .icon path {
+  fill: currentColor;
+}
+.avatar-wall {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  max-width: 640px;
+}
+.avatar-wall a {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  overflow: hidden;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease;
+}
+.avatar-wall a:hover,
+.avatar-wall a:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.avatar-wall img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-join {
+  display: grid !important;
+  place-items: center;
+  background: var(--bg-sunken);
+  color: var(--text-2);
+  font-size: 26px;
+  font-weight: 300;
+  text-decoration: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-wall a {
+    transition: none;
+  }
+}
+
+.menu-section + .menu-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.vial-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+.chip.dirty::after {
+  content: ' •';
+  color: var(--accent);
+}
+.mod-set {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.callout.limits .icon {
+  vertical-align: -3px;
+}
+.page-limits {
+  max-width: 1280px;
+  padding: 16px 24px 0;
+}
+.page-limits:empty {
+  display: none;
+}
+.page-limits .callout {
+  margin-bottom: 0;
+}

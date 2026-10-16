@@ -48,6 +48,51 @@ export class ViaSession {
     return p;
   }
 
+  /**
+   * Vial commands (prefix 0xFE). Their replies carry data from byte 0, so they are not checked for an
+   * echo. Only the allow-listed sub-commands are sent; see families/via/vial.ts.
+   */
+  private vial(bytes: readonly number[], allowed: (b: readonly number[]) => boolean) {
+    const run = async (): Promise<Uint8Array | null> => {
+      if (bytes[0] !== 0xfe || !allowed(bytes))
+        throw new ProtocolError(
+          `Vial command ${bytes
+            .slice(0, 3)
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join(' ')} is not one OpenKey sends.`,
+        );
+      const report = new Uint8Array(this.reportSize);
+      report.set(bytes.slice(0, this.reportSize));
+      this.transport.drainInput();
+      await this.transport.sendOutputReport(0, report);
+      const reply = await this.transport.readInputReport(this.timeoutMs);
+      if (!reply) throw new TimeoutError('No reply to the Vial command');
+      return reply;
+    };
+    const p = this.queue.then(run, run);
+    this.queue = p.catch(() => undefined);
+    return p;
+  }
+
+  /** Vial reads: keyboard id, definition, QMK settings query/get, dynamic-entry counts and gets. */
+  vialRead(bytes: readonly number[]): Promise<Uint8Array | null> {
+    return this.vial(
+      bytes,
+      (b) =>
+        [0x00, 0x01, 0x02, 0x09, 0x0a].includes(b[1]!) ||
+        (b[1] === 0x0d && [0x00, 0x01, 0x03, 0x05].includes(b[2]!)),
+    );
+  }
+
+  /** Vial writes: one QMK setting, or one tap dance / combo / key override entry. */
+  async vialWrite(bytes: readonly number[]): Promise<Uint8Array> {
+    const r = await this.vial(
+      bytes,
+      (b) => b[1] === 0x0b || (b[1] === 0x0d && [0x02, 0x04, 0x06].includes(b[2]!)),
+    );
+    return r!;
+  }
+
   private async must(bytes: readonly number[]): Promise<Uint8Array> {
     const r = await this.command(bytes);
     if (!r)
@@ -86,6 +131,16 @@ export class ViaSession {
     await this.must([Cmd.KEYMAP_SET_KEYCODE, layer, row, col, code >> 8, code & 0xff]);
   }
 
+  /** Keycode of one encoder direction (clockwise = 1); null when the firmware has no encoder map. */
+  async getEncoder(layer: number, id: number, clockwise: boolean): Promise<number | null> {
+    const r = await this.command([Cmd.KEYMAP_GET_ENCODER, layer, id, clockwise ? 1 : 0]);
+    return r ? (r[4]! << 8) | r[5]! : null;
+  }
+
+  async setEncoder(layer: number, id: number, clockwise: boolean, code: number): Promise<void> {
+    await this.must([Cmd.KEYMAP_SET_ENCODER, layer, id, clockwise ? 1 : 0, code >> 8, code & 0xff]);
+  }
+
   /** Reads `size` bytes of the dynamic keymap from an absolute offset (big-endian keycodes, layer-major, row-major). */
   readKeymapBuffer(start: number, size: number): Promise<Uint8Array> {
     return this.readBuffer(Cmd.KEYMAP_GET_BUFFER, size, start);
@@ -122,6 +177,17 @@ export class ViaSession {
 
   async setValue(channel: number, value: number, data: number[]): Promise<void> {
     await this.must([Cmd.CUSTOM_SET_VALUE, channel, value, ...data]);
+  }
+
+  /** A custom-menu value bound to [channel, value id, …extra]; null when the firmware does not answer it. */
+  async getBound(command: readonly number[], len: number): Promise<number[] | null> {
+    const r = await this.command([Cmd.CUSTOM_GET_VALUE, ...command]);
+    if (!r || command.some((b, i) => r[1 + i] !== b)) return null;
+    return Array.from(r.subarray(1 + command.length, 1 + command.length + len));
+  }
+
+  async setBound(command: readonly number[], data: readonly number[]): Promise<void> {
+    await this.must([Cmd.CUSTOM_SET_VALUE, ...command, ...data]);
   }
 
   /** Persists the channel's values (VIA sets them without saving). */

@@ -16,7 +16,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "hid=(self), usb=(), serial=(), bluetooth=(), camera=(), microphone=(), geolocation=(), payment=(), display-capture=()"
+          "value": "hid=(self), usb=(), serial=(self), bluetooth=(), camera=(), microphone=(), geolocation=(), payment=(), display-capture=()"
         },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "no-referrer" },

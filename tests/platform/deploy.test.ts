@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -52,5 +52,29 @@ describe('one set of security headers on every host', () => {
   it('ships the Docker image definition with an unprivileged server', () => {
     expect(existsSync(path.join(ROOT, 'Dockerfile'))).toBe(true);
     expect(readFileSync(path.join(ROOT, 'Dockerfile'), 'utf8')).toMatch(/nginx-unprivileged/);
+  });
+});
+
+describe('the free Vercel (Hobby) plan is enough', () => {
+  const config = JSON.parse(readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')) as Record<
+    string,
+    unknown
+  >;
+
+  it('deploys as static files: no serverless functions, middleware, crons or image optimisation', () => {
+    for (const key of ['functions', 'crons', 'images', 'rewrites', 'redirects'])
+      expect(config[key], key).toBeUndefined();
+    for (const dir of ['api', 'apps/web/api', 'middleware.ts', 'apps/web/middleware.ts'])
+      expect(existsSync(path.join(ROOT, dir)), dir).toBe(false);
+    expect(config.outputDirectory).toBe('apps/web/dist');
+  });
+
+  it('keeps the bundled media small (the gallery ships with the site)', () => {
+    const dir = path.join(ROOT, 'apps/web/public');
+    const size = (p: string): number =>
+      statSync(p).isDirectory()
+        ? readdirSync(p).reduce((n, f) => n + size(path.join(p, f)), 0)
+        : statSync(p).size;
+    expect(size(dir)).toBeLessThan(8 * 1024 * 1024);
   });
 });

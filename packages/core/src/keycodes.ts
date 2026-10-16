@@ -18,6 +18,27 @@ export type KeycodeGroup =
   | 'layers'
   | 'special';
 
+/** Words people search for that the short key names do not contain. */
+const WORDS: Record<number, string[]> = {
+  0x29: ['escape'],
+  0x2a: ['backspace', 'delete back'],
+  0x2b: ['tabulator'],
+  0x2c: ['space bar', 'spacebar'],
+  0x28: ['return'],
+  0x39: ['capslock'],
+  0x46: ['print screen', 'screenshot'],
+  0x49: ['insert'],
+  0x4a: ['home'],
+  0x4b: ['page up'],
+  0x4c: ['delete forward'],
+  0x4e: ['page down'],
+  0x65: ['menu', 'context menu'],
+  0xe3: ['windows', 'win', 'command', 'cmd', 'super', 'meta'],
+  0xe7: ['windows', 'win', 'command', 'cmd', 'super', 'meta'],
+  0xe2: ['option', 'opt'],
+  0xe6: ['option', 'opt', 'altgr'],
+};
+
 export interface KeycodeEntry {
   id: string;
   action: KeyAction;
@@ -161,6 +182,7 @@ export function keycodeCatalog(): KeycodeEntry[] {
       group === 'letters' ? `letter ${name.toLowerCase()}` : '',
       group === 'digits' ? `number ${name}` : '',
       `0x${usage.toString(16).padStart(2, '0')}`,
+      ...(WORDS[usage] ?? []),
     ].filter(Boolean);
     out.push({
       id: `kb-${usage}`,

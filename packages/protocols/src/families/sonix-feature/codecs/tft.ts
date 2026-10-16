@@ -91,3 +91,19 @@ export function buildTftPayload(
   for (const c of tftChunks(frames, plan)) payload.set(c, i++ * DATA_CHUNK_SIZE);
   return { payload, chunks: plan.chunks, frames: plan.frames };
 }
+
+/**
+ * AK820 Pro still image: the RGB565 frame with no header, padded with 0xFF to whole chunks plus one
+ * spare chunk (9 × 4096 bytes for 128×128), as gohv and Beattrey send it.
+ */
+export function proStillChunks(frame: TftFrame, width: number, height: number): Uint8Array[] {
+  const frameBytes = width * height * 2;
+  if (frame.pixels.length !== frameBytes)
+    throw new TftUploadError(`Frame must be ${frameBytes} bytes (got ${frame.pixels.length})`);
+  const count = Math.floor(frameBytes / DATA_CHUNK_SIZE) + 1;
+  const payload = new Uint8Array(count * DATA_CHUNK_SIZE).fill(0xff);
+  payload.set(frame.pixels, 0);
+  return Array.from({ length: count }, (_, i) =>
+    payload.slice(i * DATA_CHUNK_SIZE, (i + 1) * DATA_CHUNK_SIZE),
+  );
+}

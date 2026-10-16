@@ -37,6 +37,8 @@ export function ConnectPanel({ compact = false }: { compact?: boolean }) {
     authorized,
     openAuthorized,
     accessProblem,
+    connectZmk,
+    serialAvailable,
   } = useKeyboard();
   const busy = conn.status !== 'DISCONNECTED';
   const p = platform();
@@ -90,6 +92,16 @@ export function ConnectPanel({ compact = false }: { compact?: boolean }) {
           <Icon name="lab" /> {t('action.inspect')}
         </button>
       </div>
+      {serialAvailable && (
+        <button
+          type="button"
+          className="btn ghost small zmk-connect"
+          disabled={busy}
+          onClick={() => void connectZmk()}
+        >
+          <Icon name="keymap" /> {t('action.connectZmk')}
+        </button>
+      )}
       <div className="demo-picker" role="group" aria-label={t('demo.pick')}>
         <span className="small muted">{t('demo.pick')}</span>
         {DEMO_KINDS.map((k) => (
@@ -124,7 +136,8 @@ export function ConnectPanel({ compact = false }: { compact?: boolean }) {
 
       {failed && !accessProblem && (
         <div className="callout danger small" role="alert">
-          <strong>{t('connect.failed', { error: failed })}</strong> {t('connect.failedHint')}
+          <strong>{t('connect.failed', { error: failed })}</strong> {t('connect.failedHint')}{' '}
+          <a href={href('doctor')}>{t('connect.doctor')}</a>
         </div>
       )}
 
@@ -184,6 +197,9 @@ export function ConnectPanel({ compact = false }: { compact?: boolean }) {
           <li>{t('connect.trouble.busy')}</li>
           <li>{t('connect.trouble.protected')}</li>
         </ul>
+        <a className="btn small" href={href('doctor')}>
+          <Icon name="doctor" /> {t('connect.doctor')}
+        </a>
       </details>
     </div>
   );

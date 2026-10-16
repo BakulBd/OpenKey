@@ -16,11 +16,16 @@ import {
   enumerateNodeHid,
 } from '@openkey/hid-node';
 import type { HidDeviceGroup } from '@openkey/hid';
+import { CATALOG } from '@openkey/devices/catalog';
 import { connectKeyboard, createDefaultRegistry } from '@openkey/protocols';
 import type { DetectionReport, ProbeLevel } from '@openkey/protocols';
 
-/** Vendor IDs used by AK820-family keyboards and receivers. 0x05AC only for the Apple-VID 2.4G dongle. */
-export const FAMILY_VENDOR_IDS = [0x0c45, 0x1a2c, 0x05ac];
+/**
+ * Vendor IDs of every catalogued keyboard and receiver. 0x05AC only for the Apple-VID 2.4G dongle.
+ * Boards running QMK/VIA or Vial are found by their raw HID page (FF60), whatever their vendor ID.
+ */
+export const FAMILY_VENDOR_IDS = [...new Set(CATALOG.map((e) => e.vendorId))];
+const VIA_PAGE = 0xff60;
 
 export interface GlobalFlags {
   device?: string;
@@ -42,11 +47,14 @@ export interface GlobalFlags {
  */
 export async function listGroups(): Promise<HidDeviceGroup[]> {
   const groups: HidDeviceGroup[] =
-    process.platform === 'linux'
-      ? await enumerateLinux({ vendorIds: FAMILY_VENDOR_IDS })
-      : await enumerateNodeHid({ vendorIds: FAMILY_VENDOR_IDS });
-  // The Apple VID is only interesting for the AK820 receiver product.
-  return groups.filter((g) => g.identity.vendorId !== 0x05ac || g.identity.productId === 0x024f);
+    process.platform === 'linux' ? await enumerateLinux() : await enumerateNodeHid();
+  return groups.filter((g) => {
+    const via = g.interfaces.some((i) => i.collections.some((c) => c.usagePage === VIA_PAGE));
+    if (via) return true;
+    if (!FAMILY_VENDOR_IDS.includes(g.identity.vendorId)) return false;
+    // The Apple VID is only interesting for the AK820 receiver product.
+    return g.identity.vendorId !== 0x05ac || g.identity.productId === 0x024f;
+  });
 }
 
 export async function pickGroup(flags: GlobalFlags): Promise<HidDeviceGroup> {

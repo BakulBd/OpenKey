@@ -137,17 +137,25 @@ export function sonixFeatureCapabilities(
   });
   caps.realtimeRgb = configurable('none', true, S, { safety: SAFE_VOLATILE });
   if (p.tft) {
+    const pro = p.tft.framing === 'pro';
     caps.tft = configurable('none', true, W, {
       safety: HIGH_RISK,
       value: `${p.tft.width}×${p.tft.height} RGB565`,
       note:
         W === C
           ? 'Upload only; images cannot be read back.'
-          : 'Upload only. Verified on the AK820 MAX; AK820 Pro firmware is reported to frame still images differently (Beattrey/ajazz-ak820-config), so treat uploads here as a test.',
+          : pro
+            ? 'Upload only. Still images use the AK820 Pro framing two community tools report working on Pro hardware (IMAGE_PRO_STILL); not yet run by OpenKey, so treat uploads as a test.'
+            : 'Upload only. Verified on the AK820 MAX; treat uploads on this unit as a test.',
     });
-    caps.tftGif = configurable('none', true, W, {
+    caps.tftGif = configurable('none', true, pro ? Evidence.INFERRED : W, {
       safety: HIGH_RISK,
       value: `up to ${p.tft.maxFrames} frames`,
+      ...(pro
+        ? {
+            note: 'Animations on the AK820 Pro use the sub-command one source infers (IMAGE_PRO_ANIMATION); unconfirmed.',
+          }
+        : {}),
     });
     caps.tftClock = configurable('none', true, W, { safety: SAFE_PERSISTENT });
   } else {

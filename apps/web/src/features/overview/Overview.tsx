@@ -1,3 +1,4 @@
+import { ConnectionLimits } from '../shared/ConnectionLimits.js';
 import { FEATURES, writeDecision } from '@openkey/core';
 import type { FeatureId } from '@openkey/core';
 import { describeCollections } from '@openkey/hid';
@@ -84,6 +85,7 @@ function DeviceOverview({ s }: { s: DeviceSession }) {
         </div>
       </header>
       {s.demo && <div className="callout info">{t('overview.demoNote')}</div>}
+      <ConnectionLimits />
 
       <section aria-labelledby="tasks-h" className="tasks-section">
         <h2 id="tasks-h">{t('overview.canDo')}</h2>
@@ -247,6 +249,7 @@ function UnknownDevice({ s }: { s: UnknownSession }) {
         <strong>{t('unknown.noWrite')}</strong>{' '}
         {s.sentReports > 0 ? t('unknown.sentSome', { n: s.sentReports }) : t('unknown.noWriteBody')}
       </div>
+      <ConnectionLimits />
       <VerdictCard
         verdict={s.verdict}
         onIdentify={(a) => void identify(a)}
@@ -281,6 +284,11 @@ function UnknownDevice({ s }: { s: UnknownSession }) {
                 <Icon name="github" /> {t('unknown.request')}
               </a>
               <span className="small muted">{t('unknown.requestNote')}</span>
+            </li>
+            <li>
+              <a className="btn ghost" href={href('doctor')}>
+                <Icon name="doctor" /> {t('connect.doctor')}
+              </a>
             </li>
             <li>
               <a className="btn ghost" href={href('lab')}>

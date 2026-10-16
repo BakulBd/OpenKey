@@ -118,6 +118,42 @@ describe('sonix-feature driver against the firmware simulator', () => {
     expect((await driver.getTftStatus()).lastUpload?.frames).toBe(1);
   });
 
+  it('frames AK820 Pro uploads as Pro firmware takes them (stills raw, animations sub 03)', async () => {
+    const pro = { vendorId: 0x0c45, productId: 0x8009, productName: 'AK820' };
+    const still = await setup(pro);
+    const info = await still.driver.getTftInfo();
+    await still.driver.uploadTftImage(prepareFrame(pattern('blue', 128, 128), info));
+    expect(still.sim.state.tft).toMatchObject({ slot: 0x02, chunks: 9 });
+    // No header: pixels start at byte 0, then 0xFF padding to the ninth chunk.
+    expect(Array.from(still.sim.state.tft!.data.subarray(0, 2))).toEqual([0x1f, 0x00]);
+    expect(still.sim.state.tft!.data[128 * 128 * 2]).toBe(0xff);
+    const sets = featureSets(still.sim);
+    const start = sets.findIndex((x) => x[1] === 0x72) - 1;
+    expect(sets[start]).toEqual([0x04, 0x18]);
+    expect(sets.at(-1)).toEqual([0x04, 0xf0]);
+    // START just before IMAGE and the closing FINISH carry enable = 1 (the identification START does not).
+    const traffic = still.sim.device.traffic.filter((t) => t.op === 'feature-set');
+    expect(traffic[start]!.data[8]).toBe(1);
+    expect(traffic.at(-1)!.data[8]).toBe(1);
+
+    const anim = await setup(pro);
+    const frame = prepareFrame(pattern('red', 128, 128), info);
+    await anim.driver.uploadTftGif([
+      { ...frame, delayMs: 100 },
+      { ...frame, delayMs: 100 },
+    ]);
+    expect(anim.sim.state.tft).toMatchObject({ slot: 0x03 });
+    expect(anim.sim.state.tft!.data[0]).toBe(2); // header: frame count
+    expect(featureSets(anim.sim).at(-1)).toEqual([0x04, 0x02]);
+  });
+
+  it('keeps the AK820 Pro screen behind the experimental opt-in', async () => {
+    const { driver } = await setup({ vendorId: 0x0c45, productId: 0x8009, productName: 'AK820' });
+    const caps = driver.getCapabilities();
+    expect(caps.tft.confidence).toBe(Evidence.OBSERVED);
+    expect(caps.tftGif.confidence).toBe(Evidence.INFERRED);
+  });
+
   it('writes macros, settings and the clock', async () => {
     const { driver, sim } = await setup();
     await driver.setMacros([

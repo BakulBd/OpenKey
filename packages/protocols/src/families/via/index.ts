@@ -7,3 +7,6 @@ export * from './session.js';
 export * from './driver.js';
 export * from './protocol.js';
 export * from './simulator.js';
+export * from './vial.js';
+export * from './xz.js';
+export * from './menus.js';

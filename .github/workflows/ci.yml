@@ -29,9 +29,14 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  # Browser smoke test of the production build with the production headers.
+  # Browser smoke test of the production build with the production headers, on every desktop OS
+  # (the runners' preinstalled Chrome; OS-specific guidance is also emulated inside the test).
   e2e:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -47,9 +52,8 @@ jobs:
       # WebHID devices in the runner's preinstalled Chrome, with the production security headers.
       - name: Browser smoke test
         run: node tools/e2e/smoke.mjs
-        env:
-          CHROME: /usr/bin/google-chrome
       - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
         with:
           name: web
           path: apps/web/dist

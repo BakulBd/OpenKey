@@ -19,6 +19,7 @@ import { UpdateBanner } from './UpdateBanner.js';
 import { StatusBar } from './StatusBar.js';
 import { Dialog } from '../components/Dialog.js';
 import { ErrorBoundary } from '../components/ErrorBoundary.js';
+import { ConnectionLimits } from '../features/shared/ConnectionLimits.js';
 import { ISSUES_URL } from '../config.js';
 
 export function Root() {
@@ -56,6 +57,8 @@ function ProvidersWithMessages() {
       errorTitle: (x) => t(`error.${x.kind}.title` as MessageKey) || x.title,
       errorReason: (x) => x.reason && (t(`error.${x.kind}.reason` as MessageKey) || x.reason),
       errorHint: (x) => x.hint && (t(`error.${x.kind}.hint` as MessageKey) || x.hint),
+      zmkUnlock: t('zmk.unlock'),
+      zmkUnlockHint: t('zmk.unlockHint'),
     }),
     [t],
   );
@@ -291,14 +294,21 @@ function App() {
           ) : activeVis === 'research' ? (
             <ResearchNeeded route={active} />
           ) : (
-            <ErrorBoundary
-              resetKey={pageKey}
-              fallback={(e, reset) => <PageError error={e} onRetry={reset} />}
-            >
-              <Suspense fallback={<Loading />}>
-                <Page key={pageKey} />
-              </Suspense>
-            </ErrorBoundary>
+            <>
+              {active.section === 'device' && active.id !== 'overview' && (
+                <div className="page-limits">
+                  <ConnectionLimits compact />
+                </div>
+              )}
+              <ErrorBoundary
+                resetKey={pageKey}
+                fallback={(e, reset) => <PageError error={e} onRetry={reset} />}
+              >
+                <Suspense fallback={<Loading />}>
+                  <Page key={pageKey} />
+                </Suspense>
+              </ErrorBoundary>
+            </>
           )}
         </main>
         <Footer compact />
@@ -370,11 +380,13 @@ function DeviceChip() {
   const link = device?.demo
     ? t('mode.simulated')
     : (device?.info.transport ?? session.group.transportHint).toUpperCase();
+  const chip = device?.chip;
   return (
     <a className="dev-chip" href={href('overview')}>
       <div className="dev-name">{name}</div>
       <div className="muted small">
         {link}
+        {chip ? ` · ${chip}` : ''}
         {status.identity && status.identity !== 'simulated'
           ? ` · ${t(`identity.${status.identity}`)}`
           : ''}

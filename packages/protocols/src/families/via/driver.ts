@@ -27,10 +27,23 @@ import type {
   TransportMode,
 } from '@openkey/core';
 import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
-import { Channel, KEYCODES_V2_FROM, LightValue, VIA_PROTOCOL_ID } from './constants.js';
+import {
+  Channel,
+  KEYCODES_V2_FROM,
+  KeyboardValue,
+  LightValue,
+  VIA_PROTOCOL_ID,
+} from './constants.js';
 import type { LightingChannel } from './constants.js';
-import { gridDefinition } from './definition.js';
+import {
+  encoderOfSlot,
+  gridDefinition,
+  unpackLayoutOptions,
+  withLayoutOptions,
+} from './definition.js';
 import type { ViaDefinition } from './definition.js';
+import { controlBytes } from './menus.js';
+import type { CustomMenu, MenuControl } from './menus.js';
 import { decodeKeycode, encodeKeycode, offeredSpecials } from './keycodes.js';
 import type { KeycodeVersion } from './keycodes.js';
 import {
@@ -43,6 +56,30 @@ import {
 } from './lighting.js';
 import { decodeMacros, encodeMacros } from './macros.js';
 import { ViaSession } from './session.js';
+import {
+  QMK_SETTINGS,
+  VIAL_SERIAL_MAGIC,
+  getCombo,
+  getKeyOverride,
+  getTapDance,
+  qmkSettingGet,
+  qmkSettingIds,
+  qmkSettingSet,
+  setCombo,
+  setKeyOverride,
+  setTapDance,
+  vialCounts,
+  vialDefinition,
+  vialKeyboardId,
+} from './vial.js';
+import type {
+  Combo,
+  KeyOverride,
+  QmkSettingField,
+  TapDance,
+  VialCounts,
+  VialInfo,
+} from './vial.js';
 
 const hex4 = (n: number) => n.toString(16).padStart(4, '0');
 export const definitionKey = (vendorId: number, productId: number): string =>
@@ -67,6 +104,10 @@ export class ViaDriver extends BaseKeyboardDriver {
   layers = 0;
   definition: ViaDefinition | null = null;
   channel: LightingChannel | null = null;
+  /** Set when the keyboard answered as Vial (its definition was read from it). */
+  vial: VialInfo | null = null;
+  /** Vial extras the firmware has: QMK setting ids and dynamic-entry counts. */
+  vialFeatures: { settings: number[]; counts: VialCounts } | null = null;
   private macroCount = 0;
   private macroSize = 0;
 
@@ -102,6 +143,21 @@ export class ViaDriver extends BaseKeyboardDriver {
     const id = this.group.identity;
     this.definition =
       (await this.opts.store.get<ViaDefinition>(definitionKey(id.vendorId, id.productId))) ?? null;
+    // Vial boards carry their own definition. The USB serial marks them, where the platform shows
+    // it (node-hid, Linux sysfs); in the browser the user asks for it (readVialDefinition).
+    if (!this.definition && id.serialNumber?.includes(VIAL_SERIAL_MAGIC))
+      await this.readVialDefinition()
+        .then((d) => (this.definition = d))
+        .catch(() => undefined);
+    // Layout options the user did not choose here come from the keyboard's own stored value.
+    const def = this.definition;
+    if (def?.options?.length && !def.choices?.length) {
+      const stored = await s.keyboardValue(KeyboardValue.LAYOUT_OPTIONS).catch(() => null);
+      if (stored !== null)
+        this.definition = withLayoutOptions(def, unpackLayoutOptions(stored, def.options));
+    }
+    // A board whose layout came from its Vial firmware answers Vial again: read what it offers.
+    if (this.definition?.vial) await this.loadVialFeatures().catch(() => undefined);
     for (const c of [
       Channel.RGB_MATRIX,
       Channel.RGBLIGHT,
@@ -130,6 +186,153 @@ export class ViaDriver extends BaseKeyboardDriver {
   async setDefinition(def: ViaDefinition): Promise<void> {
     const id = this.group.identity;
     await this.opts.store.set(definitionKey(id.vendorId, id.productId), def);
+  }
+
+  /**
+   * Asks the keyboard for its Vial definition (read-only Vial commands FE 00–02). Returns the parsed
+   * definition, with this keyboard's USB identity; throws when the firmware is not Vial.
+   */
+  async readVialDefinition(): Promise<ViaDefinition> {
+    const s = this.s();
+    const info = await vialKeyboardId(s);
+    if (!info) throw new ProtocolError('This keyboard does not run Vial firmware.');
+    this.vial = info;
+    const def = await vialDefinition(s);
+    const id = this.group.identity;
+    return { ...def, vendorId: id.vendorId, productId: id.productId, vial: true };
+  }
+
+  private async loadVialFeatures(): Promise<void> {
+    const s = this.s();
+    this.vial ??= await vialKeyboardId(s);
+    if (!this.vial) return;
+    this.vialFeatures = { settings: await qmkSettingIds(s), counts: await vialCounts(s) };
+  }
+
+  /** The QMK settings OpenKey can show that this firmware has. */
+  qmkSettingFields(): QmkSettingField[] {
+    const ids = new Set(this.vialFeatures?.settings ?? []);
+    return QMK_SETTINGS.flatMap((g) => g.fields).filter((f) => ids.has(f.id));
+  }
+
+  /** Raw values by setting id (flags are bits of one value). */
+  async readQmkSettings(): Promise<Record<number, number>> {
+    const out: Record<number, number> = {};
+    for (const f of this.qmkSettingFields()) {
+      if (f.id in out) continue;
+      const v = await qmkSettingGet(this.s(), f.id, f.width);
+      if (v !== null) out[f.id] = v;
+    }
+    return out;
+  }
+
+  /** Writes changed setting values, then reads them back. */
+  async writeQmkSettings(values: Record<number, number>): Promise<void> {
+    const width = new Map(this.qmkSettingFields().map((f) => [f.id, f.width]));
+    for (const [idStr, v] of Object.entries(values)) {
+      const id = Number(idStr);
+      const w = width.get(id);
+      if (!w) throw new ProtocolError(`QMK setting ${id} is not offered by this keyboard.`);
+      await qmkSettingSet(this.s(), id, w, v);
+      const back = await qmkSettingGet(this.s(), id, w);
+      if (back !== v) throw new ReadbackMismatchError(`QMK setting ${id} did not keep its value.`);
+    }
+  }
+
+  async readTapDances(): Promise<TapDance[]> {
+    const n = this.vialFeatures?.counts.tapDance ?? 0;
+    const out: TapDance[] = [];
+    for (let i = 0; i < n; i++) out.push(await getTapDance(this.s(), i));
+    return out;
+  }
+
+  async readCombos(): Promise<Combo[]> {
+    const n = this.vialFeatures?.counts.combos ?? 0;
+    const out: Combo[] = [];
+    for (let i = 0; i < n; i++) out.push(await getCombo(this.s(), i));
+    return out;
+  }
+
+  async readKeyOverrides(): Promise<KeyOverride[]> {
+    const n = this.vialFeatures?.counts.keyOverrides ?? 0;
+    const out: KeyOverride[] = [];
+    for (let i = 0; i < n; i++) out.push(await getKeyOverride(this.s(), i));
+    return out;
+  }
+
+  /** Writes one tap dance, combo or key override entry and reads it back. */
+  async writeVialEntry(
+    kind: 'tapDance' | 'combo' | 'keyOverride',
+    index: number,
+    entry: TapDance | Combo | KeyOverride,
+  ): Promise<void> {
+    const s = this.s();
+    const [set, get] =
+      kind === 'tapDance'
+        ? [() => setTapDance(s, index, entry as TapDance), () => getTapDance(s, index)]
+        : kind === 'combo'
+          ? [() => setCombo(s, index, entry as Combo), () => getCombo(s, index)]
+          : [() => setKeyOverride(s, index, entry as KeyOverride), () => getKeyOverride(s, index)];
+    await set();
+    const back = await get();
+    if (JSON.stringify(back) !== JSON.stringify(entry))
+      throw new ReadbackMismatchError(`The keyboard did not keep ${kind} ${index}.`);
+  }
+
+  /** QMK keycode ↔ key action, for editors that store keycodes (Vial entries). */
+  decodeKey(code: number): KeyAction {
+    return decodeKeycode(code, this.keycodeVersion);
+  }
+
+  encodeKey(action: KeyAction): number {
+    return encodeKeycode(action, this.keycodeVersion);
+  }
+
+  /** The custom menus of the loaded definition. */
+  getMenus(): readonly CustomMenu[] {
+    return this.definition?.menus ?? [];
+  }
+
+  private menuControls(): MenuControl[] {
+    return this.getMenus().flatMap((m) =>
+      m.sections.flatMap((s) => s.controls.filter((c) => c.command && c.type !== 'button')),
+    );
+  }
+
+  /** Reads every bound control; the result is keyed by token. Controls the firmware ignores are left out. */
+  async readMenuValues(): Promise<Record<string, number[]>> {
+    const out: Record<string, number[]> = {};
+    for (const c of this.menuControls()) {
+      if (!c.token || out[c.token]) continue;
+      const v = await this.s().getBound(c.command!, c.bytes);
+      if (v) out[c.token] = v;
+    }
+    return out;
+  }
+
+  /**
+   * Writes changed controls (token → raw bytes), saves each channel once, then reads the values back.
+   * Buttons send their value and are not read back.
+   */
+  async writeMenuValues(values: Record<string, number[]>): Promise<void> {
+    const s = this.s();
+    const all = this.getMenus().flatMap((m) => m.sections.flatMap((x) => x.controls));
+    const channels = new Set<number>();
+    const wrote: MenuControl[] = [];
+    for (const [token, data] of Object.entries(values)) {
+      const c = all.find((x) => x.token === token && x.command);
+      if (!c) throw new ProtocolError(`The definition has no control ${token}.`);
+      await s.setBound(c.command!, c.type === 'button' ? controlBytes(c, 0) : data);
+      channels.add(c.command![0]!);
+      if (c.type !== 'button') wrote.push(c);
+    }
+    for (const ch of channels) await s.save(ch);
+    for (const c of wrote) {
+      const back = await s.getBound(c.command!, c.bytes);
+      const want = values[c.token!]!;
+      if (back && want.some((b, i) => back[i] !== b))
+        throw new ReadbackMismatchError(`${c.label} did not keep its new value.`);
+    }
   }
 
   /** Uses a plain rows × columns grid when no definition file is available. */
@@ -177,7 +380,14 @@ export class ViaDriver extends BaseKeyboardDriver {
   }
 
   override getSpecialActions(): readonly { code: number; label: string }[] {
-    return offeredSpecials(this.keycodeVersion);
+    const tapDances =
+      this.keycodeVersion === 2
+        ? Array.from({ length: this.vialFeatures?.counts.tapDance ?? 0 }, (_, i) => ({
+            code: 0x5700 | i,
+            label: `Tap dance ${i}`,
+          }))
+        : [];
+    return [...offeredSpecials(this.keycodeVersion), ...tapDances];
   }
 
   getCapabilities(): Capabilities {
@@ -228,6 +438,34 @@ export class ViaDriver extends BaseKeyboardDriver {
           confidence: Evidence.OBSERVED,
           note: 'No QMK lighting channel answered.',
         });
+    if (this.definition?.encoders)
+      c.encoder = configurable('device', true, S, {
+        safety: SafetyLevel.SAFE_PERSISTENT,
+        source: 'VIA id_dynamic_keymap_get/set_encoder',
+        value: `${this.definition.encoders} knob(s): turn left / right on every layer`,
+        note: 'Shown as ↺ / ↻ keys on the knob in the keymap; needs firmware with an encoder map.',
+      });
+    if (this.definition?.menus?.length)
+      c.customMenus = configurable('device', true, S, {
+        safety: SafetyLevel.SAFE_PERSISTENT,
+        source: 'VIA id_custom_get/set_value and id_custom_save, as the definition declares them',
+        value: this.definition.menus.map((m) => m.label).join(', '),
+        note: 'Controls come from the keyboard’s definition; every change is read back.',
+      });
+    const vf = this.vialFeatures;
+    if (vf && this.qmkSettingFields().length)
+      c.firmwareSettings = configurable('device', true, S, {
+        safety: SafetyLevel.SAFE_PERSISTENT,
+        source: 'Vial QMK settings (vial_qmk_settings_get/set)',
+        value: `${this.qmkSettingFields().length} settings`,
+        note: 'Tap-hold timing, Auto Shift, modifier swaps and more; every change is read back.',
+      });
+    if (vf && vf.counts.tapDance + vf.counts.combos + vf.counts.keyOverrides > 0)
+      c.advancedKeys = configurable('device', true, S, {
+        safety: SafetyLevel.SAFE_PERSISTENT,
+        source: 'Vial dynamic entries (tap dance, combos, key overrides)',
+        value: `${vf.counts.tapDance} tap dances, ${vf.counts.combos} combos, ${vf.counts.keyOverrides} key overrides`,
+      });
     c.factoryDefaults = feature(FeatureStatus.NOT_SUPPORTED, {
       confidence: S,
       note: 'VIA can reset the keymap and EEPROM; OpenKey does not send those commands. Use a backup instead.',
@@ -323,11 +561,29 @@ export class ViaDriver extends BaseKeyboardDriver {
     return out;
   }
 
+  /** Encoder keycodes for the knobs the layout shows; slots whose firmware has no encoder map are left out. */
+  private async readEncoders(layer: number): Promise<Map<number, number>> {
+    const d = this.requireMatrix();
+    const out = new Map<number, number>();
+    for (const k of d.layout.keys) {
+      const e = encoderOfSlot(d.rows, d.cols, k.slot);
+      if (!e) continue;
+      const code = await this.s().getEncoder(layer, e.index, e.clockwise);
+      if (code !== null) out.set(k.slot, code);
+    }
+    return out;
+  }
+
   override async getKeymap(layer: LayerId = 'base'): Promise<KeymapState> {
-    const codes = await this.readLayer(layerIndex(layer));
+    const L = layerIndex(layer);
+    const codes = await this.readLayer(L);
+    const d = this.requireMatrix();
+    const enc = d.encoders ? await this.readEncoders(L) : new Map<number, number>();
     const slots: Record<number, KeyAction> = {};
-    for (const k of this.requireMatrix().layout.keys)
-      slots[k.slot] = decodeKeycode(codes[k.slot] ?? 0, this.keycodeVersion);
+    for (const k of d.layout.keys) {
+      const code = encoderOfSlot(d.rows, d.cols, k.slot) ? enc.get(k.slot) : codes[k.slot];
+      if (code !== undefined) slots[k.slot] = decodeKeycode(code, this.keycodeVersion);
+    }
     return { layer, slots, provenance: 'device', updatedAt: new Date().toISOString() };
   }
 
@@ -335,19 +591,28 @@ export class ViaDriver extends BaseKeyboardDriver {
     const d = this.requireMatrix();
     const L = layerIndex(state.layer);
     const before = await this.readLayer(L);
+    const encBefore = d.encoders ? await this.readEncoders(L) : new Map<number, number>();
     const s = this.s();
     const changes: [number, number][] = [];
     for (const [slotStr, action] of Object.entries(state.slots)) {
       const slot = Number(slotStr);
       if (action.kind === 'default') continue;
       const code = encodeKeycode(action, this.keycodeVersion);
-      if (before[slot] !== code) changes.push([slot, code]);
+      const was = encoderOfSlot(d.rows, d.cols, slot) ? encBefore.get(slot) : before[slot];
+      if (was !== undefined && was !== code) changes.push([slot, code]);
     }
-    for (const [slot, code] of changes)
-      await s.setKeycode(L, Math.floor(slot / d.cols), slot % d.cols, code);
+    for (const [slot, code] of changes) {
+      const e = encoderOfSlot(d.rows, d.cols, slot);
+      if (e) await s.setEncoder(L, e.index, e.clockwise, code);
+      else await s.setKeycode(L, Math.floor(slot / d.cols), slot % d.cols, code);
+    }
     if (!changes.length) return;
     const after = await this.readLayer(L);
-    const wrong = changes.filter(([slot, code]) => after[slot] !== code);
+    const encAfter = d.encoders ? await this.readEncoders(L) : new Map<number, number>();
+    const wrong = changes.filter(
+      ([slot, code]) =>
+        (encoderOfSlot(d.rows, d.cols, slot) ? encAfter.get(slot) : after[slot]) !== code,
+    );
     if (wrong.length)
       throw new ReadbackMismatchError(`${wrong.length} key(s) did not keep their new keycode.`, {
         slots: wrong.map(([sl]) => sl),

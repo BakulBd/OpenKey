@@ -13,14 +13,14 @@ its own except loading its own files; GitHub links open only on click. Local dat
 
 Deployed response headers (configured in `vercel.json`, verified on the live deployment and in CI):
 
-| Header                     | Value / purpose                                                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Content-Security-Policy    | `default-src 'self'`; scripts and styles only from the site, no inline code; `object-src 'none'`; `frame-ancestors 'none'`; `form-action 'none'` |
-| Permissions-Policy         | `hid=(self)` — WebHID for this origin only; `usb`, `serial`, `bluetooth`, camera, microphone, geolocation, payment, display capture denied       |
-| X-Content-Type-Options     | `nosniff`                                                                                                                                        |
-| Referrer-Policy            | `no-referrer`                                                                                                                                    |
-| X-Frame-Options            | `DENY` (with CSP `frame-ancestors 'none'`)                                                                                                       |
-| Cross-Origin-Opener-Policy | `same-origin`                                                                                                                                    |
+| Header                     | Value / purpose                                                                                                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Content-Security-Policy    | `default-src 'self'`; scripts and styles only from the site, no inline code; `object-src 'none'`; `frame-ancestors 'none'`; `form-action 'none'`                                        |
+| Permissions-Policy         | `hid=(self)`, `serial=(self)` — WebHID and Web Serial (ZMK Studio keyboards) for this origin only; `usb`, `bluetooth`, camera, microphone, geolocation, payment, display capture denied |
+| X-Content-Type-Options     | `nosniff`                                                                                                                                                                               |
+| Referrer-Policy            | `no-referrer`                                                                                                                                                                           |
+| X-Frame-Options            | `DENY` (with CSP `frame-ancestors 'none'`)                                                                                                                                              |
+| Cross-Origin-Opener-Policy | `same-origin`                                                                                                                                                                           |
 
 **Device safety.** Which commands OpenKey sends and never sends is in [docs/security.md](docs/security.md).
 OpenKey contains no firmware, bootloader, erase or calibration commands. Reports that a crafted page or

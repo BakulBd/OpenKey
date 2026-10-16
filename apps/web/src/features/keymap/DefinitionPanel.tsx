@@ -9,6 +9,7 @@ import { Icon } from '../../components/Icon.js';
 type Definition = via.ViaDefinition;
 interface DefinitionHost {
   setDefinition(def: Definition): Promise<void>;
+  readVialDefinition(): Promise<Definition>;
   useGrid(rows: number, cols: number): Promise<void>;
 }
 
@@ -67,6 +68,30 @@ export function DefinitionPanel() {
     }
   };
 
+  /** Layout options (ISO Enter, split Backspace …) change which keys the picture shows. */
+  const choose = async (option: number, choice: number) => {
+    if (!preview) return;
+    const { via: v } = await import('@openkey/protocols');
+    const choices = [...(preview.choices ?? [])];
+    while (choices.length < option) choices.push(0);
+    choices[option] = choice;
+    setPreview(v.withLayoutOptions(preview, choices));
+  };
+
+  /** Vial firmware keeps its own layout: read it from the keyboard (read-only Vial commands). */
+  const fetchFromKeyboard = async () => {
+    setError(null);
+    setPreview(null);
+    setBusy(true);
+    try {
+      setPreview(await host.readVialDefinition());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const use = async (fn: () => Promise<void>) => {
     setBusy(true);
     try {
@@ -113,6 +138,14 @@ export function DefinitionPanel() {
         >
           <Icon name="search" /> {t('def.fetchVia')}
         </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={() => void fetchFromKeyboard()}
+        >
+          <Icon name="keymap" /> {t('def.fetchVial')}
+        </button>
         <FileButton
           accept=".json,application/json"
           label={
@@ -124,6 +157,7 @@ export function DefinitionPanel() {
         />
       </div>
       <p className="small muted">{t('def.fetchViaNote')}</p>
+      <p className="small muted">{t('def.fetchVialNote')}</p>
       {error && (
         <p className="callout danger small" role="alert">
           {error}
@@ -145,6 +179,26 @@ export function DefinitionPanel() {
                 file: `${hex4(preview.vendorId!)}:${hex4(preview.productId!)}`,
               })}
             </p>
+          )}
+          {preview.options && preview.options.length > 0 && (
+            <fieldset className="layout-options">
+              <legend className="small">{t('def.options')}</legend>
+              {preview.options.map((o, i) => (
+                <label key={o.label} className="small">
+                  {o.label}{' '}
+                  <select
+                    value={preview.choices?.[i] ?? 0}
+                    onChange={(e) => void choose(i, Number(e.target.value))}
+                  >
+                    {o.choices.map((c, j) => (
+                      <option key={c + j} value={j}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </fieldset>
           )}
           <KeyboardView
             layout={preview.layout}

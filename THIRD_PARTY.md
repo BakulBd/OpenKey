@@ -65,6 +65,17 @@ generation) come from RK's driver configuration as published by
 [vinc3m1/kludgeknight](https://github.com/vinc3m1/kludgeknight) (GPL-3.0); only the facts are used, no
 code or files.
 
+The VIA, Vial, ZMK Studio and libhmk adapters are written from public specifications and firmware
+sources, facts only: VIA (the-via/app, the-via/reader, GPL-3.0: command layouts, layout-option bit
+packing, custom-menu value encoding, KLE legend positions), Vial (vial-kb/vial-qmk and vial-gui,
+GPL-2.0: Vial commands, QMK-setting ids and sizes; the setting labels are OpenKey's own), ZMK Studio
+(zmkfirmware/zmk-studio-messages and zmk-studio-ts-client, MIT; zmk-studio, Apache-2.0: messages,
+framing, parameter encoding) and libhmk (peppapighs/libhmk and hmkconf, GPL-3.0: commands, keycodes,
+metadata and layout placement). The XZ/LZMA2 decoder and the protobuf wire codec are OpenKey's own
+code written from the public format specifications; no runtime library is used for either. The VIA
+board index (`packages/devices/src/via-index.json`) holds only USB IDs and names from
+the-via/keyboards (GPL-3.0), facts with no definition content.
+
 Full provenance, per-adapter licensing and the GPL analysis: [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md).
 The CLI bundle includes jpeg-js (BSD-3-Clause, Copyright (c) 2014, Eugene Ware);
 its licence notice must accompany any redistribution of `tools/cli/dist/`.

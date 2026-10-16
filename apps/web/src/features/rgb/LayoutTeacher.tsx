@@ -5,7 +5,8 @@ import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
 import type { MessageKey } from '../../i18n/i18n.js';
 import { Icon } from '../../components/Icon.js';
-import { Spinner } from '../../components/ui.js';
+import { Spinner, download } from '../../components/ui.js';
+import { ISSUES_URL } from '../../config.js';
 
 /** The part of the BY Tech driver this panel uses; any driver offering it can be taught. */
 interface Learnable {
@@ -110,6 +111,31 @@ export function LayoutTeacher() {
     await reconnect();
   };
 
+  /**
+   * The learned layout as a model profile anyone can attach to a device-support request, so the
+   * model can be added to OpenKey as data. It holds the USB identity, the model code and the field
+   * positions: no typing, no settings values beyond what the steps changed.
+   */
+  const share = () => {
+    if (!layout || !device) return;
+    const id = device.info.identity;
+    const field = (k: string) => device.info.fields.find((f) => f.key === k)?.value;
+    const hex4 = (v: number) => v.toString(16).toUpperCase().padStart(4, '0');
+    download(`openkey-model-profile-${hex4(id.vendorId)}-${hex4(id.productId)}.json`, {
+      format: 'openkey-model-profile',
+      version: 1,
+      family: 'by-tech',
+      identity: {
+        vendorId: hex4(id.vendorId),
+        productId: hex4(id.productId),
+        productName: id.productName,
+      },
+      modelCode: field('modelCode') ?? null,
+      pageLayout: layout,
+      learnedWith: 'OpenKey Teach (keyboard shortcuts, reads only)',
+    });
+  };
+
   const n = step === 'start' ? 0 : step === 'effect' ? 1 : step === 'brightness' ? 2 : 3;
   return (
     <section className="card teach" aria-labelledby="teach-h">
@@ -176,6 +202,17 @@ export function LayoutTeacher() {
                 <button type="button" className="btn primary" onClick={() => void save()}>
                   <Icon name="check" /> {t('teach.save')}
                 </button>
+                <button type="button" className="btn" onClick={share}>
+                  <Icon name="backup" /> {t('teach.share')}
+                </button>
+                <a
+                  className="btn ghost"
+                  href={`${ISSUES_URL}?labels=device-support&template=device_support.yml`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name="github" /> {t('teach.request')}
+                </a>
                 <button
                   type="button"
                   className="btn ghost"

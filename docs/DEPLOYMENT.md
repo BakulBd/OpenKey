@@ -21,12 +21,12 @@ browser (WebHID); the host never sees a device.
 `vercel.json` is the single source. The build generates `_headers`; `deploy/nginx/security-headers.conf`
 is generated from it and kept identical by `tests/platform/deploy.test.ts`.
 
-| Header                                                         | Value (summary)                                                      | Why                                     |
-| -------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------- |
-| Content-Security-Policy                                        | `default-src 'self'`, no inline or eval scripts, no framing          | no third-party code can run in the page |
-| Permissions-Policy                                             | `hid=(self)`, everything else off                                    | WebHID only for OpenKey's own origin    |
-| X-Content-Type-Options, Referrer-Policy, X-Frame-Options, COOP | strict                                                               | standard hardening                      |
-| Cache-Control                                                  | `assets/*` immutable for a year; `index.html`, `/`, `sw.js` no-cache | updates reach users on the next visit   |
+| Header                                                         | Value (summary)                                                      | Why                                                              |
+| -------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Content-Security-Policy                                        | `default-src 'self'`, no inline or eval scripts, no framing          | no third-party code can run in the page                          |
+| Permissions-Policy                                             | `hid=(self)`, `serial=(self)`, everything else off                   | WebHID and Web Serial (ZMK Studio) only for OpenKey's own origin |
+| X-Content-Type-Options, Referrer-Policy, X-Frame-Options, COOP | strict                                                               | standard hardening                                               |
+| Cache-Control                                                  | `assets/*` immutable for a year; `index.html`, `/`, `sw.js` no-cache | updates reach users on the next visit                            |
 
 WebHID requires a secure context: HTTPS, or `http://localhost` for local use.
 

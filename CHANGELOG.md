@@ -1,5 +1,88 @@
 # Changelog
 
+## Unreleased — ZMK Studio, libhmk, Vial extras, VIA menus and knobs, wireless-aware guidance
+
+- **ZMK Studio** (ZMK firmware over USB serial, Chrome/Edge): reads the keyboard's physical layout and
+  keymap and writes changed keys, then saves them and reads them back. It waits for the board's own
+  Studio unlock key and never unlocks the board itself. Behaviours OpenKey does not model are kept as
+  they are; Bootloader, Reset and Soft Off are never assigned. The protobuf codec was checked against
+  protobufjs and the official `.proto` files. A ZMK split demo is included. The Permissions-Policy now
+  allows `serial` for OpenKey's own origin only.
+- **libhmk** (Hall-effect keyboards): new adapter with keymaps on every layer and per-key actuation
+  point and Rapid Trigger (press and release sensitivity, continuous mode). The layout is read from
+  the keyboard's gzip metadata. A new **Actuation** page and a magnetic demo are added. Reboot,
+  bootloader, reset and calibration commands are refused.
+- **Vial extras**: a new Vial page for QMK settings, tap dance, combos and key overrides, read back
+  after every write. Tap dances appear in the key picker. The Vial demo has a knob and a menu.
+- **VIA**:
+  - Knobs (↺ / press / ↻ on every layer).
+  - Layout options stored in the keyboard are applied.
+  - New **Keyboard menus** page for the definition's own controls (sliders, dropdowns, toggles,
+    colours, buttons). Conditions are evaluated by a small parser, never `eval`.
+  - **Fix:** VIA source definitions put the layout option on line 4 and the encoder on line 10
+    (alignment 0); OpenKey read the option from line 9, so it missed every option in real VIA
+    files. Parses now match VIA's compiled output exactly (checked on the GMMK Pro and the Keychron
+    Q2 knob).
+- **Wireless and limited access**:
+  - On a 2.4 GHz receiver or Bluetooth, the overview and every device page say what the link allows
+    (read-only, or some settings) and that the cable is needed for the rest.
+  - Timeouts and transport errors on those links are explained as "asleep, out of range or not
+    paired" with "press a key to wake it".
+  - Read-only keyboards and writes waiting for the experimental switch get their own notice.
+  - On Linux, read-only hidraw access is told apart from no access.
+- **Teach → model profile**: a learned BY Tech layout can be saved as a small JSON file and sent with
+  a device-support request, so a new model can be added as data.
+- CLI (hidapi/hidraw): numbered input reports no longer carry their report-ID byte, which matches
+  WebHID; the AULA receiver depends on this.
+- CI runs the browser smoke test on Windows and macOS as well as Linux. OS-specific guidance (udev,
+  vendor apps) is emulated, so it is tested the same everywhere.
+- Keycode search knows everyday words: escape, windows, command, return, print screen …
+- Model guide: ZMK, libhmk and Vial boards added; docs regenerated.
+
+## Unreleased — Connection doctor, Vial, 2,000+ VIA boards, AK820 Pro screen, gallery v2
+
+- **Connection doctor** (Tools → Connection doctor, and `openkey doctor` in the CLI) explains why a
+  keyboard does not connect and gives the fix. It checks:
+  - the browser (Firefox/Safari, phones, insecure pages, embedded frames);
+  - Linux permissions (exact `--device` udev command), Windows/macOS vendor apps holding the device, and
+    the macOS accessory prompt;
+  - typing-only grants, 2.4 GHz/Bluetooth links, and USB identities shared by several models.
+
+  Checking opens and closes the keyboard and sends nothing. The checks are shared pure functions in
+  `packages/core/src/doctor.ts`.
+
+- The VIA identification query now waits for consent on identities the catalogue assigns to vendor
+  firmware: the AK820 receiver reuses VIA's FF60:61 page, and a QMK-flashed board keeps its USB ID.
+- **One model, many chips**: guide entries list every hardware revision (chip, USB IDs, status, how to
+  tell it apart). Detection still asks the keyboard, and the sidebar names the chip of the connected
+  revision. Tests check revisions against the catalogue and resolve the AK820 MAX Plus revisions through
+  their simulators.
+- **Research inventory** (`docs/RESEARCH_INVENTORY.md`, generated with `pnpm docs:guide`): every model of
+  the owner's list with revisions, open-source sources and licences (facts only), and what is needed to
+  verify it. The AKS068 (VIA), AK680, AK992, AK870/873/966, AK35i V3 MAX, AK33, AULA F87, F108 Pro, F65,
+  L99/S75, RK R65, M87/S98 and Akko 5075S are added to the model guide.
+- **VIA index**: 2,021 VIA boards by USB ID and name (`pnpm via-index`, facts only from
+  the-via/keyboards). The model finder searches them by name, maker or ID, and the doctor names them.
+- VIA **layout options** (ISO Enter, split keys, bottom rows …) can be chosen when loading a definition.
+  Compiled usevia.app definitions now include their option keys; before, boards such as the GMMK Pro
+  lost Enter and left Shift.
+- **Vial**: the layout is read from the keyboard itself, using Vial's three read-only commands and a new
+  dependency-free XZ/LZMA2 decoder. Other Vial commands are refused. New Vial demo board.
+- **AK820 Pro screen framing**: still images use the Pro framing two community tools report working on
+  Pro hardware (OBSERVED), and animations use sub-command 03 (INFERRED). Both stay behind the
+  experimental opt-in; the verified AK820 MAX path is unchanged.
+- **Screen gallery v2**:
+  - categories, search and favourites (kept in this browser), plus "fits this screen / trimmed to N
+    frames" for the connected screen;
+  - seven new animations: Eid crescent, Alpona, Synthwave, Rainy window, Floating hearts, Comet ring,
+    Pixel ghost;
+  - a test checks every bundled GIF's licence, credit and frame budget.
+- Footer **contributor wall** (inspired by gucc.green.edu.bd): GitHub contributors with self-hosted
+  avatars (`pnpm contributors`) and a "Become a contributor" link; no request reaches GitHub.
+- Free Vercel (Hobby) plan: a test keeps the deployment static (no functions, middleware or crons) and
+  the bundled media small.
+- CLI: `list` finds every catalogued vendor and any VIA board, not only AK820 vendor IDs.
+
 ## Unreleased — AK820 verified, AULA and RK keyboards, easier Linux, GIF gallery
 
 - AJAZZ AK820 MAX / MAX PLUS (`0C45:8009`, USB): keymap, Fn layer, macros, lighting, per-key colours,

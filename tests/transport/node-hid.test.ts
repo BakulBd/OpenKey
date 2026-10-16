@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { groupNodeHidDevices } from '@openkey/hid-node';
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { LinuxHidRawTransport, NodeHidTransport, groupNodeHidDevices } from '@openkey/hid-node';
 import { createDefaultRegistry } from '@openkey/protocols';
 
 /** What hidapi reports for the AK820 MAX on Windows: one entry per top-level collection, no sizes. */
@@ -86,4 +89,58 @@ describe('node-hid enumeration (macOS / Windows)', () => {
   it('skips entries without a path', () => {
     expect(groupNodeHidDevices([{ vendorId: 1, productId: 2 }])).toEqual([]);
   });
+});
+
+describe('hidapi transport quirks', () => {
+  const fake = (reads: number[][]) => ({
+    read: async () => reads.shift() ?? null,
+    write: async (b: Buffer) => b.length,
+    sendFeatureReport: async (b: Buffer) => b.length,
+    getFeatureReport: async (_id: number, n: number) => Buffer.alloc(n),
+    close: async () => undefined,
+  });
+  const iface = (inputIds: number[]) => ({
+    path: '/dev/null',
+    collections: [
+      {
+        usagePage: 0xff02,
+        usage: 2,
+        inputReports: inputIds.map((reportId) => ({ reportId, size: 4 })),
+        outputReports: [],
+        featureReports: [],
+      },
+    ],
+  });
+
+  it('strips the report ID hidapi puts in front of numbered input reports, as WebHID does', async () => {
+    const t = new NodeHidTransport(iface([0x13]));
+    (t as unknown as { dev: unknown }).dev = fake([[0x13, 1, 2, 3, 4]]);
+    expect([...(await t.readInputReport(10))!]).toEqual([1, 2, 3, 4]);
+  });
+
+  it('leaves unnumbered input reports alone, even when they start with a report-ID-like byte', async () => {
+    const t = new NodeHidTransport(iface([0]));
+    (t as unknown as { dev: unknown }).dev = fake([[0x13, 1, 2, 3]]);
+    expect([...(await t.readInputReport(10))!]).toEqual([0x13, 1, 2, 3]);
+  });
+
+  it.runIf(process.platform === 'linux' && process.getuid?.() !== 0)(
+    'tells read-only access apart from no access on Linux',
+    async () => {
+      const dir = await mkdtemp(path.join(tmpdir(), 'openkey-'));
+      const ro = path.join(dir, 'hidraw-ro');
+      const none = path.join(dir, 'hidraw-none');
+      await writeFile(ro, '');
+      await writeFile(none, '');
+      await chmod(ro, 0o444);
+      await chmod(none, 0o000);
+      await expect(new LinuxHidRawTransport({ path: ro, collections: [] }).open()).rejects.toThrow(
+        /readable but not writable/,
+      );
+      await expect(
+        new LinuxHidRawTransport({ path: none, collections: [] }).open(),
+      ).rejects.toThrow(/No read\/write permission/);
+      await rm(dir, { recursive: true, force: true });
+    },
+  );
 });

@@ -10,6 +10,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import {
+  Evidence,
   INITIAL_CONNECTION,
   OperationLock,
   PacketLog,
@@ -17,6 +18,7 @@ import {
   SessionEpoch,
   canApply,
   explainError,
+  explainForLink,
   guardWrites,
   isOpenKeyError,
   mayWrite,
@@ -41,6 +43,7 @@ import { CATALOG } from '@openkey/devices/catalog';
 import { WebHidBackend, webHidSupport } from '@openkey/hid';
 import type { HidDeviceGroup, WebHidSupport } from '@openkey/hid';
 import type {
+  zmk,
   AdapterManifest,
   DetectionReport,
   DetectionVerdict,
@@ -49,6 +52,8 @@ import type {
 import { IdbStateStore } from './db.js';
 import { summarize } from './status.js';
 import { currentOs } from '../lib/platform.js';
+import { isAccessFailure, openDenied } from '../lib/access.js';
+import { openSerialChannel, webSerial } from '../lib/serial.js';
 import type { OsName } from '../lib/platform.js';
 import type { StatusSummary } from './status.js';
 import { SafetyDialog } from '../components/SafetyDialog.js';
@@ -83,6 +88,8 @@ export interface DeviceSession extends SessionBase {
   info: DeviceInfo;
   caps: Capabilities;
   demo: boolean;
+  /** Chip of the model revision the keyboard answered as, when the model guide names exactly one. */
+  chip?: string;
 }
 
 export interface UnknownSession extends SessionBase {
@@ -141,35 +148,17 @@ export interface AccessProblem {
   detail: string;
 }
 
-/**
- * Opens and closes the device's first vendor interface (or its first interface) without sending a
- * report. Returns the error message when the OS refuses access, null otherwise.
- */
-async function openDenied(group: HidDeviceGroup): Promise<string | null> {
-  const iface =
-    group.interfaces.find((i) => i.collections.some((c) => c.usagePage >= 0xff00)) ??
-    group.interfaces[0];
-  if (!iface) return null;
-  try {
-    const t = await group.openInterface(iface);
-    await t.close().catch(() => undefined);
-    return null;
-  } catch (e) {
-    const code = (e as { code?: unknown }).code;
-    const message = e instanceof Error ? e.message : String(e);
-    return isAccessFailure(code, message) ? message : null;
-  }
-}
-
-/** Errors that mean "could not open the device", as opposed to a protocol answer. */
-const OPEN_FAILURE = /cannot open|failed to open|permission|denied|not ?allowed|EACCES/i;
-function isAccessFailure(code: unknown, message: string): boolean {
-  return (code === 'PERMISSION' || code === 'TRANSPORT') && OPEN_FAILURE.test(message);
-}
-
 /** Simulated keyboards for the demo: one per protocol family OpenKey configures. */
-export type DemoKind = 'ak820' | 'aula-f75' | 'rk-r75' | 'via';
-export const DEMO_KINDS: readonly DemoKind[] = ['ak820', 'via', 'aula-f75', 'rk-r75'];
+export type DemoKind = 'ak820' | 'aula-f75' | 'rk-r75' | 'via' | 'vial' | 'zmk' | 'hmk';
+export const DEMO_KINDS: readonly DemoKind[] = [
+  'ak820',
+  'via',
+  'vial',
+  'zmk',
+  'hmk',
+  'aula-f75',
+  'rk-r75',
+];
 
 /** A device the site already has permission for and that is plugged in now. */
 export interface AuthorizedDevice {
@@ -210,6 +199,10 @@ interface Ctx {
   setExperimental(v: boolean): void;
   connect(): Promise<void>;
   inspect(): Promise<void>;
+  /** ZMK Studio keyboards: pick the USB serial port and connect. */
+  connectZmk(): Promise<void>;
+  /** Web Serial is available (ZMK Studio). */
+  serialAvailable: boolean;
   /** Opens an already-authorised device without the browser chooser. */
   openAuthorized(key: string): Promise<void>;
   /** Opens a firmware simulator: the AK820 MAX (default), an AULA F75 or an RK R75. */
@@ -325,7 +318,14 @@ export function KeyboardProvider({
 
   const reportError = useCallback(
     (label: string, e: unknown): ErrorExplanation => {
-      const x = explainError(e);
+      // On a receiver or Bluetooth link, timeouts and transport errors mean something else.
+      const cur = sessionRef.current;
+      const link = cur
+        ? cur.kind === 'device'
+          ? cur.info.transport
+          : cur.group.transportHint
+        : 'usb';
+      const x = explainForLink(explainError(e), link);
       setRecentErrors((xs) => [
         ...xs.slice(-19),
         { at: new Date().toISOString(), kind: x.kind, title: x.title },
@@ -472,7 +472,16 @@ export function KeyboardProvider({
           await res.driver.disconnect().catch(() => undefined);
           return false;
         }
-        const def = registry.get(res.detection.selected?.protocolId ?? '')!;
+        const protocolId = res.detection.selected?.protocolId ?? '';
+        const def = registry.get(protocolId)!;
+        // Same model name, different chips: name the revision the keyboard answered as.
+        const { revisionsForId } = await import('@openkey/devices/guide');
+        const chips = new Set(
+          revisionsForId(group.identity.vendorId, group.identity.productId)
+            .filter((x) => x.revision.adapter === protocolId)
+            .map((x) => x.revision.chip),
+        );
+        const chip = chips.size === 1 ? [...chips][0] : undefined;
         setSession({
           id: my,
           kind: 'device',
@@ -486,6 +495,7 @@ export function KeyboardProvider({
           log,
           group,
           demo,
+          ...(chip ? { chip } : {}),
         });
         confirmed.current.clear();
         setAccessProblem(null);
@@ -598,6 +608,139 @@ export function KeyboardProvider({
   const openAuthorizedRef = useRef(openAuthorized);
   openAuthorizedRef.current = openAuthorized;
 
+  /**
+   * ZMK Studio over USB serial. The keyboard identifies itself with get_device_info; writes need it
+   * unlocked with its own Studio unlock key, which OpenKey waits for and never presses.
+   */
+  const attachZmk = useCallback(
+    async (
+      channel: zmk.ByteChannel,
+      usb: { vendorId: number; productId: number },
+      demo: boolean,
+      onLocked?: () => void,
+    ): Promise<boolean> => {
+      const my = epoch.current.next();
+      const stale = () => !epoch.current.isCurrent(my);
+      const {
+        zmk: z,
+        ProtocolRegistry,
+        buildFingerprint,
+        detectionVerdict,
+      } = await import('@openkey/protocols');
+      dispatch({ type: 'OPENED' });
+      dispatch({ type: 'INSPECTED' });
+      const driver = new z.ZmkStudioDriver(channel);
+      try {
+        await driver.connect();
+        if (driver.locked) {
+          notify({ kind: 'info', title: messages.zmkUnlock, hint: messages.zmkUnlockHint });
+          onLocked?.();
+          await driver.waitForUnlock(120000);
+        }
+        if (stale()) {
+          await driver.disconnect();
+          return false;
+        }
+        const identity = { ...usb, productName: driver.name };
+        const key = `serial:${usb.vendorId}:${usb.productId}:${driver.serial}`;
+        const backend = demo ? ('mock' as const) : ('web-serial' as const);
+        const group: HidDeviceGroup = {
+          key,
+          identity,
+          interfaces: [],
+          backend,
+          transportHint: 'usb',
+          openInterface: () => Promise.reject(new Error('ZMK Studio uses USB serial, not HID')),
+        };
+        const reasons = ['Answered ZMK Studio core.get_device_info over USB serial.'];
+        const detection: DetectionReport = {
+          device: { key, ...identity, backend, transportHint: 'usb' },
+          interfaces: [],
+          level: 'handshake',
+          candidates: [
+            {
+              protocol: {
+                id: z.ZMK_PROTOCOL_ID,
+                name: z.zmkStudioProtocol.name,
+                family: 'zmk-studio',
+              },
+              match: { applicable: true, score: 100, reasons, rejections: [] },
+              probe: {
+                status: 'pass',
+                confidence: Evidence.VERIFIED,
+                summary: `ZMK Studio: ${driver.name}`,
+                steps: [],
+                facts: {},
+                identified: true,
+              },
+              probeLevel: 'handshake',
+            },
+          ],
+          selected: {
+            protocolId: z.ZMK_PROTOCOL_ID,
+            confidence: Evidence.VERIFIED,
+            reasons,
+            identification: 'identified',
+          },
+          ambiguous: false,
+          notes: [],
+          possibleFamilies: [],
+        };
+        const registry = new ProtocolRegistry().register(z.zmkStudioProtocol);
+        const verdict = detectionVerdict(detection, registry);
+        const guarded = guardWrites(driver, () => ({
+          simulated: demo,
+          experimentalEnabled: experimentalRef.current,
+        }));
+        dispatch({ type: 'DETECTED', mode: demo ? 'demo' : 'supported' });
+        const info = await guarded.getDeviceInfo();
+        if (stale()) {
+          await driver.disconnect();
+          return false;
+        }
+        setSession({
+          id: my,
+          kind: 'device',
+          driver: guarded,
+          detection,
+          fingerprint: buildFingerprint(detection),
+          verdict,
+          manifest: z.zmkStudioProtocol.manifest,
+          info,
+          caps: guarded.getCapabilities(),
+          log: new PacketLog(),
+          group,
+          demo,
+        });
+        confirmed.current.clear();
+        dispatch({ type: 'READ_DONE' });
+        return true;
+      } catch (e) {
+        await driver.disconnect().catch(() => undefined);
+        if (stale()) return false;
+        reportError(messages.connectLabel, e);
+        dispatch({ type: 'FAIL', message: explainError(e).title, recoverable: false });
+        dispatch({ type: 'RESET' });
+        return false;
+      }
+    },
+    [messages, notify, reportError],
+  );
+
+  const connectZmk = useCallback(async () => {
+    if (connRef.current.status !== 'DISCONNECTED') return;
+    dispatch({ type: 'REQUEST' });
+    let opened: Awaited<ReturnType<typeof openSerialChannel>>;
+    try {
+      opened = await openSerialChannel();
+    } catch (e) {
+      dispatch({ type: 'PERMISSION_DENIED', message: explainError(e).title });
+      return;
+    }
+    dispatch({ type: 'PERMISSION_GRANTED' });
+    await attachZmk(opened.channel, opened.usb, false);
+  }, [attachZmk]);
+
   const connectDemo = useCallback(
     async (kind: DemoKind = 'ak820') => {
       dispatch({ type: 'OPEN_DEMO' });
@@ -605,6 +748,40 @@ export function KeyboardProvider({
       if (kind === 'ak820')
         return void (await attach(new sonixFeature.SonixFeatureSimulator().device.group(), true));
       if (kind === 'via') return void (await attach(new via.ViaSimulator().device.group(), true));
+      if (kind === 'hmk') {
+        const { hmk } = await import('@openkey/protocols');
+        // A simulator cannot be harmed, so its identification read needs no consent.
+        return void (await attach(new hmk.HmkSimulator().device.group(), true, {
+          consent: ['hmk'],
+        }));
+      }
+      if (kind === 'zmk') {
+        const { zmk } = await import('@openkey/protocols');
+        // The demo keyboard starts locked and "presses" its unlock key a moment after OpenKey asks.
+        const sim = new zmk.ZmkSimulator({ locked: true });
+        return void (await attachZmk(
+          sim.channel(),
+          { vendorId: 0x1d50, productId: 0x615e },
+          true,
+          () => setTimeout(() => sim.unlock(), 1200),
+        ));
+      }
+      if (kind === 'vial')
+        return void (await attach(
+          new via.ViaSimulator({
+            identity: { vendorId: 0xfeed, productId: 0x6061, productName: 'OpenKey Vial demo 60%' },
+            vial: {
+              definition: via.VIAL_DEMO_DEFINITION,
+              settings: { 7: [2, 200], 21: [4, 0], 3: [1, 0], 4: [2, 175], 2: [2, 50] },
+              tapDance: 4,
+              combos: 4,
+              keyOverrides: 2,
+            },
+            encoders: 1,
+            custom: via.VIAL_DEMO_CUSTOM(),
+          }).device.group(),
+          true,
+        ));
       const sim =
         kind === 'aula-f75'
           ? new byTech.ByTechSimulator()
@@ -620,7 +797,7 @@ export function KeyboardProvider({
       // A simulator cannot be harmed, so its identification read needs no consent.
       await attach(sim.device.group(), true, { consent: ['by-tech'] });
     },
-    [attach],
+    [attach, attachZmk],
   );
 
   const disconnect = useCallback(async () => {
@@ -900,6 +1077,8 @@ export function KeyboardProvider({
     inspect,
     openAuthorized,
     connectDemo,
+    connectZmk,
+    serialAvailable: !!webSerial(),
     identify,
     reconnect,
     disconnect,
@@ -960,4 +1139,6 @@ export interface ProviderMessages {
   errorTitle(x: ErrorExplanation): string;
   errorReason(x: ErrorExplanation): string | undefined;
   errorHint(x: ErrorExplanation): string | undefined;
+  zmkUnlock: string;
+  zmkUnlockHint: string;
 }

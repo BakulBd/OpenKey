@@ -40,7 +40,40 @@ function vercelHeaders(pathname) {
 
 const CHROME =
   process.env.CHROME ??
-  ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync);
+  [
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  ].find(existsSync);
+
+/**
+ * Pretends to be Chrome on a given OS, so OS-specific guidance (udev on Linux, vendor apps on
+ * Windows/macOS) is tested the same way on every CI runner.
+ */
+const UA = {
+  linux: [
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+    'Linux',
+  ],
+  windows: [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+    'Windows',
+  ],
+};
+async function osContext(os) {
+  const [userAgent, platform] = UA[os];
+  const ctx = await browser.newContext({ userAgent });
+  await ctx.addInitScript((p) => {
+    Object.defineProperty(Navigator.prototype, 'userAgentData', {
+      get: () => ({ platform: p, mobile: false, brands: [] }),
+      configurable: true,
+    });
+  }, platform);
+  return ctx;
+}
 
 async function serve() {
   const server = createServer(async (req, res) => {
@@ -218,6 +251,26 @@ try {
       .getByText(/Saved · the keyboard cannot report it back|Saved and verified/)
       .waitFor();
     results.push(`[${scheme}] keymap apply: ok`);
+
+    // The footer's contributor wall is served by the site itself (img-src 'self').
+    await page.goto(base, { waitUntil: 'networkidle' });
+    // Avatars load lazily: bring the footer into view, then wait for them.
+    await page.locator('.avatar-wall').scrollIntoViewIfNeeded();
+    await page
+      .waitForFunction(() =>
+        [...document.querySelectorAll('.avatar-wall img')].every((i) => i.complete),
+      )
+      .catch(() => undefined);
+    const avatars = await page
+      .locator('.avatar-wall img')
+      .evaluateAll((imgs) =>
+        imgs.map((i) => ({ ok: i.complete && i.naturalWidth > 0, src: i.getAttribute('src') })),
+      );
+    if (!avatars.length || avatars.some((a) => !a.ok || !a.src.startsWith('./contributors/')))
+      failures.push(`[${scheme}] contributor avatars missing or not self-hosted`);
+    if (!(await page.getByRole('link', { name: 'Become a contributor' }).count()))
+      failures.push(`[${scheme}] the footer has no contributor invitation`);
+    results.push(`[${scheme}] footer: ${avatars.length} contributor avatar(s), self-hosted`);
 
     // Refresh on a deep route must work (static host, hash routing).
     await page.goto(base + '#/compat');
@@ -515,7 +568,7 @@ try {
   // Linux permission problem: the browser lists the keyboard but cannot open it until the udev rule
   // is installed. OpenKey must explain the fix, serve the installer, and connect on Retry.
   {
-    const ctx = await browser.newContext();
+    const ctx = await osContext('linux');
     const page = await ctx.newPage();
     page.on('pageerror', (e) => failures.push(`[linux-setup] pageerror: ${e.message}`));
     await page.addInitScript(() => {
@@ -613,7 +666,7 @@ try {
   // A keyboard the shipped rule does not list: the OS refuses to open it before any adapter probes it.
   // OpenKey must still explain the Linux fix, with that keyboard's USB ID added to the command.
   {
-    const ctx = await browser.newContext();
+    const ctx = await osContext('linux');
     const page = await ctx.newPage();
     page.on('pageerror', (e) => failures.push(`[linux-unlisted] pageerror: ${e.message}`));
     await page.addInitScript(() => {
@@ -721,6 +774,128 @@ try {
     await ctx.close();
   }
 
+  // Vial demo: the layout is read from the keyboard itself (read-only Vial commands), then used.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[vial] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Vial board' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/keymap');
+    await page.getByRole('button', { name: 'Read the layout from the keyboard (Vial)' }).click();
+    await page.locator('#main strong', { hasText: 'OpenKey Vial demo 60%' }).waitFor();
+    await page.getByRole('button', { name: 'Use this layout' }).click();
+    await page.getByRole('tab', { name: 'Layer 2' }).waitFor();
+    const keys = await page.locator('.kb-key').count();
+    if (shots) await page.screenshot({ path: `${shots}/vial-keymap.png`, fullPage: true });
+    if (keys !== 63) failures.push(`Vial layout shows ${keys} keys (61 + knob ↺ ↻), expected 63`);
+    results.push(`vial demo: layout read from the keyboard (${keys} keys incl. knob)`);
+    // VIA custom menus from the keyboard's definition: read, conditional control, write + read-back.
+    await page.goto(base + '#/custom');
+    await page.getByLabel('Knob mode').waitFor();
+    if (await page.getByText(/Scroll speed/).count())
+      failures.push('custom menus: a showIf control is shown while its condition is false');
+    await page.getByLabel('Knob mode').selectOption({ label: 'Scroll' });
+    await page.getByText(/Scroll speed/).waitFor();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Apply|Write|Confirm/ })
+      .first()
+      .click()
+      .catch(() => undefined);
+    await page
+      .locator('.changebar')
+      .getByText(/verified/i)
+      .waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/vial-menus.png`, fullPage: true });
+    results.push('vial demo: keyboard menus read, condition applied, write verified');
+    // Vial extras: QMK settings and a tap dance, written and read back.
+    await page.goto(base + '#/vial');
+    await page.getByRole('tab', { name: 'QMK settings' }).waitFor();
+    await page.getByLabel('Caps Lock acts as Ctrl').check();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Apply|Write|Confirm/ })
+      .first()
+      .click()
+      .catch(() => undefined);
+    await page
+      .locator('.changebar')
+      .getByText(/verified/i)
+      .waitFor();
+    await page.getByRole('tab', { name: 'Tap dance' }).click();
+    await page.getByRole('button', { name: /^Hold:/ }).click();
+    await page.locator('.picker .search input').fill('esc');
+    await page.locator('.key-results .key-result').first().click();
+    await page.getByRole('button', { name: /^Hold: Esc/i }).waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/vial-extras.png`, fullPage: true });
+    results.push('vial demo: QMK setting written and verified; tap dance editor works');
+    await ctx.close();
+  }
+
+  // ZMK Studio demo (USB serial): locked at first, unlocked with the keyboard's own key, then a key is
+  // changed, saved and read back.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[zmk] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'ZMK split' }).click();
+    await page.getByText('Unlock the keyboard to edit it').waitFor();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/keymap');
+    await page.locator('.kb-key').first().waitFor();
+    const keys = await page.locator('.kb-key').count();
+    if (keys !== 12) failures.push(`ZMK layout shows ${keys} keys, expected 12`);
+    await page.locator('.kb-key').nth(1).dispatchEvent('pointerdown');
+    await page.getByPlaceholder(/Search/).fill('volume');
+    await page.locator('.key-result').first().click();
+    await page.getByRole('button', { name: /Review 1 change/ }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Write 1 change/ })
+      .click();
+    await page
+      .locator('.changebar')
+      .getByText(/verified/i)
+      .waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/zmk-keymap.png`, fullPage: true });
+    results.push(`zmk demo: unlocked by its key, ${keys} keys, change saved and verified`);
+    await ctx.close();
+  }
+
+  // libhmk (magnetic) demo: layout from the keyboard's metadata, per-key Rapid Trigger written and read back.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[hmk] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Magnetic (libhmk)' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/actuation');
+    await page.getByRole('button', { name: 'Select all' }).click();
+    await page.getByLabel('Rapid Trigger').check();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Apply|Write|Confirm/ })
+      .first()
+      .click()
+      .catch(() => undefined);
+    await page
+      .locator('.changebar')
+      .getByText(/verified/i)
+      .waitFor();
+    const rt = await page.locator('.kb-key').filter({ hasText: 'RT' }).count();
+    if (rt !== 12) failures.push(`HMK: ${rt} keys show Rapid Trigger after applying, expected 12`);
+    if (shots) await page.screenshot({ path: `${shots}/hmk-actuation.png`, fullPage: true });
+    results.push(`hmk demo: Rapid Trigger on ${rt} keys, written and verified`);
+    await ctx.close();
+  }
+
   // Screen gallery (demo): generated animations load into the local preview; nothing is uploaded.
   {
     const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
@@ -741,6 +916,17 @@ try {
     if (shots) await page.screenshot({ path: `${shots}/screen-gallery.png`, fullPage: true });
     results.push(`gallery: ${cards} animations; Plasma loaded into the preview (30 frames)`);
     if (cards < 8) failures.push(`gallery shows only ${cards} animations`);
+    // Categories and favourites (kept in this browser only).
+    await page.getByRole('button', { name: 'Festive', exact: true }).click();
+    const festive = await page.locator('.gallery-item').allTextContents();
+    if (!festive.some((x) => x.includes('Eid crescent')) || festive.length >= cards)
+      failures.push('the Festive category does not filter the gallery');
+    await page.getByRole('button', { name: 'Add Eid crescent to favourites' }).click();
+    await page.getByRole('button', { name: /^Favourites/ }).click();
+    const favs = await page.locator('.gallery-item').count();
+    if (favs !== 1) failures.push(`favourites show ${favs} animations, expected 1`);
+    results.push(`gallery: Festive shows ${festive.length}; favourites ${favs}`);
+    await page.getByRole('button', { name: 'All', exact: true }).click();
     await page.getByRole('tab', { name: 'Public-domain GIFs' }).click();
     const gifs = await page.locator('.gallery-item').count();
     await page
@@ -791,6 +977,7 @@ try {
       'tester',
       'lab',
       'compat',
+      'doctor',
       'settings',
     ]) {
       await page.goto(base + '#/' + r);
@@ -810,6 +997,173 @@ try {
     );
     if (!inertClosed || inertOpen || !inertAfter)
       failures.push('[mobile] navigation is reachable while hidden, or not while open');
+    await ctx.close();
+  }
+
+  // Connection doctor: a keyboard granted with only its typing interface. The doctor must name the
+  // problem and the fix, and checking must send nothing. The model finder searches VIA's catalogue.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[doctor] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      const sent = (window.__hidSends = []);
+      const device = {
+        vendorId: 0x258a,
+        productId: 0x015e,
+        productName: 'Gaming Keyboard',
+        opened: false,
+        collections: [
+          {
+            usagePage: 0x01,
+            usage: 0x06,
+            children: [],
+            inputReports: [{ reportId: 0, items: [{ reportSize: 8, reportCount: 8 }] }],
+            outputReports: [],
+            featureReports: [],
+          },
+        ],
+        open() {
+          this.opened = true;
+          return Promise.resolve();
+        },
+        close() {
+          this.opened = false;
+          return Promise.resolve();
+        },
+        sendReport: () => (sent.push('out'), Promise.resolve()),
+        sendFeatureReport: () => (sent.push('feature'), Promise.resolve()),
+        receiveFeatureReport: () => Promise.resolve(new DataView(new ArrayBuffer(8))),
+        addEventListener() {},
+        removeEventListener() {},
+      };
+      const hid = {
+        requestDevice: () => Promise.resolve([device]),
+        getDevices: () => Promise.resolve([device]),
+        addEventListener() {},
+        removeEventListener() {},
+      };
+      Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
+    });
+    await page.goto(base + '#/doctor', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Choose a keyboard to check' }).click();
+    await page.getByText('Only the typing interface is available').waitFor();
+    const fix = await page.locator('.doctor-item.st-fail .fix').first().textContent();
+    const sends = await page.evaluate(() => window.__hidSends.length);
+    results.push(
+      `doctor: typing-only grant explained; fix shown: ${/other entry/.test(fix)}; reports sent: ${sends}`,
+    );
+    if (sends !== 0) failures.push(`the connection doctor sent ${sends} report(s)`);
+    if (!/other entry/.test(fix)) failures.push('the doctor did not give the interface fix');
+
+    await page.goto(base + '#/compat');
+    await page.getByLabel('Search a model, e.g. RK61 or Keychron').fill('keychron q1');
+    await page.getByText(/In VIA’s catalogue: \d+ of/).waitFor();
+    results.push(`model finder: VIA catalogue search ok`);
+    await ctx.close();
+  }
+
+  // Windows: a keyboard another program holds. The doctor names the vendor app, not permissions.
+  {
+    const ctx = await osContext('windows');
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[windows-busy] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      const device = {
+        vendorId: 0x258a,
+        productId: 0x010c,
+        productName: 'Gaming Keyboard',
+        opened: false,
+        collections: [
+          {
+            usagePage: 0xff02,
+            usage: 0x02,
+            children: [],
+            inputReports: [],
+            outputReports: [],
+            featureReports: [{ reportId: 6, items: [{ reportSize: 8, reportCount: 519 }] }],
+          },
+        ],
+        open: () =>
+          Promise.reject(new window.DOMException('Failed to open the device.', 'NotAllowedError')),
+        close: () => Promise.resolve(),
+        sendReport: () => Promise.resolve(),
+        sendFeatureReport: () => Promise.resolve(),
+        receiveFeatureReport: () => Promise.resolve(new DataView(new ArrayBuffer(8))),
+        addEventListener() {},
+        removeEventListener() {},
+      };
+      const hid = {
+        requestDevice: () => Promise.resolve([device]),
+        getDevices: () => Promise.resolve([device]),
+        addEventListener() {},
+        removeEventListener() {},
+      };
+      Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
+    });
+    await page.goto(base + '#/doctor', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Choose a keyboard to check' }).click();
+    await page.getByText('Another program holds the keyboard').waitFor();
+    results.push('windows (emulated): busy keyboard explained as a vendor app holding it');
+    await ctx.close();
+  }
+
+  // A receiver (2.4 GHz) that answers nothing: OpenKey must say it is a wireless link and that
+  // configuration needs the cable, and send no write.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[receiver] pageerror: ${e.message}`));
+    await page.addInitScript(() => {
+      const sent = (window.__hidSends = []);
+      const items = (n) => [{ reportSize: 8, reportCount: n }];
+      const mk = (usagePage, usage, n) => ({
+        usagePage,
+        usage,
+        children: [],
+        inputReports: [{ reportId: 0, items: items(n) }],
+        outputReports: [{ reportId: 0, items: items(n) }],
+        featureReports: [],
+      });
+      const device = {
+        vendorId: 0x05ac,
+        productId: 0x024f,
+        productName: 'AJAZZ AK820 MAX 2.4G',
+        opened: false,
+        collections: [mk(0x01, 0x06, 8), mk(0xff60, 0x61, 32)],
+        open() {
+          this.opened = true;
+          return Promise.resolve();
+        },
+        close() {
+          this.opened = false;
+          return Promise.resolve();
+        },
+        sendReport: (id, d) => (
+          sent.push([...new Uint8Array(d.buffer ?? d)].slice(0, 2)),
+          Promise.resolve()
+        ),
+        sendFeatureReport: () => Promise.resolve(),
+        receiveFeatureReport: () => Promise.resolve(new DataView(new ArrayBuffer(64))),
+        addEventListener() {},
+        removeEventListener() {},
+      };
+      const hid = {
+        requestDevice: () => Promise.resolve([device]),
+        getDevices: () => Promise.resolve([device]),
+        addEventListener() {},
+        removeEventListener() {},
+      };
+      Object.defineProperty(Navigator.prototype, 'hid', { get: () => hid, configurable: true });
+    });
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Connect keyboard' }).first().click();
+    await page.waitForURL(/#\/overview/);
+    await page
+      .getByText(/This is a wireless link\.|Connected without the cable/)
+      .first()
+      .waitFor();
+    results.push('receiver: wireless link explained, cable needed for settings');
     await ctx.close();
   }
 

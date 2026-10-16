@@ -64,3 +64,9 @@ when it already exists). Every write asks for confirmation unless `--yes` is giv
 ## Wayland / X11
 
 The keyboard tester and latency lab use browser key events, which work the same under both.
+
+## Connection doctor
+
+Tools → **Connection doctor** in the app, or `pnpm openkey doctor` in a terminal, checks access to
+every keyboard OpenKey knows (and any VIA board), opens and closes it without sending anything, and
+prints the exact udev command with `--device VVVV:PPPP` when access is missing.

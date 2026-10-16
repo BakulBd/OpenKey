@@ -16,6 +16,19 @@ these steps and a **Retry** button.
 Managed PCs: administrators can pre-approve OpenKey for specific keyboards with Chrome or Edge
 policies (Group Policy or registry); see [DEPLOYMENT.md](DEPLOYMENT.md#managed-fleets-chrome-and-edge-policies).
 
+## When it does not connect
+
+Open **Connection doctor** (Tools → Connection doctor, or the link under a failed connection). It
+checks the browser, opens and closes the keyboard without sending anything, and names the fix:
+
+- **Another program holds the keyboard**: quit the vendor app, including its notification-area icon,
+  then replug.
+- **Only the typing interface is available**: Windows lists several entries for one keyboard (one per
+  USB interface). Connect again and pick the other entry.
+- **Connected through the 2.4 GHz receiver** or **Bluetooth**: plug in the cable and switch to wired.
+
+The CLI has the same checks: `pnpm openkey doctor`.
+
 ## CLI
 
 ```powershell

@@ -30,7 +30,7 @@ serves on localhost.
 
 ## Security headers and WebHID
 
-The deployment sends `Permissions-Policy: hid=(self)` (WebHID allowed for OpenKey's own origin, denied
+The deployment sends `Permissions-Policy: hid=(self), serial=(self)` (WebHID and Web Serial allowed for OpenKey's own origin, denied
 to embedded content) and a strict CSP. Both are checked by the smoke test, which also asserts that the
 policy still allows `hid`.
 

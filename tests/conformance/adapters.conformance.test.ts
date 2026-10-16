@@ -20,6 +20,7 @@ import {
   byTech,
   royuan,
   aulaReceiver,
+  hmk,
 } from '@openkey/protocols';
 import { ROOT } from '../helpers.js';
 
@@ -37,6 +38,7 @@ const SAMPLES: Record<string, () => MockHidDevice> = {
   'by-tech': () => new byTech.ByTechSimulator().device,
   royuan: () => new royuan.RoyuanSimulator().device,
   'aula-receiver': () => new aulaReceiver.AulaReceiverSimulator().device,
+  hmk: () => new hmk.HmkSimulator().device,
   'rk-classic': () =>
     new MockHidDevice({ vendorId: 0x258a, productId: 0x004a, productName: 'RK61RGB Wired' }, [
       {

@@ -30,7 +30,8 @@
     "slots": 1,
     "headerBytes": 256,
     "chunkBytes": 4096,
-    "delayUnitMs": 2
+    "delayUnitMs": 2,
+    "framing": "pro"
   },
   "rgb": { "brightnessMax": 5, "speedMax": 5, "defaultEffect": 11, "perKey": true },
   "macros": { "slots": 100, "storageBytes": 3584, "eventBudgetBytes": 2700 },

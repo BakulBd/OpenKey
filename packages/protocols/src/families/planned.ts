@@ -26,15 +26,16 @@ const RAW_HID_USAGE = 0x61;
 
 export const vialPlanned: PlannedAdapter = {
   id: 'vial',
-  name: 'Vial (VIA superset, keyboard definition stored in firmware)',
+  name: 'Vial extras (tap dance, combos, key overrides, QMK settings)',
   family: 'vial',
   manifest: {
     version: '0.0.0',
     status: 'planned',
     transports: { input: ['usb', 'bluetooth'], configuration: [] },
-    verification: 'Nothing verified by OpenKey; use Vial or Vialite meanwhile.',
+    verification:
+      'Vial boards are configured by the VIA adapter, which also reads their stored layout. The Vial-only features are planned; use Vial or Vialite for them meanwhile.',
     safety:
-      'No packets are sent. Vial protects dangerous operations with a physical unlock; OpenKey will honour it.',
+      'No packets are sent for these features. Vial protects dangerous operations with a physical unlock; OpenKey will honour it.',
     provenance: [
       {
         source: 'public-specification',

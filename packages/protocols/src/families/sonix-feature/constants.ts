@@ -19,6 +19,14 @@ export const REPORT_ID = 0;
 export const PACKET_SIZE = 64;
 export const DATA_CHUNK_SIZE = 4096;
 
+/**
+ * AK820 Pro screen framing (gohv/EPOMAKER-Ajazz-AK820-Pro and Beattrey/ajazz-ak820-config, MIT):
+ * still images use IMAGE sub-command 02 with no header, opened by START with enable = 1 and closed by
+ * FINISH; animations use the header framing with sub-command 03.
+ */
+export const PRO_STILL_SUB = 0x02;
+export const PRO_ANIMATION_SUB = 0x03;
+
 /** First payload byte of every command packet (stored as the low byte of a 16-bit immediate, e.g. 0x1804). */
 export const COMMAND_PREFIX = 0x04;
 

@@ -13,6 +13,13 @@ interface, and macOS then requires **Input Monitoring** for the browser (System 
 Security → Input Monitoring; restart the browser afterwards). The keyboards OpenKey supports today use
 separate vendor interfaces and should not need it. OpenKey shows these steps with a **Retry** button.
 
+On Apple silicon Macs, a newly plugged USB accessory must be allowed first: when macOS asks "Allow
+accessory to connect?", choose **Allow**, then connect again.
+
+**Connection doctor** (Tools → Connection doctor) runs these checks for you, opens and closes the
+keyboard without sending anything, and names the fix; `pnpm openkey doctor` does the same from the
+terminal.
+
 Managed Macs: a configuration profile can pre-approve OpenKey for specific keyboards; see
 [DEPLOYMENT.md](DEPLOYMENT.md#managed-fleets-chrome-and-edge-policies).
 

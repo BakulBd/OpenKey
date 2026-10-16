@@ -1,4 +1,5 @@
 import { Evidence, hex16, toHex } from '@openkey/core';
+import { lookupCatalogAll } from '@openkey/devices/catalog';
 import { LoggingTransport, findInterface } from '@openkey/hid';
 import type { HidCollection } from '@openkey/hid';
 import type {
@@ -36,13 +37,19 @@ export const viaProtocol: ProtocolDefinition = {
         reference: 'VIA definition specification (the-via/website docs/specification.md)',
         status: Evidence.OBSERVED,
       },
+      {
+        source: 'public-specification',
+        reference:
+          'vial-kb/vial-qmk quantum/vial.c and vial-gui (GPL-2.0; facts only): keyboard id, definition size and pages',
+        status: Evidence.OBSERVED,
+      },
     ],
     license: 'MIT',
     limitations: [
       'The physical layout comes from a VIA definition or QMK info.json you load once per keyboard model; without one, a matrix grid is used.',
       'Lighting effect names assume every QMK effect is compiled in, as in the VIA app; the effect number is always shown.',
-      'Tap dance, combos and other Vial-only features are not configured; Vial boards work through their VIA commands.',
-      'Rotary encoder mapping and layout options are not edited yet.',
+      'Vial boards: the layout is read from the keyboard (Vial read commands FE 00–02); tap dance, combos and other Vial-only features are not configured yet.',
+      'Layout options (ISO Enter, split keys …) are chosen when the definition is loaded; rotary encoder mapping is not edited yet.',
     ],
     fixtures: [],
     verifiedIdentities: [],
@@ -80,10 +87,21 @@ export const viaProtocol: ProtocolDefinition = {
         evidence: Evidence.OBSERVED,
       },
     ],
-    autoConsent: () => ({
-      auto: true,
-      reason: 'public specification: FF60:0061 is QMK raw HID and the query is read-only',
-    }),
+    // Vendor firmware reuses FF60:0061 (the AK820 receiver does). For an identity the catalogue
+    // assigns to another family, the VIA query waits for consent: a board flashed with QMK keeps
+    // its USB identity, so VIA stays possible, but nothing is sent to stock firmware unasked.
+    autoConsent: (group) => {
+      const others = lookupCatalogAll(group.identity).filter((e) => e.family !== 'qmk-via');
+      return others.length
+        ? {
+            auto: false,
+            reason: `this USB identity is catalogued as ${others[0]!.family}; VIA only if the board runs QMK/VIA firmware`,
+          }
+        : {
+            auto: true,
+            reason: 'public specification: FF60:0061 is QMK raw HID and the query is read-only',
+          };
+    },
   },
   match(group): CandidateMatch {
     const i = findInterface(group, isRaw);

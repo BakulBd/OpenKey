@@ -36,6 +36,11 @@ export interface ModelProfile {
     headerBytes: number;
     chunkBytes: number | null;
     delayUnitMs: number;
+    /**
+     * Upload framing. `max` (default): 256-byte header, IMAGE sub-command = slot, SAVE — verified on
+     * the AK820 MAX. `pro`: AK820 Pro firmware as community tools describe it (see the ledger).
+     */
+    framing?: 'max' | 'pro';
   } | null;
   rgb: {
     brightnessMax: number;

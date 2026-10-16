@@ -60,11 +60,24 @@ export class NodeHidTransport implements HidTransport {
     const p = this.info.path;
     if (!p) throw new TransportError('Interface has no device path');
     if (this.checkLinuxAccess) {
-      try {
-        await fs.access(p, fsConstants.R_OK | fsConstants.W_OK);
-      } catch {
-        throw new PermissionError(`No read/write permission for ${p}. ${UDEV_HINT}`, { path: p });
-      }
+      const can = async (mode: number) =>
+        fs.access(p, mode).then(
+          () => true,
+          () => false,
+        );
+      const read = await can(fsConstants.R_OK);
+      const write = await can(fsConstants.W_OK);
+      // Read-only access lets a tool watch the keyboard but never configure it: say so plainly.
+      if (read && !write)
+        throw new PermissionError(
+          `${p} is readable but not writable for this user, so the keyboard cannot be configured. ${UDEV_HINT}`,
+          { path: p, access: 'read-only' },
+        );
+      if (!read || !write)
+        throw new PermissionError(`No read/write permission for ${p}. ${UDEV_HINT}`, {
+          path: p,
+          access: 'none',
+        });
     }
     const hid = await loadNodeHid();
     try {
@@ -135,10 +148,25 @@ export class NodeHidTransport implements HidTransport {
     }
   }
 
+  /**
+   * hidapi and hidraw put the report ID in front of numbered input reports; WebHID and the transport
+   * contract do not. When the interface declares numbered input reports, the ID byte is removed.
+   */
+  private get inputIds(): Set<number> {
+    return new Set(
+      this.info.collections
+        .flatMap((c) => c.inputReports.map((r) => r.reportId))
+        .filter((id) => id !== 0),
+    );
+  }
+
   async readInputReport(timeoutMs: number): Promise<Uint8Array | null> {
     try {
       const r = await this.device().read(timeoutMs);
-      return r && r.length ? new Uint8Array(r) : null;
+      if (!r || !r.length) return null;
+      const bytes = new Uint8Array(r);
+      const ids = this.inputIds;
+      return ids.size && ids.has(bytes[0]!) ? bytes.subarray(1).slice() : bytes;
     } catch (e) {
       throw new TransportError(
         `Input read failed on ${this.label}: ${String(e)}`,

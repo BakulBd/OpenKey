@@ -448,6 +448,7 @@ export default function TftStudio() {
           <Gallery
             width={info.width}
             height={info.height}
+            maxFrames={info.maxFrames}
             selected={galleryId}
             onUse={(id, frames) => {
               setSource(frames);
