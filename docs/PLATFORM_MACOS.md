@@ -16,6 +16,11 @@ separate vendor interfaces and should not need it. OpenKey shows these steps wit
 On Apple silicon Macs, a newly plugged USB accessory must be allowed first: when macOS asks "Allow
 accessory to connect?", choose **Allow**, then connect again.
 
+2.4 GHz receivers (AJAZZ, AULA): macOS can let the browser see only a receiver's typing and media
+keys, and keep its configuration endpoints back. Allow the browser under System Settings → Privacy &
+Security → **Input Monitoring**, quit and reopen it, replug the receiver and connect again. The cable in
+wired mode always gives the full configuration.
+
 **Connection doctor** (Tools → Connection doctor) runs these checks for you, opens and closes the
 keyboard without sending anything, and names the fix; `pnpm openkey doctor` does the same from the
 terminal.

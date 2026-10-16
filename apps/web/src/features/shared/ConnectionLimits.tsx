@@ -22,7 +22,8 @@ export function ConnectionLimits({ compact = false }: { compact?: boolean }) {
     return (
       <div className="callout warn limits" role="note">
         <Icon name="warn" /> <strong>{t('limits.unknownWireless.title')}</strong>{' '}
-        {t('limits.unknownWireless.body', { link: t(`limits.link.${link}` as MessageKey) })}
+        {t('limits.unknownWireless.body', { link: t(`limits.link.${link}` as MessageKey) })}{' '}
+        <a href={href('doctor')}>{t('connect.doctor')}</a>
       </div>
     );
   }

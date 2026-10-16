@@ -3166,3 +3166,26 @@ input[type='checkbox'].switch:checked {
 .page-limits .callout {
   margin-bottom: 0;
 }
+
+/* ---------- Mouse DPI levels ---------- */
+.dpi-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.dpi-level {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.dpi-level.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.dpi-level.off {
+  opacity: 0.55;
+}

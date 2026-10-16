@@ -112,10 +112,13 @@ export const CATALOG: readonly CatalogEntry[] = [
     definition: 'ak820-dongle',
     evidence: 'Official driver config.xml; afonsusousa/mrworldwide',
   },
+  // 05AC:024F (Apple's vendor ID) is a generic 2.4 GHz receiver identity used by several brands,
+  // so the product string tells the receivers apart and an unknown string names no model.
   {
     brand: 'AJAZZ',
     vendorId: 0x05ac,
     productId: 0x024f,
+    productName: 'AJAZZ AK820 MAX 2.4G',
     model: 'AK820 MAX 2.4 GHz receiver',
     link: '2.4ghz',
     mcu: 'Sonix',
@@ -123,7 +126,34 @@ export const CATALOG: readonly CatalogEntry[] = [
     status: 'research',
     hardware: {},
     definition: 'ak820-dongle',
-    evidence: 'Official AK820 MAX driver config.xml',
+    evidence: 'Official AK820 MAX driver config.xml; product string seen on hardware (Linux)',
+  },
+  {
+    brand: 'AULA',
+    vendorId: 0x05ac,
+    productId: 0x024f,
+    productName: 'AULA-NOVA75-2',
+    model: 'NOVA75 2.4 GHz receiver',
+    link: '2.4ghz',
+    mcu: 'unknown',
+    family: 'unknown',
+    status: 'research',
+    hardware: {},
+    evidence:
+      'Same receiver identity as the AULA F75 Max and AJAZZ AK820 MAX receivers, whose vendor endpoints (FF59/FF60) carry the 2.4 GHz protocol (VitalyArt/Aula-F75-Max-Driver, Ghost-CR/F75_Initializer). A user report from macOS showed no vendor endpoint, which macOS can hide from the browser; not yet seen with them',
+  },
+  {
+    brand: 'Generic',
+    vendorId: 0x05ac,
+    productId: 0x024f,
+    model: '2.4 GHz receiver (identity shared by several brands)',
+    link: '2.4ghz',
+    mcu: 'unknown',
+    family: 'unknown',
+    status: 'research',
+    hardware: {},
+    evidence:
+      'Used by AJAZZ and AULA receivers among others; the product string decides which receiver it is',
   },
   {
     brand: 'AJAZZ',
@@ -275,6 +305,32 @@ export const CATALOG: readonly CatalogEntry[] = [
     hardware: {},
     evidence:
       'cloudglides/aula-f75-linux-drivers; shares VID:PID with the AJAZZ "BY edition" receiver',
+  },
+  {
+    brand: 'AJAZZ',
+    vendorId: 0xa8a4,
+    productId: 0x2255,
+    model: 'AJ139 V2 MC mouse (cable)',
+    link: 'usb',
+    mcu: 'YJX',
+    family: 'yjx-mouse',
+    status: 'community',
+    hardware: {},
+    evidence:
+      'Ripariav/Ajazz-AJ139V2MC-Linux-Driver (MIT): protocol captured from the vendor web configurator',
+  },
+  {
+    brand: 'AJAZZ',
+    vendorId: 0xa8a5,
+    productId: 0x2255,
+    model: 'AJ139 V2 MC mouse (2.4 GHz receiver)',
+    link: '2.4ghz',
+    mcu: 'YJX',
+    family: 'yjx-mouse',
+    status: 'community',
+    hardware: {},
+    evidence:
+      'Ripariav/Ajazz-AJ139V2MC-Linux-Driver (MIT): same protocol, separate settings from the cable',
   },
 ];
 

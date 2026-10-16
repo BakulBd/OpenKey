@@ -38,6 +38,24 @@
   vendor apps) is emulated, so it is tested the same everywhere.
 - Keycode search knows everyday words: escape, windows, command, return, print screen …
 - Model guide: ZMK, libhmk and Vial boards added; docs regenerated.
+- **AJAZZ AJ139 V2 MC mouse**: new adapter and **Mouse settings** page.
+  - Covers debounce (1–20 ms), polling rate (125–2000 Hz), six DPI levels and the active one, sleep,
+    wake-up and scroll direction, plus a battery read. Works over the cable (`A8A4:2255`) and the
+    receiver (`A8A5:2255`).
+  - Settings are written as a read-modify-write of the block just read, checked against the mouse's
+    reply and a fresh read, so fields OpenKey does not know are kept.
+  - Built from Ripariav/Ajazz-AJ139V2MC-Linux-Driver (MIT). Includes a mouse demo and udev rules for
+    both IDs.
+  - The AJ179 (another AJAZZ mouse protocol) is listed for later.
+- **AULA NOVA75** (user report, with the F75 Max sources it pointed to). `05AC:024F` is a receiver
+  identity several brands share:
+  - Receivers are named by product string.
+  - The AJAZZ receiver ping is automatic only for AJAZZ names; an AULA receiver is asked first.
+  - On macOS, the Connection doctor explains a receiver that shows only typing and media keys (its
+    configuration channel may be hidden until the browser is allowed under Input Monitoring).
+  - The F75 Max cable (`0C45:800A`) and receiver protocols were checked against OpenKey's AJAZZ
+    adapters, and the receiver lighting packet is byte-identical. The NOVA75 is not assumed to be an
+    F75 Max: the keyboard's own answer decides.
 
 ## Unreleased — Connection doctor, Vial, 2,000+ VIA boards, AK820 Pro screen, gallery v2
 

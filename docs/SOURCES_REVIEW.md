@@ -66,3 +66,85 @@ node-hid (BSD/MIT-style; node-hid is the CLI's macOS/Windows backend), the USB H
 HID Usage Tables, WebHID (WICG, MDN, Chrome docs) and Linux hidraw documentation remain the references
 for transport behaviour. Protected collections (keyboard, mouse, system control) are not configurable
 from WebHID, and OpenKey never tries.
+
+## User reports
+
+### AULA NOVA75 (`05AC:024F` receiver "AULA-NOVA75-2"), macOS, October 2026
+
+**What the report showed.** Over the receiver the browser saw only these collections:
+
+| Collection        | Usage page:usage | Reports         |
+| ----------------- | ---------------- | --------------- |
+| Mouse             | 01:02            | none listed     |
+| Consumer control  | 0C:01            | input report 8  |
+| Consumer control  | 0C:01            | input report 17 |
+| System multi-axis | 01:0E            | input report 9  |
+
+No vendor page was visible.
+
+**Sources checked:**
+
+- [VitalyArt/Aula-F75-Max-Driver](https://github.com/VitalyArt/Aula-F75-Max-Driver) (MIT) and
+  [Ghost-CR/F75_Initializer](https://github.com/Ghost-CR/F75_Initializer) (no licence; facts only).
+  These are the AULA F75 Max references the user supplied.
+  - The F75 Max cable is `0C45:800A` with FF13 control (64-byte feature reports) and FF68 data
+    (4096-byte output reports). Its commands — `04 18` start, `04 72` image, `04 13` lighting,
+    `04 02` save, `04 f0` finish — are the AJAZZ Sonix protocol OpenKey implements and owner-verified
+    on the AK820 MAX.
+  - The receiver is `05AC:024F` with FF59 (command) and FF60 (raw, 32-byte reports, additive
+    checksum at byte 31). Its lighting packet `05 10 00 MM RR GG BB … CC BR SP DI … aa 55` is
+    byte-identical to OpenKey's receiver adapter. OpenKey's AK820 MAX receiver on Linux shows the
+    same FF59/FF60/FFFF pages.
+  - VitalyArt's macOS troubleshooting asks for the **Input Monitoring** permission when the
+    receiver endpoints or acknowledgements are missing.
+  - Conflict: Ghost-CR's `docs/protocol_sources.md` gives the colour bytes as BB GG RR, while its
+    `PROTOCOL_REFERENCE.md` says RR GG BB, "verified on hardware". VitalyArt and OpenKey use RR GG BB.
+- [not-ayan/openaula](https://github.com/not-ayan/openaula) and
+  [sgtflixy/AulaControl](https://github.com/sgtflixy/AulaControl): other AULA platforms (BY Tech F75,
+  WIN60HE/WIN75HE). No NOVA75 facts.
+- The official NOVA75 Windows driver (aulastar.com) is closed and was not analysed.
+
+**What it changed in OpenKey:**
+
+- The NOVA75 receiver is catalogued as the F75 Max receiver platform, under research.
+- On macOS, the Connection doctor now explains that a receiver showing only typing and media
+  collections may have its configuration channel hidden, and gives the Input Monitoring steps.
+- The AJAZZ receiver ping is automatic only for AJAZZ product strings; an AULA receiver is asked
+  first.
+- The wired NOVA75 is not assumed to be the F75 Max. If its cable shows `0C45:800A`, the AJAZZ
+  adapter identifies it by its own answer.
+
+**What would settle it:** one diagnostic with the cable in wired mode, and one from the receiver
+after Input Monitoring is allowed.
+
+**Tests:** `tests/protocol/shared-receiver.test.ts`, built from the reported descriptors (shapes only).
+
+## AJAZZ mice
+
+**AJ139 V2 MC** — [Ripariav/Ajazz-AJ139V2MC-Linux-Driver](https://github.com/Ripariav/Ajazz-AJ139V2MC-Linux-Driver)
+(MIT); protocol captured from the vendor's web configurator.
+
+| Fact                     | Value                                                      |
+| ------------------------ | ---------------------------------------------------------- |
+| USB IDs                  | `A8A4:2255` (cable), `A8A5:2255` (receiver)                |
+| Interface                | FF01, 64-byte output/input reports                         |
+| Live settings read       | `55 0e a5 0b …`                                            |
+| Settings write           | `55 0f ae …`, replaces the whole block                     |
+| Debounce                 | byte 51, in ms                                             |
+| Polling rate             | byte 10, index into 125–2000 Hz                            |
+| DPI                      | bytes 11–24: count, active level, six little-endian levels |
+| Sleep / wake-up / scroll | bytes 52, 54 and 48                                        |
+| Battery                  | `55 30 …`, byte 8                                          |
+
+Cable and receiver keep separate settings.
+
+- The source warns that writing the block from defaults resets everything else. OpenKey writes only
+  as read-modify-write of the block it just read, and verifies the reply and a fresh read.
+- The debounce range is not documented (factory value 4 ms), so OpenKey offers 1–20 ms.
+
+Other sources: nico2525nn/AjazzAJ139V2 (no licence) and cheesyserg/ajazz-aj139-v2-mc-driver (GPL-3.0)
+were not used.
+
+**AJ179** — [Rockeyxx/aj179-linux](https://github.com/Rockeyxx/aj179-linux) (MIT) documents a different
+protocol: `249A:5C2F` receiver and `248A:5C2E` cable, 32-byte reports with a checksum, and
+`button_respond_time` (debounce) in the `0x17` read. It is a separate adapter for later.

@@ -280,8 +280,16 @@ export const sonixDongleProtocol: ProtocolDefinition = {
       },
     ],
     autoConsent(group) {
-      const { vendorId, productId } = group.identity;
-      return OFFICIAL_RECEIVERS.some(([v, p]) => v === vendorId && p === productId)
+      const { vendorId, productId, productName } = group.identity;
+      const official = OFFICIAL_RECEIVERS.some(([v, p]) => v === vendorId && p === productId);
+      // 05AC:024F is a generic receiver identity other brands use too (an AULA NOVA75 receiver
+      // reports it): only an AJAZZ product string makes it the receiver the official driver pings.
+      if (official && vendorId === 0x05ac && !/AJAZZ|AK820/i.test(productName))
+        return {
+          auto: false,
+          reason: `05AC:024F is a receiver identity several brands use, and "${productName}" is not an AJAZZ receiver name`,
+        };
+      return official
         ? { auto: true, reason: 'the official AJAZZ driver pings this receiver identity' }
         : {
             auto: false,

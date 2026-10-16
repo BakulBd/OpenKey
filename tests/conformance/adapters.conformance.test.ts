@@ -21,6 +21,7 @@ import {
   royuan,
   aulaReceiver,
   hmk,
+  yjxMouse,
 } from '@openkey/protocols';
 import { ROOT } from '../helpers.js';
 
@@ -39,6 +40,7 @@ const SAMPLES: Record<string, () => MockHidDevice> = {
   royuan: () => new royuan.RoyuanSimulator().device,
   'aula-receiver': () => new aulaReceiver.AulaReceiverSimulator().device,
   hmk: () => new hmk.HmkSimulator().device,
+  'yjx-mouse': () => new yjxMouse.YjxMouseSimulator().device,
   'rk-classic': () =>
     new MockHidDevice({ vendorId: 0x258a, productId: 0x004a, productName: 'RK61RGB Wired' }, [
       {

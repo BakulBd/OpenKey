@@ -1185,6 +1185,98 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
       { repo: 'vial-kb/vial-qmk', license: 'GPL-2.0', covers: 'Vial protocol (facts only)' },
     ],
   },
+  {
+    brand: 'AULA',
+    model: 'NOVA75',
+    group: 'bangladesh',
+    level: 'depends',
+    adapters: ['sonix-feature', 'sonix-dongle'],
+    note: 'Its 2.4 GHz receiver shares the AULA F75 Max receiver identity (05AC:024F). On macOS the browser may see only its typing and media keys: allow the browser under Input Monitoring and reconnect, or use the USB cable in wired mode. If the cable shows 0C45:800A it is the F75 Max (Sonix) platform, which OpenKey identifies; otherwise send the diagnostic so the model can be added.',
+    revisions: [
+      {
+        name: '2.4 GHz receiver',
+        chip: 'AJAZZ/AULA 2.4 GHz receiver (as the F75 Max)',
+        adapter: 'sonix-dongle',
+        ids: ['05AC:024F'],
+        status: 'research',
+        tell: 'USB product string "AULA-NOVA75-2"; needs its FF60 endpoint visible',
+      },
+      {
+        name: 'wired (USB cable)',
+        chip: 'unknown (the F75 Max is Sonix, 0C45:800A)',
+        adapter: null,
+        ids: [],
+        status: 'research',
+        tell: 'Connect in wired mode and check the USB ID in the Connection doctor',
+      },
+    ],
+    sources: [
+      {
+        repo: 'VitalyArt/Aula-F75-Max-Driver',
+        license: 'MIT',
+        covers: 'F75 Max wired and 2.4 GHz endpoints and packets',
+      },
+      {
+        repo: 'Ghost-CR/F75_Initializer',
+        license: null,
+        covers: 'F75 Max cable and receiver protocol notes, captures',
+      },
+      { repo: 'not-ayan/openaula', license: null, covers: 'AULA F75 WebHID configurator' },
+      {
+        repo: 'sgtflixy/AulaControl',
+        license: null,
+        covers: 'AULA WIN60HE/WIN75HE research (other platform)',
+      },
+    ],
+  },
+  {
+    brand: 'AJAZZ',
+    model: 'AJ139 V2 MC (mouse)',
+    group: 'bangladesh',
+    level: 'adapter',
+    adapters: ['yjx-mouse'],
+    note: 'Gaming mouse: debounce, polling rate (125–2000 Hz), six DPI levels, sleep, wake-up and scroll direction, read from the mouse and read back after changes, over the cable or the receiver (each keeps its own settings). Other AJ139 versions may use another chip; OpenKey checks the mouse’s answer.',
+    revisions: [
+      {
+        name: 'V2 MC, cable',
+        chip: 'YJX',
+        adapter: 'yjx-mouse',
+        ids: ['A8A4:2255'],
+        status: 'community',
+      },
+      {
+        name: 'V2 MC, 2.4 GHz receiver',
+        chip: 'YJX',
+        adapter: 'yjx-mouse',
+        ids: ['A8A5:2255'],
+        status: 'community',
+      },
+    ],
+    sources: [
+      {
+        repo: 'Ripariav/Ajazz-AJ139V2MC-Linux-Driver',
+        license: 'MIT',
+        covers: 'AJ139 V2 MC protocol and driver',
+      },
+      { repo: 'nico2525nn/AjazzAJ139V2', license: null, covers: 'AJ139 V2 control tool' },
+      {
+        repo: 'cheesyserg/ajazz-aj139-v2-mc-driver',
+        license: 'GPL-3.0',
+        covers: 'AJ139 V2 MC driver',
+      },
+    ],
+  },
+  {
+    brand: 'AJAZZ',
+    model: 'AJ179 (mouse)',
+    group: 'bangladesh',
+    level: 'depends',
+    adapters: [],
+    note: 'Uses another AJAZZ mouse protocol (32-byte packets with a checksum), documented by an open Linux tool; not in OpenKey yet.',
+    sources: [
+      { repo: 'Rockeyxx/aj179-linux', license: 'MIT', covers: 'AJ179 receiver and cable protocol' },
+    ],
+  },
 ];
 
 /** Guide revisions that list this USB identity, with their model. */

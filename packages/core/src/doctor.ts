@@ -18,7 +18,8 @@ export type DoctorCheckId =
   | 'link'
   | 'shared-id'
   | 'known'
-  | 'mac-accessory';
+  | 'mac-accessory'
+  | 'receiver-hidden';
 
 export interface DoctorCollection {
   usagePage: number;
@@ -244,6 +245,24 @@ function linkCheck(d: DoctorDevice): DoctorCheck | null {
   );
 }
 
+/**
+ * macOS: 2.4 GHz receivers of the AJAZZ/AULA platform have vendor endpoints (FF59 command, FF60 raw)
+ * that the vendors' own tools reach, but the browser can be shown only the typing, media and system
+ * collections; VitalyArt/Aula-F75-Max-Driver ties this to the Input Monitoring permission.
+ */
+function receiverHiddenCheck(os: DoctorOs, d: DoctorDevice): DoctorCheck | null {
+  if (os !== 'macos' || !d.known.some((k) => k.link === '2.4ghz')) return null;
+  const all = d.interfaces.flat();
+  if (!all.length || all.some((c) => c.usagePage >= 0xff00)) return null;
+  return check(
+    'receiver-hidden',
+    'warn',
+    'macOS may be hiding the receiver’s configuration channel',
+    'Receivers of this kind normally have vendor endpoints, but the browser sees only typing, media and system collections.',
+    'Allow your browser in System Settings → Privacy & Security → Input Monitoring, quit and reopen it, replug the receiver and connect again. Or plug in the USB cable and switch the keyboard to wired mode.',
+  );
+}
+
 function knownChecks(d: DoctorDevice): DoctorCheck[] {
   const id = `${hex4(d.vendorId)}:${hex4(d.productId)}`;
   const models = [...new Set(d.known.map((k) => k.model))];
@@ -307,6 +326,8 @@ export function runDoctor(input: DoctorInput): DoctorCheck[] {
   const link = linkCheck(d);
   if (link) out.push(link);
   out.push(interfaceCheck(d));
+  const hidden = receiverHiddenCheck(input.os, d);
+  if (hidden) out.push(hidden);
   out.push(...knownChecks(d));
   return out;
 }

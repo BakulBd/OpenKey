@@ -896,6 +896,35 @@ try {
     await ctx.close();
   }
 
+  // AJAZZ AJ139 V2 MC mouse demo: debounce read from the mouse, changed, written and read back.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[aj139] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'AJAZZ AJ139 mouse' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/mouse');
+    const slider = page.getByLabel(/Debounce: 4 ms/);
+    await slider.waitFor();
+    await slider.fill('8');
+    await page.getByText('Debounce: 8 ms').waitFor();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Apply|Write|Confirm/ })
+      .first()
+      .click()
+      .catch(() => undefined);
+    await page
+      .locator('.changebar')
+      .getByText(/verified/i)
+      .waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/aj139-mouse.png`, fullPage: true });
+    results.push('aj139 demo: debounce 4 → 8 ms written and verified');
+    await ctx.close();
+  }
+
   // Screen gallery (demo): generated animations load into the local preview; nothing is uploaded.
   {
     const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });

@@ -85,6 +85,15 @@ export const ROUTES: RouteDef[] = [
     component: lazy(() => import('../features/custom/CustomMenus.js')),
   },
   {
+    id: 'mouse',
+    section: 'device',
+    label: 'nav.mouse',
+    icon: 'device',
+    features: ['debounce', 'pollingRate'],
+    needsDevice: true,
+    component: lazy(() => import('../features/mouse/MouseSettings.js')),
+  },
+  {
     id: 'actuation',
     section: 'device',
     label: 'nav.actuation',

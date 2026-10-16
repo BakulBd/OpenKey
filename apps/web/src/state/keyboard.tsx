@@ -149,13 +149,14 @@ export interface AccessProblem {
 }
 
 /** Simulated keyboards for the demo: one per protocol family OpenKey configures. */
-export type DemoKind = 'ak820' | 'aula-f75' | 'rk-r75' | 'via' | 'vial' | 'zmk' | 'hmk';
+export type DemoKind = 'ak820' | 'aula-f75' | 'rk-r75' | 'via' | 'vial' | 'zmk' | 'hmk' | 'aj139';
 export const DEMO_KINDS: readonly DemoKind[] = [
   'ak820',
   'via',
   'vial',
   'zmk',
   'hmk',
+  'aj139',
   'aula-f75',
   'rk-r75',
 ];
@@ -748,6 +749,10 @@ export function KeyboardProvider({
       if (kind === 'ak820')
         return void (await attach(new sonixFeature.SonixFeatureSimulator().device.group(), true));
       if (kind === 'via') return void (await attach(new via.ViaSimulator().device.group(), true));
+      if (kind === 'aj139') {
+        const { yjxMouse } = await import('@openkey/protocols');
+        return void (await attach(new yjxMouse.YjxMouseSimulator().device.group(), true));
+      }
       if (kind === 'hmk') {
         const { hmk } = await import('@openkey/protocols');
         // A simulator cannot be harmed, so its identification read needs no consent.
