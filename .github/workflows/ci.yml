@@ -52,7 +52,7 @@ jobs:
       # WebHID devices in the runner's preinstalled Chrome, with the production security headers.
       - name: Browser smoke test
         run: node tools/e2e/smoke.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.os == 'ubuntu-latest'
         with:
           name: web
