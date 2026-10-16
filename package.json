@@ -46,16 +46,16 @@
     "@openkey/hid-node": "workspace:^",
     "@openkey/protocols": "workspace:^",
     "@openkey/tft": "workspace:^",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "@types/w3c-web-hid": "^1.0.7",
     "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
     "playwright-core": "^1",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "tsx": "^4.23.15",
-    "typescript": "^5",
-    "typescript-eslint": "^8.71.1",
-    "vitest": "^3"
+    "typescript": "^7",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5"
   },
   "workspaces": [
     "packages/*",
