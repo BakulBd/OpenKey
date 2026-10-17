@@ -149,15 +149,31 @@ export interface AccessProblem {
 }
 
 /** Simulated keyboards for the demo: one per protocol family OpenKey configures. */
-export type DemoKind = 'ak820' | 'aula-f75' | 'rk-r75' | 'via' | 'vial' | 'zmk' | 'hmk' | 'aj139';
+export type DemoKind =
+  | 'ak820'
+  | 'aula-f75'
+  | 'rk-r75'
+  | 'via'
+  | 'vial'
+  | 'zmk'
+  | 'hmk'
+  | 'aj139'
+  | 'aj179'
+  | 'lamparray'
+  | 'razer'
+  | 'aula-f87s';
 export const DEMO_KINDS: readonly DemoKind[] = [
   'ak820',
   'via',
   'vial',
   'zmk',
   'hmk',
+  'lamparray',
+  'razer',
   'aj139',
+  'aj179',
   'aula-f75',
+  'aula-f87s',
   'rk-r75',
 ];
 
@@ -752,6 +768,23 @@ export function KeyboardProvider({
       if (kind === 'aj139') {
         const { yjxMouse } = await import('@openkey/protocols');
         return void (await attach(new yjxMouse.YjxMouseSimulator().device.group(), true));
+      }
+      if (kind === 'aj179') {
+        const { aj179Mouse } = await import('@openkey/protocols');
+        return void (await attach(new aj179Mouse.Aj179Simulator().device.group(), true));
+      }
+      if (kind === 'razer') {
+        const { razer } = await import('@openkey/protocols');
+        return void (await attach(new razer.RazerSimulator().device.group(), true));
+      }
+      if (kind === 'aula-f87s') {
+        const { hubAa55 } = await import('@openkey/protocols');
+        return void (await attach(new hubAa55.HubSimulator().device.group(), true));
+      }
+      if (kind === 'lamparray') {
+        const { lampArray } = await import('@openkey/protocols');
+        const sim = new lampArray.LampArraySimulator(lampArray.demoLamps());
+        return void (await attach(sim.device.group(), true));
       }
       if (kind === 'hmk') {
         const { hmk } = await import('@openkey/protocols');

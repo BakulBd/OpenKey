@@ -182,7 +182,22 @@ export const en = {
   'mouse.active': 'Active level',
   'mouse.linkNote':
     'The cable and the 2.4 GHz receiver keep separate settings: changes apply to the connection in use.',
+  'mouse.sharedNote':
+    'The cable and the 2.4 GHz receiver share these settings. Through the receiver, move the mouse first so it is awake.',
+  'mouse.liftOff': 'Lift-off distance',
+  'mouse.flag.wakeOnMove': 'Wake on movement',
+  'mouse.flag.lightsOffOnMove': 'Lights off while moving',
+  'mouse.flag.motionSync': 'Motion Sync',
+  'mouse.flag.angleSnap': 'Angle snapping',
+  'tft.geometry': 'Screen size',
+  'tft.geometryHint':
+    'OpenKey does not recognise this model, and boards on this protocol have different screens. Choose the size from the box, the manual or the vendor app before uploading: the wrong size garbles the picture, and too many frames can overwrite the keyboard’s own screens.',
+  'tft.geometryPick': 'Choose the screen size…',
   'demo.aj139': 'AJAZZ AJ139 mouse',
+  'demo.aj179': 'AJAZZ AJ179 mouse',
+  'demo.razer': 'Razer BlackWidow V3',
+  'demo.aula-f87s': 'AULA F87S 8K',
+  'demo.lamparray': 'Dynamic Lighting (LampArray)',
   'guide.revisions': '{n} hardware revisions',
   'guide.rev.name': 'Revision',
   'guide.rev.chip': 'Chip',

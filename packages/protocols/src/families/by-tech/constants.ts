@@ -39,7 +39,40 @@ export const Cmd = {
   GET_LED: 0x84,
   /** Lighting / settings page write (read-modify-write only). */
   SET_LED: 0x04,
+  /**
+   * Screen parameters (`SetScreenParam`): volume, CPU, memory, date and time for the screen of RK's
+   * screen boards; fire-and-forget over the cable (ElXreno/rk-m87-sync docs/PROTOCOL.md, MIT).
+   */
+  SET_SCREEN_PARAM: 0x0b,
 } as const;
+
+/** `SetScreenParam` payload: 14 bytes. */
+export const SCREEN_PARAM_BYTES = 14;
+
+/**
+ * The screen-parameter payload: volume, CPU and memory (0–100), year (16-bit LE), month, day, hour,
+ * minute, second and day of week (0 = Sunday), raw integers. OpenKey runs in a browser, which cannot
+ * read the computer's volume or load, so those fields are 0.
+ */
+export function screenParams(d: Date): Uint8Array {
+  const y = d.getFullYear();
+  return Uint8Array.of(
+    0,
+    0,
+    0,
+    y & 0xff,
+    y >> 8,
+    d.getMonth() + 1,
+    d.getDate(),
+    d.getHours(),
+    d.getMinutes(),
+    d.getSeconds(),
+    d.getDay(),
+    0,
+    0,
+    0,
+  );
+}
 
 export const INFO_IDENTITY = 0x01;
 export const IDENTITY_BYTES = 6;

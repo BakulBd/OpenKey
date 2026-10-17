@@ -75,13 +75,42 @@ export function parseReportDescriptor(desc: Uint8Array): HidCollection[] {
   const stack: GlobalState[] = [];
   let localUsages: number[] = [];
   let depth = 0;
-  let current: {
+  interface Builder {
     page: number;
     usage: number;
     input: Map<number, number>;
     output: Map<number, number>;
     feature: Map<number, number>;
-  } | null = null;
+    /** Position in `children`, reserved when the collection opens (descriptor order). */
+    slot: number;
+  }
+  const builder = (page: number, usage: number, slot = -1): Builder => ({
+    page,
+    usage,
+    slot,
+    input: new Map(),
+    output: new Map(),
+    feature: new Map(),
+  });
+  const build = (b: Builder): HidCollection => ({
+    usagePage: b.page,
+    usage: b.usage,
+    inputReports: toReports(b.input),
+    outputReports: toReports(b.output),
+    featureReports: toReports(b.feature),
+  });
+  let current: Builder | null = null;
+  /** Open nested collections, innermost last. */
+  const open: Builder[] = [];
+  /** Nested collections of the current top-level collection, in descriptor order. */
+  let children: HidCollection[] = [];
+  /** Reports are counted on the top-level collection and on the innermost nested one. */
+  const add = (kind: 'input' | 'output' | 'feature', bits: number) => {
+    if (!current) return;
+    addBits(current[kind], g.reportId, bits);
+    const inner = open[open.length - 1];
+    if (inner) addBits(inner[kind], g.reportId, bits);
+  };
 
   for (const it of hidItems(desc)) {
     if (it.type === TYPE_GLOBAL) {
@@ -115,42 +144,40 @@ export function parseReportDescriptor(desc: Uint8Array): HidCollection[] {
 
     switch (it.tag) {
       case MAIN_COLLECTION: {
+        const u = localUsages[0] ?? 0;
+        // A 4-byte usage carries its own page in the high word.
+        const page = u > 0xffff ? u >>> 16 : g.usagePage;
         if (depth === 0) {
-          const u = localUsages[0] ?? 0;
-          // A 4-byte usage carries its own page in the high word.
-          const page = it.size === 4 || u > 0xffff ? u >>> 16 : g.usagePage;
-          current = {
-            page,
-            usage: u & 0xffff,
-            input: new Map(),
-            output: new Map(),
-            feature: new Map(),
-          };
+          current = builder(page, u & 0xffff);
+          children = [];
+        } else if (current) {
+          open.push(builder(page, u & 0xffff, children.length));
+          children.push(build(open[open.length - 1]!));
         }
         depth++;
         break;
       }
       case MAIN_END_COLLECTION:
         depth = Math.max(0, depth - 1);
-        if (depth === 0 && current) {
-          collections.push({
-            usagePage: current.page,
-            usage: current.usage,
-            inputReports: toReports(current.input),
-            outputReports: toReports(current.output),
-            featureReports: toReports(current.feature),
-          });
+        if (depth > 0) {
+          const child = open.pop();
+          if (child) children[child.slot] = build(child);
+        } else if (current) {
+          const c = build(current);
+          if (children.length) c.children = children;
+          collections.push(c);
           current = null;
+          open.length = 0;
         }
         break;
       case MAIN_INPUT:
-        if (current) addBits(current.input, g.reportId, g.reportSize * g.reportCount);
+        add('input', g.reportSize * g.reportCount);
         break;
       case MAIN_OUTPUT:
-        if (current) addBits(current.output, g.reportId, g.reportSize * g.reportCount);
+        add('output', g.reportSize * g.reportCount);
         break;
       case MAIN_FEATURE:
-        if (current) addBits(current.feature, g.reportId, g.reportSize * g.reportCount);
+        add('feature', g.reportSize * g.reportCount);
         break;
     }
     localUsages = [];

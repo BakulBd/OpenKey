@@ -10,13 +10,25 @@ import {
   emptyCapabilities,
   feature,
 } from '@openkey/core';
-import type { Capabilities, DeviceInfo, KeyboardLayout, TransportMode } from '@openkey/core';
+import type {
+  Capabilities,
+  DeviceInfo,
+  KeyboardLayout,
+  MouseDriver,
+  MouseSchema,
+  MouseSettings,
+  TransportMode,
+} from '@openkey/core';
 import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
 import {
+  DEBOUNCE_MS,
+  DPI_LEVELS,
+  POLLING_RATES,
   READ_BATTERY,
   READ_CONFIG,
   READ_INFO,
   REPORT_SIZE,
+  SLEEP_MINUTES,
   YJX_PROTOCOL_ID,
   answers,
   decodeConfig,
@@ -57,7 +69,7 @@ export class YjxSession {
  * from the mouse and written as read-modify-write of the settings block, then read back. Cable and
  * receiver keep separate settings (per the source), so the link in use is the one changed.
  */
-export class YjxMouseDriver extends BaseKeyboardDriver {
+export class YjxMouseDriver extends BaseKeyboardDriver implements MouseDriver {
   readonly protocolId = YJX_PROTOCOL_ID;
   readonly transport: TransportMode;
   private session: YjxSession | null = null;
@@ -113,6 +125,46 @@ export class YjxMouseDriver extends BaseKeyboardDriver {
       if (wrong.length)
         throw new ReadbackMismatchError(`The mouse did not keep: ${wrong.join(', ')}.`);
     }
+  }
+
+  getMouseSchema(): MouseSchema {
+    return {
+      pollingRates: [...POLLING_RATES],
+      dpi: { min: 50, max: 26000, step: 50, levels: DPI_LEVELS },
+      debounceMs: { ...DEBOUNCE_MS },
+      sleep: SLEEP_MINUTES.map((m) => ({ value: m, label: `${m} min` })),
+      flags: [
+        { id: 'wakeOnClick', label: 'Wake with a click (instead of movement)' },
+        { id: 'scrollInverted', label: 'Invert scrolling' },
+      ],
+      perLink: true,
+    };
+  }
+
+  async getMouseSettings(): Promise<MouseSettings> {
+    const c = await this.getMouseConfig();
+    return {
+      pollingRate: c.pollingRate,
+      dpi: c.dpi,
+      dpiCount: c.dpiCount,
+      dpiIndex: c.dpiIndex,
+      debounceMs: c.debounceMs,
+      sleep: c.sleepMinutes,
+      flags: { wakeOnClick: c.wakeOnClick, scrollInverted: c.scrollInverted },
+    };
+  }
+
+  async setMouseSettings(p: Partial<MouseSettings>): Promise<void> {
+    const patch: Partial<YjxMouseConfig> = {};
+    if (p.pollingRate !== undefined) patch.pollingRate = p.pollingRate;
+    if (p.dpi !== undefined) patch.dpi = p.dpi;
+    if (p.dpiCount !== undefined) patch.dpiCount = p.dpiCount;
+    if (p.dpiIndex !== undefined) patch.dpiIndex = p.dpiIndex;
+    if (p.debounceMs !== undefined) patch.debounceMs = p.debounceMs;
+    if (p.sleep !== undefined) patch.sleepMinutes = p.sleep;
+    if (p.flags?.wakeOnClick !== undefined) patch.wakeOnClick = p.flags.wakeOnClick;
+    if (p.flags?.scrollInverted !== undefined) patch.scrollInverted = p.flags.scrollInverted;
+    await this.setMouseConfig(patch);
   }
 
   override async getPollingRate(): Promise<number> {

@@ -76,6 +76,32 @@ code written from the public format specifications; no runtime library is used f
 board index (`packages/devices/src/via-index.json`) holds only USB IDs and names from
 the-via/keyboards (GPL-3.0), facts with no definition content.
 
+The adapters added on 2026-10-17 follow the same rule (own code, facts from the sources below):
+
+- **hid-lamparray**: the public HID Usage Tables (Lighting And Illumination page); OpenRGB's
+  HIDLampArrayController (GPL-2.0) as a cross-check.
+- **wooting-rgb**: WootingKb/wooting-rgb-sdk (MPL-2.0, Copyright 2018 Wooting Technologies B.V.).
+  No SDK file is included or modified; MPL-2.0 obligations apply only to distributed copies of those
+  files.
+- **aj179-mouse**: Rockeyxx/aj179-linux (MIT, Copyright (c) 2026 Omar).
+- **semico-lighting** (AJAZZ AK992): J0hnBloodborne/rea-jazz (MIT, Copyright (c) 2026 J0hnBloodborne).
+- **hub-aa55** (AULA F87S 8K, AJAZZ AK680): Dylan-1107/aula-f87s-hid (MIT, Copyright (c) 2026
+  Dylan-1107), including its 87-key LED map; 10ishk/ak680-studio (Apache-2.0); somenever/not-ajazz-ak680-max-webhid
+  (GPL-3.0, facts only).
+- **AULA F108 Pro profile and layout**: parsiya/f108-pro (MIT, Copyright (c) 2026 Parsia Hakimian), key
+  and LED indices from its published key table.
+- **AJAZZ AK35i V3 MAX profile**: dantje/ajazz-ak35i-v3-max (MIT, Copyright (c) 2026 Daniel van Gerpen).
+- **RK M87 screen clock** (BY Tech): ElXreno/rk-m87-sync (MIT, Copyright (c) 2026 ElXreno); RK M75:
+  Lightning-13/rk-m75 (MIT, Copyright (c) 2026 Ravi Sankannavar).
+- **razer-chroma**: openrazer (GPL-2.0) and OpenRGB (GPL-2.0), facts only; the model table (USB IDs,
+  command set, transaction ids, matrix sizes) is data.
+- **evision**, **bloody-b820r**, **hyperx-alloy-origins**, **ducky-rgb**, **steelseries-apex**:
+  OpenRGB (GPL-2.0), facts only (USB IDs, report layouts, LED orders).
+- **logitech-hidpp**: Solaar (GPL-2.0) and OpenRGB (GPL-2.0), facts only.
+
+The MIT notices above are reproduced as those licences ask for substantial portions; OpenKey copies no
+source file from these projects, so the notices are given as credit.
+
 Full provenance, per-adapter licensing and the GPL analysis: [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md).
 The CLI bundle includes jpeg-js (BSD-3-Clause, Copyright (c) 2014, Eugene Ware);
 its licence notice must accompany any redistribution of `tools/cli/dist/`.

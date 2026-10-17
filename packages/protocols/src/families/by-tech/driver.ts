@@ -5,6 +5,7 @@ import {
   ProtocolError,
   ReadbackMismatchError,
   SafetyLevel,
+  UnsupportedFeatureError,
   configurable,
   emptyCapabilities,
   feature,
@@ -23,7 +24,7 @@ import type {
 } from '@openkey/core';
 import { getLayout } from '@openkey/devices';
 import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
-import { BY_TECH_PROTOCOL_ID } from './constants.js';
+import { BY_TECH_PROTOCOL_ID, Cmd, screenParams } from './constants.js';
 import { AULA_SLEEP, effectCatalog, identityHex } from './models.js';
 import type { ByTechModel } from './models.js';
 import {
@@ -162,6 +163,17 @@ export class ByTechDriver extends BaseKeyboardDriver {
       confidence: Evidence.INFERRED,
       note: 'Per-key colours need the model’s LED map; not implemented.',
     });
+    if (this.model?.screenClock) {
+      c.tftClock = configurable('none', true, Evidence.INFERRED, {
+        safety: SafetyLevel.SAFE_VOLATILE,
+        source: 'SetScreenParam 0x0B (ElXreno/rk-m87-sync, tested on an M87 by the source)',
+        note: 'The keyboard keeps no time of its own: set it after each connection. A browser cannot read the computer’s volume, so the screen shows 0 for it until RK’s software sends one.',
+      });
+      c.tft = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
+        confidence: Evidence.INFERRED,
+        note: 'Picture upload goes through a separate screen controller with its own checksums; documented from the vendor app but not tested, so not sent.',
+      });
+    }
     c.keymap = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
       confidence: Evidence.INFERRED,
       note: 'Third-party sources disagree on the key encoding.',
@@ -226,6 +238,14 @@ export class ByTechDriver extends BaseKeyboardDriver {
   }
 
   /** Reads the 128-byte settings page exactly as the keyboard stores it. */
+  override async syncClock(date: Date = new Date()): Promise<void> {
+    if (!this.model?.screenClock)
+      throw new UnsupportedFeatureError('tftClock', 'this model has no screen clock');
+    if (this.transport !== 'usb')
+      throw new UnsupportedFeatureError('tftClock', 'set the clock over the USB cable');
+    await this.s().write(Cmd.SET_SCREEN_PARAM, 0, screenParams(date));
+  }
+
   async readSettingsPage(): Promise<Uint8Array> {
     return this.s().readSettingsPage();
   }

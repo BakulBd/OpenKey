@@ -78,6 +78,22 @@ const PROTECTED = (c: DoctorCollection) =>
   c.usagePage === 0x0c;
 
 const VIA_PAGE = 0xff60;
+/** HID LampArray: the public lighting standard (Windows Dynamic Lighting). */
+const LAMPARRAY = (c: DoctorCollection) => c.usagePage === 0x59 && c.usage === 0x01;
+
+/** The vendor app that usually holds a keyboard of this family open, by catalogue family. */
+const VENDOR_APP: Record<string, string> = {
+  'razer-chroma': 'Razer Synapse',
+  'logitech-hidpp': 'Logitech G HUB',
+  'steelseries-apex': 'SteelSeries GG',
+  'wooting-rgb': 'Wootility',
+  'hyperx-alloy-origins': 'HyperX NGENUITY',
+  'ducky-rgb': 'DuckyHub',
+  'bloody-b820r': 'the Bloody software',
+  evision: 'the keyboard’s own driver app',
+};
+/** Families whose control channel sits on a standard (mouse or consumer) collection. */
+const STANDARD_CHANNEL = new Set(['razer-chroma']);
 
 function check(
   id: DoctorCheckId,
@@ -179,13 +195,14 @@ function accessCheck(os: DoctorOs, d: DoctorDevice, runtime: DoctorInput['runtim
         : `Install the OpenKey udev rule (one command, shown on the Connect page) with --device ${id}, then unplug and replug the keyboard.`,
       { id, error: d.openError },
     );
+  const app = d.known.map((k) => VENDOR_APP[k.family]).find(Boolean) ?? 'the vendor driver app';
   return check(
     'access',
     'fail',
     'Another program holds the keyboard',
     `The system refused to open it (${d.openError}).`,
-    'Quit the vendor driver app (look for its tray or menu-bar icon), then unplug and replug the keyboard.',
-    { id, error: d.openError },
+    `Quit ${app} (look for its tray or menu-bar icon), then unplug and replug the keyboard.`,
+    { id, error: d.openError, app },
   );
 }
 
@@ -202,6 +219,26 @@ function interfaceCheck(d: DoctorDevice): DoctorCheck {
       'pass',
       'The VIA/Vial configuration interface is present',
       'Page FF60 is the raw HID channel QMK/VIA and Vial firmware configure through.',
+    );
+  if (all.some(LAMPARRAY))
+    return check(
+      'interface',
+      'pass',
+      'The standard lighting interface (HID LampArray) is present',
+      'Page 0x59 is the public lighting standard Windows Dynamic Lighting uses. On Windows, turn off “Use Dynamic Lighting on my devices” while OpenKey sets colours.',
+    );
+  if (
+    d.known.some((k) => STANDARD_CHANNEL.has(k.family)) &&
+    all.some(
+      (c) =>
+        c.featureReports > 0 && c.usagePage < 0xff00 && !(c.usagePage === 0x01 && c.usage === 0x06),
+    )
+  )
+    return check(
+      'interface',
+      'pass',
+      'The configuration interface is present',
+      'This brand configures through a feature report on its mouse or media-key interface.',
     );
   const vendor = all.filter((c) => c.usagePage >= 0xff00);
   if (vendor.length)

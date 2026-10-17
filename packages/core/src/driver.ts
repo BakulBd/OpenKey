@@ -83,6 +83,8 @@ export interface KeyboardDriver {
     opts?: UploadOptions,
   ): Promise<void>;
   setTftMode(mode: string): Promise<void>;
+  /** Chooses one of `TftInfo.geometryChoices`. Remembered by OpenKey; nothing is sent. */
+  setTftGeometry(id: string): Promise<void>;
   getTftStatus(): Promise<TftStatus>;
   syncClock(date?: Date): Promise<void>;
 
@@ -201,6 +203,9 @@ export abstract class BaseKeyboardDriver implements KeyboardDriver {
   }
   async setTftMode(_mode: string): Promise<void> {
     unsupported('tft', 'display mode switching has no verified command');
+  }
+  async setTftGeometry(_id: string): Promise<void> {
+    unsupported('tft', 'this keyboard reports its screen size');
   }
   async getTftStatus(): Promise<TftStatus> {
     return unsupported('tft');

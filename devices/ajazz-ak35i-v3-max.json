@@ -1,0 +1,45 @@
+{
+  "$schema": "./device.schema.json",
+  "id": "ajazz-ak35i-v3-max",
+  "model": "AJAZZ AK35i V3 MAX",
+  "notes": "Reports the generic product string \"USB KEYBOARD\" (SONiX), so it is never chosen automatically: an unrecognised AJAZZ-protocol keyboard can pick this screen size in the screen studio. 240×135 screen, at most 141 frames; the display only takes commands with the back switch on USB.",
+  "vendorIds": ["0x0C45"],
+  "productIds": ["0x8009"],
+  "productNames": [],
+  "firmwareRange": { "min": null, "max": null, "tested": [] },
+  "usagePages": ["0xFF13", "0xFF68"],
+  "usages": { "0xFF13": ["0x01"], "0xFF68": ["0x61"] },
+  "protocolFamily": "sonix-feature",
+  "variant": "ak35i-v3-max",
+  "layout": "ak820-max",
+  "transportModes": {
+    "usb": {
+      "configuration": "partial",
+      "evidence": "dantje/ajazz-ak35i-v3-max PROTOCOL.md (MIT): time sync, lighting, per-key and screen upload on 0C45:8009."
+    },
+    "2.4ghz": {
+      "configuration": "unsupported",
+      "evidence": "With the back switch on RF the display ignores commands (PROTOCOL.md §2)."
+    },
+    "bluetooth": {
+      "configuration": "unsupported",
+      "evidence": "With the back switch on BT the display ignores commands (PROTOCOL.md §2)."
+    }
+  },
+  "tft": {
+    "width": 240,
+    "height": 135,
+    "maxFrames": 141,
+    "slots": 1,
+    "headerBytes": 256,
+    "chunkBytes": 4096,
+    "delayUnitMs": 2
+  },
+  "rgb": { "brightnessMax": 5, "speedMax": 5, "defaultEffect": 11, "perKey": true },
+  "macros": null,
+  "knob": { "configurable": false, "note": "No knob setting is documented." },
+  "evidence": [
+    "dantje/ajazz-ak35i-v3-max PROTOCOL.md (MIT)",
+    "KyleBoyer/TFTTimeSync-node (facts only)"
+  ]
+}

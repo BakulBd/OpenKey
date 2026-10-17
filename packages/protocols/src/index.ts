@@ -10,6 +10,20 @@ import { rkClassicProtocol } from './families/rk-classic/protocol.js';
 import { aulaReceiverProtocol } from './families/aula-receiver/protocol.js';
 import { hmkProtocol } from './families/hmk/protocol.js';
 import { yjxMouseProtocol } from './families/yjx-mouse/protocol.js';
+import { lampArrayProtocol } from './families/lamparray/protocol.js';
+import { aj179MouseProtocol } from './families/aj179-mouse/protocol.js';
+import { semicoProtocol } from './families/semico/protocol.js';
+import { hubProtocol } from './families/hub-aa55/protocol.js';
+import { razerProtocol } from './families/razer/protocol.js';
+import { wootingProtocol } from './families/wooting/protocol.js';
+import { evisionProtocol } from './families/evision/protocol.js';
+import {
+  bloodyB820RProtocol,
+  duckyProtocol,
+  hyperxOriginsProtocol,
+} from './families/oem-direct/protocols.js';
+import { steelSeriesProtocol } from './families/oem-direct/steelseries.js';
+import { logitechProtocol } from './families/logitech-hidpp/protocol.js';
 import { PLANNED_ADAPTERS } from './families/planned.js';
 
 export * from './registry.js';
@@ -34,6 +48,16 @@ export * as aulaReceiver from './families/aula-receiver/index.js';
 export * as zmk from './families/zmk/index.js';
 export * as hmk from './families/hmk/index.js';
 export * as yjxMouse from './families/yjx-mouse/index.js';
+export * as lampArray from './families/lamparray/index.js';
+export * as aj179Mouse from './families/aj179-mouse/index.js';
+export * as semico from './families/semico/index.js';
+export * as hubAa55 from './families/hub-aa55/index.js';
+export * as razer from './families/razer/index.js';
+export * as wooting from './families/wooting/index.js';
+export * as evision from './families/evision/index.js';
+export * as oemDirect from './families/oem-direct/index.js';
+export * as logitech from './families/logitech-hidpp/index.js';
+export * from './families/common/direct-lighting.js';
 
 /** Registry with every protocol family OpenKey knows, plus research-only planned adapters. */
 export function createDefaultRegistry(): ProtocolRegistry {
@@ -48,7 +72,19 @@ export function createDefaultRegistry(): ProtocolRegistry {
     .register(rkClassicProtocol)
     .register(aulaReceiverProtocol)
     .register(hmkProtocol)
-    .register(yjxMouseProtocol);
+    .register(yjxMouseProtocol)
+    .register(lampArrayProtocol)
+    .register(aj179MouseProtocol)
+    .register(semicoProtocol)
+    .register(hubProtocol)
+    .register(razerProtocol)
+    .register(wootingProtocol)
+    .register(evisionProtocol)
+    .register(bloodyB820RProtocol)
+    .register(hyperxOriginsProtocol)
+    .register(duckyProtocol)
+    .register(steelSeriesProtocol)
+    .register(logitechProtocol);
   for (const p of PLANNED_ADAPTERS) r.plan(p);
   return r;
 }

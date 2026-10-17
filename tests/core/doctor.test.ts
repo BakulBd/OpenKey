@@ -191,3 +191,48 @@ describe('connection doctor', () => {
     expect(b.map((c) => c.id)).toEqual(['browser']);
   });
 });
+
+describe('doctor: newer adapters', () => {
+  const dev = (over: Partial<DoctorDevice>): DoctorDevice => ({
+    vendorId: 0x1532,
+    productId: 0x024e,
+    productName: 'Razer BlackWidow V3',
+    interfaces: [],
+    known: [],
+    ...over,
+  });
+
+  it('names the vendor app that holds a known keyboard', () => {
+    const checks = runDoctor({
+      runtime: 'browser',
+      os: 'windows',
+      webHid: true,
+      secureContext: true,
+      device: dev({
+        openError: 'NotAllowedError',
+        known: [{ model: 'BlackWidow V3', link: 'usb', family: 'razer-chroma' }],
+      }),
+    });
+    expect(checks.find((c) => c.id === 'access')!.fix).toMatch(/Razer Synapse/);
+  });
+
+  it('recognises the HID LampArray standard and Razer’s control collection as configuration interfaces', () => {
+    const lamp = runDoctor({
+      runtime: 'cli',
+      os: 'linux',
+      device: dev({
+        interfaces: [[{ usagePage: 0x59, usage: 0x01, featureReports: 6, outputReports: 0 }]],
+      }),
+    });
+    expect(lamp.find((c) => c.id === 'interface')).toMatchObject({ status: 'pass' });
+    const razer = runDoctor({
+      runtime: 'cli',
+      os: 'linux',
+      device: dev({
+        interfaces: [[{ usagePage: 0x01, usage: 0x02, featureReports: 1, outputReports: 0 }]],
+        known: [{ model: 'BlackWidow V3', link: 'usb', family: 'razer-chroma' }],
+      }),
+    });
+    expect(razer.find((c) => c.id === 'interface')).toMatchObject({ status: 'pass' });
+  });
+});

@@ -22,6 +22,13 @@ export interface ByTechModel {
   /** Lighting effects in firmware order (1-based position = the value stored in the page). */
   effects: 'aula-fw24' | null;
   brightnessMax: number;
+  /**
+   * USB product IDs the identity is trusted on. RK's codes are generic (`a,0,0,0,0,0`), so an RK
+   * entry is used only on the USB ID its code was published for.
+   */
+  productIds?: number[];
+  /** The board has a screen whose clock is set with `SetScreenParam` (RK screen boards). */
+  screenClock?: boolean;
   /** Where the identity and parameters come from. */
   source: string;
 }
@@ -61,8 +68,22 @@ export const BY_TECH_MODELS: readonly ByTechModel[] = [
     pageLayout: null,
     effects: null,
     brightnessMax: 5,
+    productIds: [0x015e],
     source:
       'RK driver configuration for USB 258A:015E (Dev/015E/KB.ini: Psd=a,0,0,0,0,0, Fw=1), as published by vinc3m1/kludgeknight (fact only)',
+  },
+  {
+    identity: '06 00 00 00 00 23',
+    brand: 'RK',
+    model: 'M87 (screen)',
+    layoutId: 'ak820-pro',
+    pageLayout: null,
+    effects: null,
+    brightnessMax: 5,
+    productIds: [0x01a2, 0x01af],
+    screenClock: true,
+    source:
+      'RK driver configuration Dev/01AF/KB.ini (Psd=6,0,0,0,0,23; ShowScreen=1, siScreen=320,172) and the cable identity 258A:01A2, as published by ElXreno/rk-m87-sync (MIT)',
   },
 ];
 
@@ -71,9 +92,11 @@ export const identityHex = (b: Uint8Array): string =>
 
 export function modelFor(identity: Uint8Array, productId?: number): ByTechModel | undefined {
   const hex = identityHex(identity);
-  const hits = BY_TECH_MODELS.filter((m) => m.identity === hex);
-  // The RK code is generic ("a,0,0,0,0,0"); only trust it on the USB ID it was published for.
-  return hits.find((m) => m.brand !== 'RK' || productId === 0x015e);
+  return BY_TECH_MODELS.find(
+    (m) =>
+      m.identity === hex &&
+      (!m.productIds || (productId !== undefined && m.productIds.includes(productId))),
+  );
 }
 
 /** `ui index, hw effect, speed, brightness, direction, random, colour` rows shared by every Fw=24 profile. */

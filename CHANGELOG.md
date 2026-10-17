@@ -1,5 +1,55 @@
 # Changelog
 
+## Unreleased — Dynamic Lighting, Razer, Wooting, Logitech, SteelSeries, AULA F87S/F108 Pro, AJ179 and more
+
+Twelve new protocol adapters, two new keyboard profiles and fixes for limitations found while
+researching them. Every new write is experimental (simulator-tested, not yet run on hardware) and stays
+behind the experimental opt-in. Sources and what was taken from each: docs/SOURCES_REVIEW.md
+("Review of 2026-10-17").
+
+- **HID LampArray (Windows Dynamic Lighting)**: any keyboard implementing the public standard. The
+  lamp positions and the key under each lamp are read from the keyboard, so the per-key studio shows
+  the real board; per-key and solid colours, and giving the lighting back. The HID layer now keeps
+  nested collections (WebHID and the Linux descriptor parser), which the standard needs.
+- **Razer** (52 keyboards from OpenRGB’s table: BlackWidow, Huntsman, Ornata, Cynosa, DeathStalker):
+  stored effects (static, breathing, spectrum, wave, reactive, starlight), brightness read back,
+  per-key colours on the LED matrix, firmware version.
+- **Wooting** (One, Two, 60HE, 80HE, UwU RGB) through Wooting’s own RGB SDK protocol: per-key and solid
+  colours, back to the profile lighting.
+- **Logitech G915 / G915 TKL / G815** over HID++ 2.0: features found through the root feature (no
+  hard-coded indices), name, battery, per-key and solid colours, back to the on-board profile.
+- **SteelSeries Apex 5/7/9/Pro**: direct per-key colours for all three firmware generations (picked
+  from the firmware version), back to the keyboard’s lighting.
+- **EVision firmware boards** (Redragon K552/K556 and other Sonix boards): 18 named effects,
+  brightness, speed, direction and per-key colours on a full-size map.
+- **A4Tech Bloody B820R, HyperX Alloy Origins, Ducky One 2 RGB**: direct per-key and solid colours.
+  Where no command gives the lighting back, OpenKey says to unplug instead of inventing one.
+- **AULA F87S 8K** (cable and receiver) and **AJAZZ AK680 V2 / AK680 MAX** (AULA/AJAZZ web-driver
+  protocol): firmware, battery, effect, colour, brightness and speed read and read back; per-key
+  colours on the F87S with the whole 128-slot table kept; through the receiver, nothing is changed
+  unless it relays an F87S.
+- **AJAZZ AJ179 mouse**: polling rate, DPI levels, lift-off, Motion Sync, Angle Snap, sleep, wake,
+  debounce (0–20 ms) and lighting, all read back; works through the receiver (asleep mice explained).
+- **AJAZZ AK992** (SEMICO firmware): effects, brightness and speed, at most one change a second; the
+  firmware-update command is refused.
+- **AULA F108 Pro** on the verified AJAZZ protocol: 104-key layout and the 240 × 135 screen, capped at
+  the vendor’s 141 frames (more overwrites the keyboard’s own screens).
+- **Screen size choice** (fix): an unrecognised keyboard on the AJAZZ protocol (AK35i V3 MAX “USB
+  KEYBOARD”, AKS075 …) used to get the AK820 MAX’s 128 × 128 geometry. It now has to choose its
+  screen size in the screen studio before any upload.
+- **RK M87**: identified as a BY Tech board by its model code; sets the screen clock (the keyboard has
+  no clock of its own). RK model codes are trusted only on their published USB IDs.
+- **Mouse settings page** now renders from each mouse’s own schema (rates, DPI range, sleep options,
+  toggles), so the AJ139 and AJ179 share it.
+- **Connection doctor**: names the vendor app that holds a keyboard (Synapse, G HUB, SteelSeries GG,
+  Wootility …); recognises LampArray and Razer’s control interface.
+- Catalogue, model guide, research inventory and udev rules cover every new identity; licence facts
+  corrected (dantje/ajazz-ak35i-v3-max is MIT, AuRoN89’s F108 work is CC-BY-4.0).
+- Demo: AJAZZ AJ179 mouse and a Dynamic Lighting keyboard.
+- Researched, not implemented, with the reason recorded: Corsair (software lighting needs a
+  keep-alive), RK M75 live colour streaming, RK M87 picture upload, AULA receiver writes (sources
+  disagree), AJAZZ AK33 (identity unknown).
+
 ## Unreleased — ZMK Studio, libhmk, Vial extras, VIA menus and knobs, wireless-aware guidance
 
 - **ZMK Studio** (ZMK firmware over USB serial, Chrome/Edge): reads the keyboard's physical layout and

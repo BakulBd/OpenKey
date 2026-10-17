@@ -49,14 +49,29 @@ function toReports(list: readonly HIDReportInfo[] | undefined): HidReportInfo[] 
   }));
 }
 
-export function collectionsOf(device: HIDDevice): HidCollection[] {
-  return (device.collections ?? []).map((c) => ({
+function toCollection(c: HIDCollectionInfo): HidCollection {
+  const out: HidCollection = {
     usagePage: c.usagePage ?? 0,
     usage: c.usage ?? 0,
     inputReports: toReports(c.inputReports),
     outputReports: toReports(c.outputReports),
     featureReports: toReports(c.featureReports),
-  }));
+  };
+  const children = flattenChildren(c.children);
+  if (children.length) out.children = children;
+  return out;
+}
+
+/** Nested collections in descriptor order, flattened; each keeps only its own reports. */
+function flattenChildren(list: readonly HIDCollectionInfo[] | undefined): HidCollection[] {
+  return (list ?? []).flatMap((c) => {
+    const { children, ...own } = toCollection(c);
+    return [own, ...(children ?? [])];
+  });
+}
+
+export function collectionsOf(device: HIDDevice): HidCollection[] {
+  return (device.collections ?? []).map(toCollection);
 }
 
 export class WebHidTransport implements HidTransport {

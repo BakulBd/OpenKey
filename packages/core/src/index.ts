@@ -14,6 +14,7 @@ export * from './model/lighting.js';
 export * from './model/macros.js';
 export * from './model/settings.js';
 export * from './model/tft.js';
+export * from './model/mouse.js';
 export * from './backup-ops.js';
 export * from './safety.js';
 export * from './write-guard.js';

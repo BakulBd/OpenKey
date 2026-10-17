@@ -150,12 +150,38 @@ export default function TftStudio() {
 
   const totalMs = frames.reduce((a, f) => a + f.delayMs, 0);
   const bytes = info ? frames.length * info.width * info.height * 2 : 0;
+  /** An unrecognised model whose screen size has not been chosen yet: nothing may be uploaded. */
+  const needsGeometry = !!info?.geometryChoices && !info.geometryId;
+  const chooseGeometry = async (id: string) => {
+    if (!id) return;
+    await device.driver.setTftGeometry(id);
+    const i = await read(t('tft.read'), (d) => d.getTftInfo());
+    if (i) setInfo(i);
+  };
 
   return (
     <div className="page">
       <PageHeader title={t('nav.screen')} lead={t('tft.lead')} />
       {caps.tft.write && <WriteGateNote gate={gate('tft')} />}
       {caps.tft.write && !info && <Loading />}
+      {info?.geometryChoices && (
+        <Card title={t('tft.geometry')}>
+          <p className="small">{t('tft.geometryHint')}</p>
+          <Field label={t('tft.geometry')}>
+            <select
+              value={info.geometryId ?? ''}
+              onChange={(e) => void chooseGeometry(e.target.value)}
+            >
+              {!info.geometryId && <option value="">{t('tft.geometryPick')}</option>}
+              {info.geometryChoices.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </Card>
+      )}
       {info && (
         <div className="grid2">
           <Card title={t('tft.source')}>
@@ -382,7 +408,7 @@ export default function TftStudio() {
                     <button
                       type="button"
                       className="btn primary"
-                      disabled={!!progress && progress.phase !== 'done'}
+                      disabled={needsGeometry || (!!progress && progress.phase !== 'done')}
                       onClick={() => void upload()}
                     >
                       {t('tft.upload')}

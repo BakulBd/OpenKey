@@ -22,6 +22,15 @@ import {
   aulaReceiver,
   hmk,
   yjxMouse,
+  lampArray,
+  aj179Mouse,
+  semico,
+  hubAa55,
+  razer,
+  wooting,
+  evision,
+  oemDirect,
+  logitech,
 } from '@openkey/protocols';
 import { ROOT } from '../helpers.js';
 
@@ -41,6 +50,18 @@ const SAMPLES: Record<string, () => MockHidDevice> = {
   'aula-receiver': () => new aulaReceiver.AulaReceiverSimulator().device,
   hmk: () => new hmk.HmkSimulator().device,
   'yjx-mouse': () => new yjxMouse.YjxMouseSimulator().device,
+  'hid-lamparray': () => new lampArray.LampArraySimulator().device,
+  'aj179-mouse': () => new aj179Mouse.Aj179Simulator().device,
+  'semico-lighting': () => new semico.SemicoSimulator().device,
+  'hub-aa55': () => new hubAa55.HubSimulator().device,
+  'razer-chroma': () => new razer.RazerSimulator().device,
+  'wooting-rgb': () => new wooting.WootingSimulator().device,
+  evision: () => new evision.EVisionSimulator().device,
+  'bloody-b820r': () => oemDirect.bloodyB820RSimulator().device,
+  'hyperx-alloy-origins': () => oemDirect.hyperxOriginsSimulator().device,
+  'ducky-rgb': () => oemDirect.duckySimulator().device,
+  'steelseries-apex': () => new oemDirect.SteelSeriesSimulator().device,
+  'logitech-hidpp': () => new logitech.LogitechSimulator().device,
   'rk-classic': () =>
     new MockHidDevice({ vendorId: 0x258a, productId: 0x004a, productName: 'RK61RGB Wired' }, [
       {
@@ -150,7 +171,8 @@ describe('adapter conformance', () => {
     });
 
     it(`${def.id}: never auto-probes an unrelated identity`, () => {
-      if (def.id === 'qmk-via') return; // public-specification read on a reserved collection
+      // Public-specification reads on collections reserved for them (VIA raw HID, HID LampArray).
+      if (def.id === 'qmk-via' || def.id === 'hid-lamparray') return;
       const foreign = {
         ...SAMPLES[def.id]!().group(),
         identity: { vendorId: 0x1234, productId: 0x5678, productName: 'Unrelated' },

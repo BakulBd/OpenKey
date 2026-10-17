@@ -1,70 +1,73 @@
-import { useEffect, useState } from 'react';
-import type { Transaction } from '@openkey/core';
-import type { yjxMouse } from '@openkey/protocols';
+import { useEffect, useMemo, useState } from 'react';
+import { isMouseDriver } from '@openkey/core';
+import type { MouseSettings as Settings, Transaction } from '@openkey/core';
 import { useKeyboard } from '../../state/keyboard.js';
 import { useT } from '../../i18n/i18n.js';
+import type { MessageKey } from '../../i18n/i18n.js';
 import { Card, Field, KV, Loading, PageHeader, SourceNote, Toggle } from '../../components/ui.js';
 import { ChangeBar, useChangeTracking } from '../../components/ChangeBar.js';
 import { WriteGateNote } from '../shared/WriteGateNote.js';
 
-type Config = yjxMouse.YjxMouseConfig;
-
-interface MouseHost {
-  getMouseConfig(): Promise<Config>;
-  setMouseConfig(patch: Partial<Config>): Promise<void>;
-  getBattery(): Promise<{ level: number; charging: boolean } | null>;
-}
-
-const RATES = [125, 250, 500, 1000, 2000];
-const SLEEP = [1, 3, 5, 10, 20, 30, 60];
-const KEYS: (keyof Config)[] = [
+const KEYS: (keyof Settings)[] = [
   'debounceMs',
   'pollingRate',
   'dpi',
   'dpiCount',
   'dpiIndex',
-  'sleepMinutes',
-  'wakeOnClick',
-  'scrollInverted',
+  'sleep',
+  'flags',
+  'liftOff',
 ];
 
+/** Translated labels for the on/off settings mouse adapters declare; others use the adapter's label. */
+const FLAG_KEYS: Record<string, MessageKey> = {
+  wakeOnClick: 'mouse.wakeClick',
+  scrollInverted: 'mouse.scroll',
+  wakeOnMove: 'mouse.flag.wakeOnMove',
+  lightsOffOnMove: 'mouse.flag.lightsOffOnMove',
+  motionSync: 'mouse.flag.motionSync',
+  angleSnap: 'mouse.flag.angleSnap',
+};
+
 /**
- * Gaming-mouse settings (AJAZZ AJ139 V2 MC): debounce, polling rate, DPI levels, sleep and wake-up.
- * Read from the mouse, written as one settings block with only the changed fields replaced, and
- * read back.
+ * Gaming-mouse settings for any mouse adapter: debounce, polling rate, DPI levels, sleep, lift-off
+ * and the mouse's own on/off settings, as its schema describes them. Read from the mouse, written
+ * with only the changed fields, and read back.
  */
 export default function MouseSettings() {
   const t = useT();
   const { device, read, apply, gate } = useKeyboard();
-  const host = device?.driver as unknown as MouseHost | undefined;
-  const [applied, setApplied] = useState<Config | null>(null);
-  const [c, setC] = useState<Config | null>(null);
+  const host = isMouseDriver(device?.driver) ? device.driver : undefined;
+  const schema = useMemo(() => host?.getMouseSchema(), [host]);
+  const [applied, setApplied] = useState<Settings | null>(null);
+  const [c, setC] = useState<Settings | null>(null);
   const [battery, setBattery] = useState<number | null>(null);
   useEffect(() => {
-    if (!host?.getMouseConfig) return;
-    void read(t('mouse.read'), () => host.getMouseConfig()).then((v) => {
+    if (!host) return;
+    void read(t('mouse.read'), () => host.getMouseSettings()).then((v) => {
       if (!v) return;
       setApplied(v);
       setC(v);
     });
-    void read(t('mouse.battery'), () => host.getBattery(), { quiet: true }).then(
-      (b) => b && setBattery(b.level),
-    );
-  }, [host, read, t]);
+    if (device?.caps.battery.read !== 'none')
+      void read(t('mouse.battery'), (d) => d.getBattery(), { quiet: true }).then(
+        (b) => b && setBattery(b.level),
+      );
+  }, [host, device, read, t]);
   const changed =
     c && applied ? KEYS.filter((k) => JSON.stringify(c[k]) !== JSON.stringify(applied[k])) : [];
   const track = useChangeTracking('mouse', ['debounce', 'pollingRate'], changed.length);
-  if (!device || !host?.getMouseConfig) return null;
+  if (!device || !host || !schema) return null;
   if (!c || !applied) return <Loading />;
-  const set = (patch: Partial<Config>) => setC({ ...c, ...patch });
+  const set = (patch: Partial<Settings>) => setC({ ...c, ...patch });
 
   const write = async () => {
-    const patch = Object.fromEntries(changed.map((k) => [k, c[k]])) as Partial<Config>;
-    const tx: Transaction<Config> = {
+    const patch = Object.fromEntries(changed.map((k) => [k, c[k]])) as Partial<Settings>;
+    const tx: Transaction<Settings> = {
       label: t('mouse.apply'),
       acknowledged: true,
-      apply: () => host.setMouseConfig(patch),
-      readbackFromDevice: () => host.getMouseConfig(),
+      apply: () => host.setMouseSettings(patch),
+      readbackFromDevice: () => host.getMouseSettings(),
     };
     const r = await apply('debounce', tx, applied, c);
     track.record(r);
@@ -83,8 +86,8 @@ export default function MouseSettings() {
           <Field label={t('mouse.debounce', { v: c.debounceMs })} hint={t('mouse.debounceHint')}>
             <input
               type="range"
-              min={1}
-              max={20}
+              min={schema.debounceMs.min}
+              max={schema.debounceMs.max}
               value={c.debounceMs}
               onChange={(e) => set({ debounceMs: Number(e.target.value) })}
             />
@@ -94,37 +97,43 @@ export default function MouseSettings() {
               value={c.pollingRate}
               onChange={(e) => set({ pollingRate: Number(e.target.value) })}
             >
-              {RATES.map((r) => (
+              {schema.pollingRates.map((r) => (
                 <option key={r} value={r}>
                   {r} Hz
                 </option>
               ))}
             </select>
           </Field>
+          {schema.liftOff && (
+            <Field label={t('mouse.liftOff')}>
+              <select value={c.liftOff} onChange={(e) => set({ liftOff: Number(e.target.value) })}>
+                {schema.liftOff.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
         </Card>
         <Card title={t('mouse.power')}>
           <Field label={t('mouse.sleep')}>
-            <select
-              value={c.sleepMinutes}
-              onChange={(e) => set({ sleepMinutes: Number(e.target.value) })}
-            >
-              {SLEEP.map((m) => (
-                <option key={m} value={m}>
-                  {t('mouse.minutes', { n: m })}
+            <select value={c.sleep} onChange={(e) => set({ sleep: Number(e.target.value) })}>
+              {schema.sleep.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>
           </Field>
-          <Toggle
-            label={t('mouse.wakeClick')}
-            checked={c.wakeOnClick}
-            onChange={(on) => set({ wakeOnClick: on })}
-          />
-          <Toggle
-            label={t('mouse.scroll')}
-            checked={c.scrollInverted}
-            onChange={(on) => set({ scrollInverted: on })}
-          />
+          {schema.flags.map((f) => (
+            <Toggle
+              key={f.id}
+              label={FLAG_KEYS[f.id] ? t(FLAG_KEYS[f.id]!) : f.label}
+              checked={!!c.flags[f.id]}
+              onChange={(on) => set({ flags: { ...c.flags, [f.id]: on } })}
+            />
+          ))}
           <KV rows={[[t('mouse.batteryLevel'), battery !== null ? `${battery}%` : '—']]} />
         </Card>
       </div>
@@ -138,9 +147,9 @@ export default function MouseSettings() {
               <span className="small">{t('mouse.level', { n: i + 1 })}</span>
               <input
                 type="number"
-                min={50}
-                max={26000}
-                step={50}
+                min={schema.dpi.min}
+                max={schema.dpi.max}
+                step={schema.dpi.step}
                 value={d}
                 onChange={(e) =>
                   set({ dpi: c.dpi.map((x, j) => (j === i ? Number(e.target.value) : x)) })
@@ -158,7 +167,7 @@ export default function MouseSettings() {
                 set({ dpiCount: n, dpiIndex: Math.min(c.dpiIndex, n - 1) });
               }}
             >
-              {[1, 2, 3, 4, 5, 6].map((n) => (
+              {Array.from({ length: schema.dpi.levels }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>
@@ -175,7 +184,7 @@ export default function MouseSettings() {
             </select>
           </Field>
         </div>
-        <p className="small muted">{t('mouse.linkNote')}</p>
+        <p className="small muted">{t(schema.perLink ? 'mouse.linkNote' : 'mouse.sharedNote')}</p>
       </Card>
       <ChangeBar
         status={track.status}

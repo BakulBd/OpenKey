@@ -13,6 +13,21 @@ export interface TftInfo {
   maxDelayMs: number;
   /** Size in bytes of one transfer chunk. */
   chunkBytes: number;
+  /**
+   * Screen sizes to choose from when the keyboard does not say which one it has (a protocol shared
+   * by boards with different screens). Uploads are refused until one is chosen.
+   */
+  geometryChoices?: TftGeometry[];
+  /** The chosen geometry, when `geometryChoices` applies. */
+  geometryId?: string;
+}
+
+export interface TftGeometry {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  maxFrames: number;
 }
 
 /** A display-ready frame in the device pixel format. */

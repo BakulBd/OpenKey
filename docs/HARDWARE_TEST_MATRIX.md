@@ -69,3 +69,24 @@ Every other catalogue entry is community, research or unsupported — see the Co
 2. AK820: live per-key preview; 2.4 GHz receiver detection and battery.
 3. AULA F75/F99 owners: identification and lighting writes with read-back.
 4. Latency lab: vendor input reports and key-event cadence.
+
+## Adapters added on 2026-10-17 (no hardware run yet)
+
+Every feature below is **EXPERIMENTAL**: implemented from the cited sources and tested against
+simulators only. Writes stay behind the experimental opt-in until an owner test produces a `-hw.json`
+fixture.
+
+| Adapter                                       | Keyboards                                                         | Implemented                                                                                   | Read-back                                            |
+| --------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| hid-lamparray                                 | any HID LampArray (Windows Dynamic Lighting) keyboard             | lamp layout read from the keyboard, per-key and solid colours, give back to the keyboard      | layout yes; colours no (standard has no colour read) |
+| aj179-mouse                                   | AJAZZ AJ179 (cable, receiver)                                     | rate, DPI levels, lift-off, Motion Sync, Angle Snap, sleep, wake, debounce, lighting, battery | yes, every setting                                   |
+| semico-lighting                               | AJAZZ AK992 wired                                                 | effects, brightness, speed                                                                    | no (write-only firmware)                             |
+| hub-aa55                                      | AULA F87S 8K (cable, receiver), AJAZZ AK680 V2 / MAX              | device info, battery, effect, colour, brightness, speed; per-key (F87S)                       | yes                                                  |
+| sonix-feature (profiles)                      | AULA F108 Pro; AK35i V3 MAX and AKS075 via the screen-size choice | everything the AK820 MAX path does, with each board's screen limits                           | as the AK820 MAX path                                |
+| by-tech (models)                              | RK M87 (screen clock), RK M75 (teach)                             | screen clock; settings page                                                                   | clock: no                                            |
+| razer-chroma                                  | 52 Razer keyboards                                                | effects, brightness, per-key matrix                                                           | brightness yes                                       |
+| wooting-rgb                                   | Wooting One, Two, 60HE, 80HE, UwU RGB                             | per-key, solid, give back to the profile                                                      | no                                                   |
+| evision                                       | EVision firmware boards (Redragon …)                              | 18 effects, brightness, speed, direction, per-key                                             | no                                                   |
+| bloody-b820r, hyperx-alloy-origins, ducky-rgb | A4Tech Bloody B820R, HyperX Alloy Origins, Ducky One 2 RGB        | direct per-key and solid colours                                                              | no                                                   |
+| steelseries-apex                              | SteelSeries Apex 5/7/9/Pro                                        | direct per-key and solid colours, give back                                                   | no                                                   |
+| logitech-hidpp                                | Logitech G915, G915 TKL, G815 (cable, Lightspeed)                 | name, battery, per-key and solid colours, give back                                           | battery yes                                          |

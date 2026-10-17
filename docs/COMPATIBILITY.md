@@ -32,3 +32,21 @@ online-driver game-mode struct only.
 | USB cable | 0C45:8009 "AK820 MAX" with FF13 + FF68     | Supported                       | hardware                                     |
 | 2.4 GHz   | receiver 05AC:024F or 0C45:FDFD            | Partially supported (no screen) | official config.xml, menu_wireless           |
 | Bluetooth | 0C45:FEFE observed on this machine earlier | Not supported                   | official message 62; no vendor pipe expected |
+
+## Other brands (2026-10-17)
+
+The model-by-model list with revisions and USB IDs is [MODEL_GUIDE.md](MODEL_GUIDE.md); per-feature
+states are in [HARDWARE_TEST_MATRIX.md](HARDWARE_TEST_MATRIX.md#adapters-added-on-2026-10-17-no-hardware-run-yet).
+None of these is hardware-tested by OpenKey yet (🟨):
+
+| Family                                                   | Configuration links | Read back  | Notes                                                                 |
+| -------------------------------------------------------- | ------------------- | ---------- | --------------------------------------------------------------------- |
+| HID LampArray                                            | USB, 2.4 GHz        | layout     | colours not readable (standard); Windows Dynamic Lighting must be off |
+| Razer Chroma                                             | USB, 2.4 GHz        | brightness | effects stored; per-key until the next effect                         |
+| Wooting RGB SDK                                          | USB                 | —          | colours not stored                                                    |
+| Logitech HID++ 2.0                                       | USB, Lightspeed     | battery    | colours not stored; G HUB may take them back                          |
+| SteelSeries Apex                                         | USB, 2.4 GHz        | —          | three firmware generations                                            |
+| EVision, Bloody B820R, HyperX Alloy Origins, Ducky One 2 | USB                 | —          | HyperX and Ducky: unplug to restore their effects                     |
+| AULA F87S / AJAZZ AK680 (AA/55)                          | USB, 2.4 GHz (F87S) | yes        | per-key on the F87S                                                   |
+| AJAZZ AK992 (SEMICO)                                     | USB                 | —          | one change a second                                                   |
+| AJAZZ AJ179 mouse                                        | USB, 2.4 GHz        | yes        | shared settings on both links                                         |

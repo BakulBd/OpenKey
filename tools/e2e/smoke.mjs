@@ -925,6 +925,38 @@ try {
     await ctx.close();
   }
 
+  // AJAZZ AJ179 mouse demo: the shared mouse page shows the AJ179's own settings (Motion Sync, lift-off).
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[aj179] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'AJAZZ AJ179 mouse' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/mouse');
+    await page.getByText('Motion Sync').waitFor();
+    await page.getByLabel('Lift-off distance').waitFor();
+    await page.getByLabel(/Debounce: 8 ms/).waitFor();
+    results.push('aj179 demo: mouse page rendered from the AJ179 schema');
+    await ctx.close();
+  }
+
+  // Dynamic Lighting (HID LampArray) demo: the keyboard picture comes from the lamps the keyboard reports.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[lamparray] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Dynamic Lighting (LampArray)' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page
+      .getByText(/84 lamps/)
+      .first()
+      .waitFor({ state: 'attached' });
+    results.push('lamparray demo: 84 lamps read from the keyboard');
+    await ctx.close();
+  }
+
   // Screen gallery (demo): generated animations load into the local preview; nothing is uploaded.
   {
     const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });

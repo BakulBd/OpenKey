@@ -104,6 +104,8 @@ export class ByTechSimulator {
   private reply: Uint8Array | null = null;
   /** Every SET_LED page written, in order. */
   readonly writes: Uint8Array[] = [];
+  /** Every SetScreenParam payload (screen boards). */
+  readonly screenParams: Uint8Array[] = [];
 
   constructor(opts: ByTechSimulatorOptions = {}) {
     this.page = (opts.page ?? F75_PAGE).slice();
@@ -157,6 +159,10 @@ export class ByTechSimulator {
       const page = data.slice(HEADER_BYTES, HEADER_BYTES + len);
       this.writes.push(page);
       if (page.length === SETTINGS_PAGE_BYTES) this.page = page;
+      return;
+    }
+    if (cmd === Cmd.SET_SCREEN_PARAM) {
+      this.screenParams.push(data.slice(HEADER_BYTES, HEADER_BYTES + len));
       return;
     }
     // Anything else is not a command OpenKey sends; the firmware ignores it.

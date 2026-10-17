@@ -13,6 +13,12 @@ export interface HidCollection {
   inputReports: HidReportInfo[];
   outputReports: HidReportInfo[];
   featureReports: HidReportInfo[];
+  /**
+   * Logical collections nested inside this one, flattened in descriptor order, each with the reports
+   * whose items sit directly in it. Present only when the descriptor nests collections; standard
+   * report layouts such as HID LampArray name each report by such a collection.
+   */
+  children?: HidCollection[];
 }
 
 /**

@@ -46,6 +46,18 @@ See [UX_AUDIT.md](UX_AUDIT.md), [UX_COMPETITIVE_RESEARCH.md](UX_COMPETITIVE_RESE
 - [x] F — macros, screen, profiles, backup, device settings on the shared patterns
 - [x] G — accessibility audit, phone-width checks, physical-session and unplug browser tests, contrast
 
+## Protocol coverage pass (2026-10-17)
+
+- [x] HID LampArray (public standard) with the lamp layout read from the keyboard
+- [x] Razer, Wooting, Logitech (HID++ 2.0), SteelSeries Apex, EVision, HyperX, Ducky, A4Tech Bloody
+- [x] AULA F87S 8K / AJAZZ AK680 (web-driver protocol), AJAZZ AK992, AJAZZ AJ179 mouse
+- [x] AULA F108 Pro profile; screen-size choice for unrecognised AJAZZ-protocol boards; RK M87 clock
+- [x] Generic mouse settings page; doctor names vendor apps
+- [ ] Corsair (Bragi-style protocol): needs a keep-alive while OpenKey holds the lighting and per-model
+      lighting endpoints
+- [ ] Hardware runs for every new adapter (all experimental until a `-hw.json` fixture exists); the
+      owner's RK R75 is the next candidate on hardware already at hand
+
 ## Next, in order of value
 
 1. **Hardware verification of AK820 writes** (owner consent, one operation at a time): start with

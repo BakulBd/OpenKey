@@ -1,5 +1,6 @@
 import { getProfile } from '@openkey/devices';
 import type { ModelProfile } from '@openkey/devices';
+import type { TftGeometry } from '@openkey/core';
 
 export interface SonixFeatureVariant {
   id: string;
@@ -11,7 +12,31 @@ export interface SonixFeatureVariant {
 const BY_PRODUCT: Record<string, string> = {
   'AK820 MAX': 'ak820-max-plus',
   AK820: 'ak820-pro',
+  'AULA F108Pro': 'aula-f108-pro',
 };
+
+/**
+ * Screens of the boards that share this protocol. A keyboard whose product string is not known
+ * (generic strings such as "USB KEYBOARD", or new models) must have its screen size chosen before an
+ * upload: sending the wrong size garbles the picture, and too many frames can overwrite the
+ * keyboard's own menu graphics (F108 Pro, 141 frames).
+ */
+export const SCREEN_CHOICES: readonly TftGeometry[] = [
+  {
+    id: '128x128',
+    label: '128 × 128 — AK820 MAX / Pro, AKS075, AULA F75 Max',
+    width: 128,
+    height: 128,
+    maxFrames: 140,
+  },
+  {
+    id: '240x135',
+    label: '240 × 135 — AULA F108 Pro, AK35i V3 MAX',
+    width: 240,
+    height: 135,
+    maxFrames: 141,
+  },
+];
 
 /**
  * PID 0x8009 is a generic Sonix PID shared by many AJAZZ boards (AK820, AK980 PRO, NS87 …), so the

@@ -75,15 +75,17 @@ function match(group: HidDeviceGroup): CandidateMatch {
 }
 
 /**
- * Identities the official AK820 MAX / AK820 PRO Windows drivers send START to (config.xml
- * `<mode vid pid product_name>`). Only these get the handshake without asking: the vendor's own
- * software does the same. Any other device with this topology must be confirmed by the user first.
+ * Identities the official AK820 MAX / AK820 PRO and AULA F108 Pro Windows drivers send START to
+ * (config.xml `<mode vid pid product_name>`; the F108 Pro's as published by parsiya/f108-pro). Only
+ * these get the handshake without asking: the vendor's own software does the same. Any other device
+ * with this topology must be confirmed by the user first.
  */
 const OFFICIAL_IDENTITIES: readonly { productId: number; productName: string }[] = [
   { productId: 0x8009, productName: 'AK820 MAX' },
   { productId: 0x800a, productName: 'AK820 MAX' },
   { productId: 0x8009, productName: 'AK820' },
   { productId: 0x800a, productName: 'AK820' },
+  { productId: 0x800a, productName: 'AULA F108Pro' },
 ];
 const SONIX_VID = 0x0c45;
 

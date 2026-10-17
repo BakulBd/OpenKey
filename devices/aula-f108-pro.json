@@ -1,0 +1,48 @@
+{
+  "$schema": "./device.schema.json",
+  "id": "aula-f108-pro",
+  "model": "AULA F108 Pro",
+  "notes": "Full-size tri-mode board with a 240×135 screen on the AJAZZ Windows-driver protocol (0C45:800A, product string \"AULA F108Pro\"). The vendor configuration caps animations at 141 frames: a longer upload overwrote the keyboard's built-in menu graphics in the source's test.",
+  "vendorIds": ["0x0C45"],
+  "productIds": ["0x800A"],
+  "productNames": ["AULA F108Pro"],
+  "firmwareRange": { "min": null, "max": null, "tested": [] },
+  "usagePages": ["0xFF13", "0xFF68"],
+  "usages": { "0xFF13": ["0x01"], "0xFF68": ["0x61"] },
+  "protocolFamily": "sonix-feature",
+  "variant": "aula-f108-pro",
+  "layout": "aula-f108-pro",
+  "transportModes": {
+    "usb": {
+      "configuration": "partial",
+      "evidence": "Vendor config.xml mode 0 (0C45:800A, \"AULA F108Pro\"); lighting, per-key, clock and screen upload verified by parsiya/f108-pro on the keyboard."
+    },
+    "2.4ghz": {
+      "configuration": "unsupported",
+      "evidence": "Vendor config.xml mode 2 (05AC:024F \"F108Pro Dongle\") uses a simplified single-packet protocol; not implemented."
+    },
+    "bluetooth": {
+      "configuration": "unsupported",
+      "evidence": "The vendor software does not configure Bluetooth links."
+    }
+  },
+  "tft": {
+    "width": 240,
+    "height": 135,
+    "maxFrames": 141,
+    "slots": 1,
+    "headerBytes": 256,
+    "chunkBytes": 4096,
+    "delayUnitMs": 2
+  },
+  "rgb": { "brightnessMax": 5, "speedMax": 5, "defaultEffect": 11, "perKey": true },
+  "macros": { "slots": 100, "storageBytes": 3584, "eventBudgetBytes": 2700 },
+  "knob": {
+    "configurable": false,
+    "note": "The volume knob is firmware-controlled; the vendor software has no knob setting."
+  },
+  "evidence": [
+    "parsiya/f108-pro (MIT): ai-docs/device-info.md (config.xml), key-map.md (rgb-keyboard.xml), lcd-upload-investigation.md",
+    "AULA F108 Pro driver v1.0.0.1/v1.0.0.3 as analysed by the source"
+  ]
+}

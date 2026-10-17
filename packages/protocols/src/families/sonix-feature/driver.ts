@@ -71,6 +71,7 @@ import { planTftUpload, proStillChunks, tftChunks } from './codecs/tft.js';
 import { commandPacketU16 } from './frame.js';
 import { SonixFeatureSession } from './session.js';
 import type { SonixFeatureVariant } from './variants.js';
+import { SCREEN_CHOICES } from './variants.js';
 import { sonixFeatureCapabilities } from './capabilities.js';
 
 export const SONIX_FEATURE_PROTOCOL_ID = 'sonix-feature';
@@ -94,6 +95,8 @@ const MIRROR = {
   macros: 'macros',
   settings: 'settings',
   tft: 'tft',
+  /** Screen size chosen for an unrecognised model (not a device setting). */
+  geometry: 'tftGeometry',
 } as const;
 
 export class SonixFeatureDriver extends BaseKeyboardDriver {
@@ -390,7 +393,7 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
         'tft',
         t ? 'the screen can only be updated over USB' : 'this model has no screen',
       );
-    return {
+    const base: TftInfo = {
       width: t.width,
       height: t.height,
       pixelFormat: 'rgb565le',
@@ -401,6 +404,29 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
       maxDelayMs: 255 * TFT_DELAY_UNIT_MS,
       chunkBytes: DATA_CHUNK_SIZE,
     };
+    if (this.variant.known) return base;
+    // An unrecognised board of this family: its screen size is the user's choice, never assumed.
+    const id = await this.store.get<string>(MIRROR.geometry);
+    const chosen = SCREEN_CHOICES.find((g) => g.id === id);
+    const choices = SCREEN_CHOICES.map((g) => ({ ...g }));
+    return chosen
+      ? {
+          ...base,
+          width: chosen.width,
+          height: chosen.height,
+          maxFrames: chosen.maxFrames,
+          geometryChoices: choices,
+          geometryId: chosen.id,
+        }
+      : { ...base, geometryChoices: choices };
+  }
+
+  override async setTftGeometry(id: string): Promise<void> {
+    if (this.variant.known)
+      throw new UnsupportedFeatureError('tft', 'this model’s screen size is known');
+    if (!SCREEN_CHOICES.some((g) => g.id === id))
+      throw new TftUploadError(`Unknown screen size ${id}`);
+    await this.store.set(MIRROR.geometry, id);
   }
 
   override async uploadTftImage(
@@ -418,6 +444,10 @@ export class SonixFeatureDriver extends BaseKeyboardDriver {
   ): Promise<void> {
     const slot = opts.slot ?? 1;
     const info = await this.getTftInfo();
+    if (info.geometryChoices && !info.geometryId)
+      throw new SafetyBlockedError(
+        'Choose this keyboard’s screen size first: OpenKey does not recognise the model, and the wrong size garbles the picture or overwrites the keyboard’s own screens.',
+      );
     if (slot < 1 || slot > info.slots)
       throw new TftUploadError(`Slot ${slot} outside 1..${info.slots}`);
     const plan = planTftUpload(frames, info.width, info.height, info.maxFrames);

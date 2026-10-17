@@ -212,3 +212,30 @@ describe('BY Tech OEM protocol: RK R75 and learning the layout', () => {
     expect(byTech.singleChange(a, b)).toMatchObject({ ok: false, reason: 'too-many-changes' });
   });
 });
+
+describe('BY Tech OEM protocol: RK screen boards', () => {
+  const M87 = { vendorId: 0x258a, productId: 0x01a2, productName: 'SINO WEALTH Gaming Keyboard' };
+  const M87_CODE = Uint8Array.of(0x06, 0, 0, 0, 0, 0x23);
+
+  it('identifies the RK M87 by its model code on its own USB ID and sets the screen clock', async () => {
+    const sim = new ByTechSimulator({ identity: M87, modelCode: M87_CODE, reportId: 9 });
+    const { driver } = await connect(sim);
+    expect(driver.displayName).toBe('RK M87 (screen)');
+    expect(driver.getCapabilities().tftClock).toMatchObject({ write: true, read: 'none' });
+    await driver.syncClock(new Date(2026, 2, 10, 14, 30, 45));
+    // Volume/CPU/memory unknown in a browser, then 2026-03-10 14:30:45, Tuesday.
+    expect([...sim.screenParams[0]!]).toEqual([0, 0, 0, 0xea, 0x07, 3, 10, 14, 30, 45, 2, 0, 0, 0]);
+    expect(sim.writes).toEqual([]);
+  });
+
+  it('does not trust an RK model code on another USB ID', async () => {
+    const sim = new ByTechSimulator({
+      identity: { ...M87, productId: 0x0163 },
+      modelCode: M87_CODE,
+      reportId: 9,
+    });
+    const { driver } = await connect(sim);
+    expect(driver.model).toBeNull();
+    await expect(driver.syncClock()).rejects.toThrow(/no screen clock/);
+  });
+});
