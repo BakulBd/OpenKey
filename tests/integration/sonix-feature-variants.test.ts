@@ -56,6 +56,41 @@ describe('AJAZZ-protocol models with other screens', () => {
     expect(sent).toHaveLength(2231);
   });
 
+  it('recognises the AULA NOVA75 by its product string, with its own limits and 80 keys', async () => {
+    // No consent passed: the official NOVA75 identity is probed without asking.
+    const { detection, driver, sim } = await setup('AULA-NOVA75');
+    expect(detection.selected).toMatchObject({
+      protocolId: 'sonix-feature',
+      identification: 'identified',
+    });
+    expect(sonixFeature.sonixFeatureProbePlan.autoConsent?.(sim.device.group()).auto).toBe(true);
+    expect((await driver.getDeviceInfo()).model).toBe('AULA NOVA75');
+    const info = await driver.getTftInfo();
+    expect(info).toMatchObject({ width: 240, height: 135, maxFrames: 107 });
+    expect(info.geometryChoices).toBeUndefined();
+    const layout = driver.getLayout();
+    expect(layout.keys).toHaveLength(80);
+    expect(layout.keys.find((k) => k.label === 'Esc')).toMatchObject({
+      slot: 1,
+      light: 1,
+      usage: 0x29,
+    });
+    expect(layout.extras?.map((e) => e.kind)).toEqual(['knob']);
+    expect(driver.getRgbEffects().brightness.max).toBe(6);
+    expect(driver.getRgbEffects().speed.max).toBe(6);
+  });
+
+  it('never sends the NOVA75 more than its 107 frames', async () => {
+    const { driver, sim } = await setup('AULA-NOVA75');
+    const info = await driver.getTftInfo();
+    const frame = prepareFrame(pattern('blue', 240, 135), info);
+    await driver.uploadTftGif(Array.from({ length: 120 }, () => ({ ...frame, delayMs: 100 })));
+    const sent = dataTraffic(sim);
+    // 256 + 107 × 64 800 bytes need 1 694 chunks of 4 096.
+    expect(sent[0]!.data[0]).toBe(107);
+    expect(sent).toHaveLength(Math.ceil((256 + 107 * 64_800) / 4096));
+  });
+
   it('makes an unrecognised model choose its screen size before any upload', async () => {
     const { driver, sim } = await setup('USB KEYBOARD', 0x8009, ['sonix-feature']);
     const info = await driver.getTftInfo();
@@ -71,7 +106,8 @@ describe('AJAZZ-protocol models with other screens', () => {
     expect(chosen).toMatchObject({
       width: 240,
       height: 135,
-      maxFrames: 141,
+      // The smallest cap among the 240×135 boards (NOVA75), so an unknown one is never overrun.
+      maxFrames: 107,
       geometryId: '240x135',
     });
     await driver.uploadTftImage(prepareFrame(pattern('green', 240, 135), chosen));

@@ -124,7 +124,7 @@ const EVISION: readonly [number, number][] = [
   [0x0c45, 0x8520],
   [0x320f, 0x5000],
   [0x320f, 0x502a],
-  [0x320f, 0x505b],
+  // 320F:505B is the AJAZZ AK820 wired RGB (its own entry below).
   [0x320f, 0x5064],
   [0x320f, 0x5078],
   [0x320f, 0x5084],
@@ -252,12 +252,13 @@ export const CATALOG: readonly CatalogEntry[] = [
     productName: 'AULA-NOVA75-2',
     model: 'NOVA75 2.4 GHz receiver',
     link: '2.4ghz',
-    mcu: 'unknown',
-    family: 'unknown',
-    status: 'research',
-    hardware: {},
+    mcu: 'Sonix',
+    family: 'sonix-dongle',
+    status: 'experimental',
+    hardware: { rgb: true },
+    definition: 'aula-nova75',
     evidence:
-      'Same receiver identity as the AULA F75 Max and AJAZZ AK820 MAX receivers, whose vendor endpoints (FF59/FF60) carry the 2.4 GHz protocol (VitalyArt/Aula-F75-Max-Driver, Ghost-CR/F75_Initializer). A user report from macOS showed no vendor endpoint, which macOS can hide from the browser; not yet seen with them',
+      'Official AULA NOVA75 driver Beta 1.0.0.2 config.xml lists 05AC:024F (MI_03) for 2.4 GHz, and rgb-keyboard.xml enables lighting without the screen there; packets from the official AK820 driver and VitalyArt/Aula-F75-Max-Driver (MIT). A user report from macOS showed no vendor endpoint, which macOS can hide from the browser',
   },
   {
     brand: 'Generic',
@@ -554,6 +555,21 @@ export const CATALOG: readonly CatalogEntry[] = [
     evidence:
       'parsiya/f108-pro (MIT): vendor config.xml and key table; lighting, per-key, clock and screen tested on the keyboard',
   },
+  {
+    brand: 'AULA',
+    vendorId: 0x0c45,
+    productId: 0x800a,
+    productName: 'AULA-NOVA75',
+    model: 'NOVA75 (240×135 screen, knob)',
+    link: 'usb',
+    mcu: 'Sonix',
+    family: 'sonix-feature',
+    status: 'experimental',
+    hardware: { rgb: true, perKeyRgb: true, tft: true, encoder: true },
+    definition: 'aula-nova75',
+    evidence:
+      'Official AULA NOVA75 driver Beta 1.0.0.2: config.xml (0C45:800A "AULA-NOVA75", MI_00) and layouts/rgb-keyboard.xml (80 keys, screen 240×135 ≤107 frames, brightness/speed 0–6); same protocol as the owner-verified AK820 MAX PLUS',
+  },
   // ---- RK screen and newer boards on the BY Tech platform
   {
     brand: 'RK',
@@ -621,6 +637,19 @@ export const CATALOG: readonly CatalogEntry[] = [
     evidence: 'WootingKb/wooting-rgb-sdk (official, MPL-2.0)',
   })),
   // ---- EVision firmware boards (OpenRGB, facts only)
+  {
+    brand: 'AJAZZ',
+    vendorId: 0x320f,
+    productId: 0x505b,
+    model: 'AK820 wired RGB (Moon switches, knob)',
+    link: 'usb',
+    mcu: 'Sonix (EVision firmware, VS11K28A)',
+    family: 'evision',
+    status: 'community',
+    hardware: { rgb: true, perKeyRgb: true, encoder: true },
+    evidence:
+      'Official AJAZZ "AK820 wired RGB" driver V1.0: its firmware updater targets 320F:505B (firmware 0103, bootloader 0C45:7687) and its keyboard picture gives the 82 LED indices; the identity is in OpenRGB’s EVision list (GPL-2.0, facts only)',
+  },
   ...EVISION.map(([vendorId, productId]): CatalogEntry => ({
     brand: 'EVision (Redragon, Glorious, AJAZZ …)',
     vendorId,

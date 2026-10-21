@@ -428,6 +428,18 @@ export class ProtocolRegistry {
       }
     }
     selectCandidate(report);
+    const cat = report.catalog;
+    if (
+      cat &&
+      !report.selected &&
+      this.protocols.some((p) => p.id === cat.family) &&
+      cat.status !== 'research' &&
+      cat.status !== 'unsupported' &&
+      !report.candidates.some((c) => c.protocol.id === cat.family && c.match.applicable)
+    )
+      report.notes.push(
+        `Recognised as ${cat.brand} ${cat.model}, but the interface its ${cat.family} adapter configures it through is not visible on this connection.`,
+      );
     report.possibleFamilies = this.possibleFamilies(group, report);
     return report;
   }

@@ -24,6 +24,18 @@ behind the experimental opt-in. Sources and what was taken from each: docs/SOURC
   brightness, speed, direction and per-key colours on a full-size map.
 - **A4Tech Bloody B820R, HyperX Alloy Origins, Ducky One 2 RGB**: direct per-key and solid colours.
   Where no command gives the lighting back, OpenKey says to unplug instead of inventing one.
+- **AJAZZ AK820 wired RGB (Moon switches)**, identified as `320F:505B` from the official AJAZZ
+  driver's firmware updater. It runs on the EVision firmware: 18 effects, brightness, speed and
+  per-key colours on its own 82-key map with the knob. Before this it fell back to the full-size
+  map, where Enter, right Shift, Fn and the arrows got the wrong colours.
+- **AULA NOVA75**, from the official driver's configuration files.
+  - **Cable:** identified automatically, with the 80-key layout and knob, the 240 × 135 screen
+    (107 frames at most) and lighting levels 0–6.
+  - **Receiver:** the NOVA75's name, layout and lighting levels, plus battery, sleep, key response
+    and game mode.
+  - On macOS, where the browser may not see the receiver's configuration channel, detection and
+    the Connection doctor say so and give the fix.
+  - The 240 × 135 screen choice for unrecognised boards now stops at 107 frames.
 - **AULA F87S 8K** (cable and receiver) and **AJAZZ AK680 V2 / AK680 MAX** (AULA/AJAZZ web-driver
   protocol): firmware, battery, effect, colour, brightness and speed read and read back; per-key
   colours on the F87S with the whole 128-slot table kept; through the receiver, nothing is changed

@@ -13,13 +13,14 @@ const BY_PRODUCT: Record<string, string> = {
   'AK820 MAX': 'ak820-max-plus',
   AK820: 'ak820-pro',
   'AULA F108Pro': 'aula-f108-pro',
+  'AULA-NOVA75': 'aula-nova75',
 };
 
 /**
  * Screens of the boards that share this protocol. A keyboard whose product string is not known
  * (generic strings such as "USB KEYBOARD", or new models) must have its screen size chosen before an
  * upload: sending the wrong size garbles the picture, and too many frames can overwrite the
- * keyboard's own menu graphics (F108 Pro, 141 frames).
+ * keyboard's own menu graphics (F108 Pro, 141 frames; NOVA75, 107).
  */
 export const SCREEN_CHOICES: readonly TftGeometry[] = [
   {
@@ -31,10 +32,11 @@ export const SCREEN_CHOICES: readonly TftGeometry[] = [
   },
   {
     id: '240x135',
-    label: '240 × 135 — AULA F108 Pro, AK35i V3 MAX',
+    label: '240 × 135 — AULA F108 Pro, NOVA75, AK35i V3 MAX',
     width: 240,
     height: 135,
-    maxFrames: 141,
+    // The smallest cap among these boards (NOVA75: 107; F108 Pro: 141), so no choice overruns one.
+    maxFrames: 107,
   },
 ];
 

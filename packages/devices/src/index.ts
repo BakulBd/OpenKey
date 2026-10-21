@@ -7,9 +7,12 @@ import dongle from '../../../devices/ak820-dongle.json' with { type: 'json' };
 import proQmk from '../../../devices/ak820-pro-qmk.json' with { type: 'json' };
 import f108Pro from '../../../devices/aula-f108-pro.json' with { type: 'json' };
 import ak35i from '../../../devices/ajazz-ak35i-v3-max.json' with { type: 'json' };
+import nova75 from '../../../devices/aula-nova75.json' with { type: 'json' };
 import layoutMax from './layouts/ak820-max.json' with { type: 'json' };
 import layoutPro from './layouts/ak820-pro.json' with { type: 'json' };
 import layoutProOnline from './layouts/ak820-pro-online.json' with { type: 'json' };
+import layoutNova75 from './layouts/aula-nova75.json' with { type: 'json' };
+import layoutAk820Rgb from './layouts/ajazz-ak820-rgb.json' with { type: 'json' };
 import { ansiLayout } from './layouts/ansi.js';
 
 export type ConfigurationSupport = 'supported' | 'partial' | 'unsupported' | 'unknown';
@@ -65,6 +68,7 @@ export const PROFILES: readonly ModelProfile[] = [
   proQmk,
   f108Pro,
   ak35i,
+  nova75,
 ] as unknown as ModelProfile[];
 
 /** AULA F108 Pro key indices (= LED indices) from the vendor's rgb-keyboard.xml (parsiya/f108-pro key-map.md). */
@@ -179,6 +183,8 @@ export const LAYOUTS: Record<string, KeyboardLayout> = {
   'ak820-max': layoutMax as KeyboardLayout,
   'ak820-pro': layoutPro as KeyboardLayout,
   'ak820-pro-online': layoutProOnline as KeyboardLayout,
+  'aula-nova75': layoutNova75 as KeyboardLayout,
+  'ajazz-ak820-rgb': layoutAk820Rgb as KeyboardLayout,
   'aula-f108-pro': ansiLayout({
     id: 'aula-f108-pro',
     name: 'AULA F108 Pro (ANSI, 104 keys)',

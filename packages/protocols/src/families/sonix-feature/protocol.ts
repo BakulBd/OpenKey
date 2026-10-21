@@ -86,6 +86,8 @@ const OFFICIAL_IDENTITIES: readonly { productId: number; productName: string }[]
   { productId: 0x8009, productName: 'AK820' },
   { productId: 0x800a, productName: 'AK820' },
   { productId: 0x800a, productName: 'AULA F108Pro' },
+  // Official AULA NOVA75 driver Beta 1.0.0.2 config.xml, mode 0.
+  { productId: 0x800a, productName: 'AULA-NOVA75' },
 ];
 const SONIX_VID = 0x0c45;
 

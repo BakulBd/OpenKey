@@ -43,6 +43,28 @@ key files looked at; **licence only** = licence and activity checked, not read i
 AK820 Pro projects are **leads**, not proof, for the AK820 MAX (`0C45:8009`): OpenKey's MAX evidence is
 the official driver analysis plus the owner's hardware test.
 
+### AK820 wired RGB (Moon switches), October 2026
+
+The official AJAZZ driver "AK820 wired RGB" V1.0 is listed on ajazzstore.com and hosted by Epomaker.
+It was unpacked (NSIS, then 7-Zip) and its data files and strings were read. Nothing was copied from it.
+
+- It is the **EVision** driver, not the AK820 Pro/MAX one. Its default data names the
+  `eevision_A_kb_001` firmware and the VS11K28A/VS11K34A chips.
+- Its firmware updaters (V0102, V0103 beta) target **`320F:505B`**, firmware `0103`, with
+  bootloader `0C45:7687`. That identity is in OpenRGB's EVision list, which OpenKey's `evision`
+  adapter already used.
+- The keyboard picture (`Skin/XML/DeviceXml/keyboarddevice.xml`) shows 82 keys, each with its light
+  index. Several indices differ from OpenRGB's full-size map: Enter 75, Z 85, right Shift 95,
+  Up 96, right Alt 109, Fn 110, arrows 113–115. With the full-size map those keys got the wrong
+  colours.
+- Brightness slider 0–4 (as OpenKey); speed slider 0–4, while OpenRGB uses 0–5. The effect codes
+  are built in compiled code, so OpenKey keeps OpenRGB's documented list and speed mapping.
+
+**What it changed:** `320F:505B` is shown as the AJAZZ AK820 wired RGB, with its own 82-key layout
+from those indices and the knob. Lighting, effects, brightness, speed and per-key colours go through
+the EVision adapter (community, untested by OpenKey). Key maps and macros stay unsupported: no open
+source documents them for this firmware.
+
 ## AULA, RK and SinoWealth
 
 | Project                                                                                                                                                                                                                                                                                                                   | Licence            | Depth                | Finding                                                                                                                                                                                                                                                                                  |
@@ -102,22 +124,46 @@ No vendor page was visible.
 - [not-ayan/openaula](https://github.com/not-ayan/openaula) and
   [sgtflixy/AulaControl](https://github.com/sgtflixy/AulaControl): other AULA platforms (BY Tech F75,
   WIN60HE/WIN75HE). No NOVA75 facts.
-- The official NOVA75 Windows driver (aulastar.com) is closed and was not analysed.
+- The official AULA NOVA75 driver (Beta 1.0.0.2, Inno Setup installer) was unpacked and its
+  configuration files read; nothing was copied from it.
+  - `config.xml`: cable `0C45:800A`, product string `AULA-NOVA75`, interface MI_00; receiver
+    `05AC:024F`, product string `2.4G Dongle`, interface MI_03. No Bluetooth mode.
+  - `layouts/rgb-keyboard.xml`: `menu` enables macros, lighting, per-key, music and screen;
+    `menu_wireless` the same without the screen. Settings: Fn layer, sleep, key response. Screen
+    240 × 135, at most 107 frames, one slot, 256-byte header. Lighting default effect 11,
+    brightness and speed 0–6. 80 keys, each key index equal to its light index.
+  - `language/1033.lan`: sleep choices and the five key-response levels with wired, 2.4 GHz and
+    Bluetooth latencies.
+- VitalyArt's receiver code (MIT) also gives a `0F` packet sent 50 ms before each lighting packet,
+  and the settings packet `07 10 00 00 01 01 01 01 FN SL 00 KR GM AT AF WN 00 aa 55`. Its direction
+  labels (0 right, 1 down, 2 left, 3 up) differ from the official AJAZZ driver's (0 left, 1 right,
+  2 up, 3 down); OpenKey keeps the official order until a receiver shows which is right.
 
 **What it changed in OpenKey:**
 
-- The NOVA75 receiver is catalogued as the F75 Max receiver platform, under research.
-- On macOS, the Connection doctor now explains that a receiver showing only typing and media
+- On macOS, the Connection doctor explains that a receiver showing only typing and media
   collections may have its configuration channel hidden, and gives the Input Monitoring steps.
-- The AJAZZ receiver ping is automatic only for AJAZZ product strings; an AULA receiver is asked
-  first.
-- The wired NOVA75 is not assumed to be the F75 Max. If its cable shows `0C45:800A`, the AJAZZ
-  adapter identifies it by its own answer.
+  Detection now also says when a catalogued model's configuration interface is not visible.
+- **Cable** (`0C45:800A`, `AULA-NOVA75`): a NOVA75 profile on the AJAZZ protocol, identified
+  automatically (the identity is in the official configuration). It has the 80-key layout from
+  `rgb-keyboard.xml` with the knob, the 240 × 135 screen capped at 107 frames, and brightness and
+  speed 0–6. Macros, key maps, per-key colours, settings and clock work as on the owner-verified
+  AK820 MAX PLUS.
+- The 240 × 135 screen-size choice for unrecognised boards now caps uploads at 107 frames, the
+  smallest limit among the boards with that screen.
+- **Receiver** (`05AC:024F`): the receiver adapter names the NOVA75 and uses its layout and 0–6
+  levels. It adds sleep, key response and game mode, which it cannot read back, and the `0F`
+  lighting preamble. The ping is automatic for `2.4G Dongle`, the name in the official NOVA75
+  configuration. `AULA-NOVA75-2` is not in that configuration, so it asks once. Per-key colours,
+  macros and the screen need the cable.
+- Every NOVA75 write is experimental until an owner confirms it.
 
 **What would settle it:** one diagnostic with the cable in wired mode, and one from the receiver
-after Input Monitoring is allowed.
+after Input Monitoring is allowed. Also a note of whether a lighting change and the direction
+setting do what the screen says.
 
-**Tests:** `tests/protocol/shared-receiver.test.ts`, built from the reported descriptors (shapes only).
+**Tests:** `tests/protocol/shared-receiver.test.ts`, built from the reported descriptors (shapes
+only), and `tests/integration/sonix-feature-variants.test.ts` for the cable.
 
 ## AJAZZ mice
 

@@ -1,0 +1,47 @@
+{
+  "$schema": "./device.schema.json",
+  "id": "aula-nova75",
+  "model": "AULA NOVA75",
+  "notes": "Tri-mode 75% board with a 240×135 screen and a volume knob on the AJAZZ Windows-driver protocol (0C45:800A, product string \"AULA-NOVA75\"). The vendor configuration caps animations at 107 frames, fewer than the F108 Pro's 141. Brightness and speed have 7 steps (0–6).",
+  "vendorIds": ["0x0C45"],
+  "productIds": ["0x800A"],
+  "productNames": ["AULA-NOVA75"],
+  "firmwareRange": { "min": null, "max": null, "tested": [] },
+  "usagePages": ["0xFF13", "0xFF68"],
+  "usages": { "0xFF13": ["0x01"], "0xFF68": ["0x61"] },
+  "protocolFamily": "sonix-feature",
+  "variant": "aula-nova75",
+  "layout": "aula-nova75",
+  "transportModes": {
+    "usb": {
+      "configuration": "partial",
+      "evidence": "Official AULA NOVA75 driver Beta 1.0.0.2 config.xml mode 0 (0C45:800A \"AULA-NOVA75\", MI_00); menu enables macros, lighting, per-key, music and screen. Same protocol as the owner-verified AK820 MAX PLUS; not yet verified on a NOVA75."
+    },
+    "2.4ghz": {
+      "configuration": "partial",
+      "evidence": "Official config.xml mode 2 (05AC:024F \"2.4G Dongle\", MI_03): the receiver's 32-byte protocol (sonix-dongle). menu_wireless disables the screen; OpenKey offers lighting, battery, sleep, key response and game mode there."
+    },
+    "bluetooth": {
+      "configuration": "unsupported",
+      "evidence": "The official driver lists only the USB and 2.4 GHz modes."
+    }
+  },
+  "tft": {
+    "width": 240,
+    "height": 135,
+    "maxFrames": 107,
+    "slots": 1,
+    "headerBytes": 256,
+    "chunkBytes": 4096,
+    "delayUnitMs": 2
+  },
+  "rgb": { "brightnessMax": 6, "speedMax": 6, "defaultEffect": 11, "perKey": true },
+  "macros": { "slots": 100, "storageBytes": 3584, "eventBudgetBytes": 2700 },
+  "knob": {
+    "configurable": false,
+    "note": "The volume knob is firmware-controlled; the official driver has no knob setting."
+  },
+  "evidence": [
+    "Official AULA NOVA75 driver Beta 1.0.0.2: config.xml (identities), layouts/rgb-keyboard.xml (menus, screen 240×135 ≤107 frames, brightness/speed max 6, 80 keys with key index = light index)"
+  ]
+}

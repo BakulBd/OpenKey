@@ -52,4 +52,26 @@ describe('EVision keyboards', () => {
     expect(sim.packets.filter((p) => p[2] === 0x11)).toHaveLength(7);
     expect(sim.params[0]).toBe(CUSTOM_MODE);
   });
+
+  it('shows the AJAZZ AK820 wired RGB with its own 82-key map and knob', async () => {
+    const { driver, sim } = await connect(
+      new EVisionSimulator({ vendorId: 0x320f, productId: 0x505b, productName: 'USB KEYBOARD' }),
+    );
+    expect((await driver.getDeviceInfo()).model).toBe('AJAZZ AK820 (wired RGB)');
+    const layout = driver.getLayout();
+    expect(layout.keys).toHaveLength(82);
+    expect(layout.extras?.map((e) => e.kind)).toEqual(['knob']);
+    // Indices from the official driver's picture, where this board differs from the full-size map.
+    const light = (label: string, y: number) =>
+      layout.keys.find((k) => k.label === label && k.y === y)?.light;
+    expect(light('Esc', 0)).toBe(0);
+    expect(light('Del', 0)).toBe(56);
+    expect(light('Enter', 3.25)).toBe(75);
+    expect(light('↑', 4.25)).toBe(96);
+    expect(light('Fn', 5.25)).toBe(110);
+    expect(light('→', 5.25)).toBe(115);
+    await driver.setPerKeyRgb({ 96: { r: 1, g: 2, b: 3 } });
+    expect([...sim.colors.subarray(96 * 3, 96 * 3 + 3)]).toEqual([1, 2, 3]);
+    expect(driver.getCapabilities().perKeyRgb.value).toMatch(/82 keys/);
+  });
 });

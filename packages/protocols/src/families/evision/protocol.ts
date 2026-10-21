@@ -18,7 +18,7 @@ import type {
   StateStore,
   TransportMode,
 } from '@openkey/core';
-import { ansiLayout } from '@openkey/devices';
+import { ansiLayout, getLayout } from '@openkey/devices';
 import { LoggingTransport } from '@openkey/hid';
 import type {
   HidCollection,
@@ -251,11 +251,37 @@ interface Mirror {
   perKey: PerKeyRgb;
 }
 
+/** EVision boards whose own key and LED map is known; the others use the full-size map. */
+export interface EVisionModel {
+  vendorId: number;
+  productId: number;
+  name: string;
+  layout: string;
+  source: string;
+}
+
+export const EVISION_MODELS: readonly EVisionModel[] = [
+  {
+    // The AJAZZ firmware updater shipped with the official "AK820 wired RGB" driver V1.0 targets
+    // 320F:505B (firmware 0103, bootloader 0C45:7687); its keyboard picture gives the 82 LED indices.
+    vendorId: 0x320f,
+    productId: 0x505b,
+    name: 'AJAZZ AK820 (wired RGB)',
+    layout: 'ajazz-ak820-rgb',
+    source:
+      'official AJAZZ "AK820 wired RGB" driver V1.0: firmware updater identity and key picture',
+  },
+];
+
+export const evisionModel = (vendorId: number, productId: number) =>
+  EVISION_MODELS.find((m) => m.vendorId === vendorId && m.productId === productId);
+
 export class EVisionDriver extends BaseKeyboardDriver {
   readonly protocolId = EVISION_PROTOCOL_ID;
   readonly transport: TransportMode;
   private t: HidTransport | null = null;
   private readonly layout: KeyboardLayout;
+  private readonly model: EVisionModel | undefined;
 
   constructor(
     private readonly group: HidDeviceGroup,
@@ -267,14 +293,18 @@ export class EVisionDriver extends BaseKeyboardDriver {
   ) {
     super();
     this.transport = group.transportHint;
-    this.layout = ansiLayout({
-      id: 'evision',
-      name: 'EVision keyboard (full-size map; smaller boards use the matching part)',
-      size: 'full',
-      rightMods: 'fn',
-      light: (n) => LED[n] ?? null,
-      source: 'LED indices from OpenRGB’s EVision matrix map (facts only); standard ANSI geometry.',
-    });
+    this.model = evisionModel(group.identity.vendorId, group.identity.productId);
+    this.layout = this.model
+      ? getLayout(this.model.layout)
+      : ansiLayout({
+          id: 'evision',
+          name: 'EVision keyboard (full-size map; smaller boards use the matching part)',
+          size: 'full',
+          rightMods: 'fn',
+          light: (n) => LED[n] ?? null,
+          source:
+            'LED indices from OpenRGB’s EVision matrix map (facts only); standard ANSI geometry.',
+        });
   }
 
   private get key(): string {
@@ -321,10 +351,17 @@ export class EVisionDriver extends BaseKeyboardDriver {
     });
     c.perKeyRgb = configurable('mirror', true, Evidence.INFERRED, {
       safety: SafetyLevel.SAFE_PERSISTENT,
-      source: src,
-      value: '126 LEDs (full-size map)',
+      source: this.model ? `${src}; LED map: ${this.model.source}` : src,
+      value: this.model
+        ? `${this.layout.keys.length} keys (the keyboard's own map)`
+        : '126 LEDs (full-size map)',
       note,
     });
+    if (this.model)
+      c.encoder = feature(FeatureStatus.NOT_SUPPORTED, {
+        confidence: Evidence.OBSERVED,
+        note: 'The volume knob is handled by the keyboard; the official driver has no knob setting.',
+      });
     c.keymap = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
       confidence: Evidence.UNKNOWN,
       note: 'The EVision key-map commands are not documented by any open project.',
@@ -334,7 +371,7 @@ export class EVisionDriver extends BaseKeyboardDriver {
 
   async getDeviceInfo(): Promise<DeviceInfo> {
     return {
-      model: this.group.identity.productName || 'EVision keyboard',
+      model: this.model?.name ?? (this.group.identity.productName || 'EVision keyboard'),
       profileId: this.key.replace('/', '-'),
       identity: this.group.identity,
       firmware: {
@@ -450,24 +487,33 @@ export const evisionProtocol: ProtocolDefinition = {
           'OpenRGB Controllers/EVisionKeyboardController (GPL-2.0; facts only): packets, modes, LED matrix',
         status: Evidence.INFERRED,
       },
+      {
+        source: 'official-driver',
+        reference:
+          'AJAZZ "AK820 wired RGB" driver V1.0: EVision firmware (eevision_A_kb_001, VS11K28A), updater target 320F:505B, keyboard picture with 82 LED indices',
+        status: Evidence.OBSERVED,
+      },
     ],
     license: 'MIT',
     limitations: [
       'Lighting only; key maps and macros are not documented.',
       'The keyboard cannot report its settings; OpenKey shows what it last wrote.',
-      'The per-key map is the full-size one; on smaller boards only the keys present light up.',
+      'Boards without their own map use the full-size one; only the keys present light up.',
     ],
     fixtures: [],
     verifiedIdentities: [],
   },
-  name: 'EVision keyboard firmware (Redragon, Glorious, AJAZZ and other Sonix boards)',
+  name: 'EVision keyboard firmware (Redragon, Glorious, AJAZZ AK820 RGB and other Sonix boards)',
   family: EVISION_PROTOCOL_ID,
   priority: 42,
   supportedDevices: '0C45:5004/5104/5204/652F/7672/7698/8520, 320F:5000/502A/505B/5064/5078/5084',
   supportedFirmware: 'EVision keyboard firmware (usage page FF1C)',
   requiredUsagePages: [USAGE_PAGE],
   requiredReports: ['FF1C output id 4 63B'],
-  evidence: ['OpenRGB EVisionKeyboardController'],
+  evidence: [
+    'OpenRGB EVisionKeyboardController',
+    'Official AJAZZ "AK820 wired RGB" driver V1.0 (320F:505B identity, LED map)',
+  ],
   probePlan: {
     operations: [],
     autoConsent: (g) =>
