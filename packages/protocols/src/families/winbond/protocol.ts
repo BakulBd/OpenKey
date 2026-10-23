@@ -3,6 +3,7 @@ import {
   Evidence,
   FeatureStatus,
   ProtocolError,
+  SafetyBlockedError,
   SafetyLevel,
   clamp,
   configurable,
@@ -405,9 +406,31 @@ function keyEntry(slot: number, action: KeyAction | undefined): readonly number[
   }
 }
 
+/**
+ * Factory Fn layers. Writing an Fn layer sends all 132 entries, so every key the user does not
+ * change must be sent exactly as the keyboard's factory table has it, or its built-in Fn shortcut
+ * is erased. A table is listed here only when it is confirmed for a driver model code: from the
+ * official driver's own factory table for that model, or from a USB capture of the official app
+ * saving that layer. Each table is the 132 four-byte entries in matrix order.
+ *
+ * The MK870's model code is not known yet (Device Lab → Report → Run all checks), and its table is
+ * not confirmed, so this list is empty and Fn-layer writes stay off. Nothing here is guessed.
+ */
+export type FnFactoryTable = readonly (readonly [number, number, number, number])[];
+export const FN_FACTORY_TABLES = new Map<string, { fn1: FnFactoryTable; fn2?: FnFactoryTable }>();
+
 /** The ten key-map packets of one layer (without the report ID). */
-export function keymapPackets(layer: number, slots: Record<number, KeyAction>): Uint8Array[] {
-  const entries = DEFAULT_KEYS.map((_, i) => keyEntry(i, slots[i]));
+export function keymapPackets(
+  layer: number,
+  slots: Record<number, KeyAction>,
+  factory?: FnFactoryTable,
+): Uint8Array[] {
+  const entries = DEFAULT_KEYS.map((_, i) =>
+    // On an Fn layer, an unchanged key keeps the factory entry, byte for byte.
+    factory && (slots[i] === undefined || slots[i]!.kind === 'default')
+      ? factory[i]!
+      : keyEntry(i, slots[i]),
+  );
   const out: Uint8Array[] = [];
   for (let n = 0; n * KEYS_PER_KEYMAP_PACKET < entries.length; n++) {
     const keys = entries.slice(n * KEYS_PER_KEYMAP_PACKET, (n + 1) * KEYS_PER_KEYMAP_PACKET);
@@ -651,6 +674,33 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     // The official driver asks for the lighting when it connects; OpenKey reads it back from the
     // keyboard only if this keyboard answers, and otherwise keeps its own record.
     this.lightingReadable = (await this.queryLighting().catch(() => null)) !== null;
+    // The official driver asks for the model on connection to choose the keyboard's tables.
+    this.driverModel = await this.queryModel().catch(() => undefined);
+  }
+
+  /** Driver model code the keyboard reported on connection (only codes the driver lists). */
+  private driverModel: string | undefined;
+
+  private async queryModel(): Promise<string | undefined> {
+    if (!this.t) return undefined;
+    const q = new Uint8Array(REPORT_BYTES);
+    q[0] = 0x15;
+    this.t.drainInput();
+    await this.t.sendOutputReport(REPORT_ID, q);
+    const r = await this.t.readInputReport(CHECK_TIMEOUT_MS);
+    return r && r[0] === 0x15 ? modelCodeIn(r) : undefined;
+  }
+
+  private get fnTables() {
+    return this.driverModel ? FN_FACTORY_TABLES.get(this.driverModel) : undefined;
+  }
+
+  /** Why Fn layers are not written on this keyboard, in words for the user. */
+  private get fnBlockedReason(): string {
+    const model = this.driverModel
+      ? ` It reports model ${this.driverModel}, whose table still needs confirming.`
+      : ' It has not reported its model yet.';
+    return `Writing the Fn layer replaces every key on it, and OpenKey does not have this keyboard’s factory Fn table yet, so its built-in Fn shortcuts (volume, lighting …) would be erased.${model} To help: Device Lab → Report → Run all checks, and send the package (tester guide).`;
   }
 
   /** Waits up to `KEYMAP_ACK_MS` for an answer that repeats `command`; true when one came. */
@@ -720,9 +770,25 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
         'default layer: keys, keys with up to two modifiers, nine media keys, macros, disabled, factory default',
       note: 'The keyboard cannot report its key map; OpenKey shows what it last wrote. The Fn key stays fixed. Restore the defaults to undo.',
     });
-    c.fnLayer = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
+    c.fnLayer = this.fnTables
+      ? configurable('mirror', true, Evidence.INFERRED, {
+          safety: SafetyLevel.CAUTION,
+          source: `Official FL Esports driver: key-map packet 18 (layer 1) with the factory Fn table of model ${this.driverModel}`,
+          note: 'Keys you do not change keep their factory Fn function. The keyboard cannot report this layer; OpenKey shows what it last wrote.',
+        })
+      : feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
+          read: 'mirror',
+          confidence: Evidence.INFERRED,
+          source: 'Official FL Esports driver: key-map packet 18, layers 1 (FN1) and 2 (FN)',
+          note: 'You can plan Fn-layer changes; they are sent once this keyboard’s factory Fn table is confirmed.',
+          blockedReason: this.fnBlockedReason,
+        });
+    c.profiles = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
       confidence: Evidence.INFERRED,
-      note: 'The FN1 and FN layers use the same packet, but their factory contents are not in the driver files; writing them would erase the Fn functions.',
+      source: 'Official FL Esports driver: profile commands (14) not yet decoded',
+      note: 'OpenKey profiles (Profiles page) save and restore this keyboard’s lighting, key map, macros and sleep time from this browser.',
+      blockedReason:
+        'Switching the keyboard’s own onboard profiles is not available yet: the official driver’s profile command is not fully decoded, and a wrong write could overwrite a stored profile. Use OpenKey profiles meanwhile.',
     });
     c.sleep = configurable('mirror', true, Evidence.INFERRED, {
       safety: SafetyLevel.SAFE_PERSISTENT,
@@ -760,7 +826,17 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
         name: 'Winbond OEM keyboard protocol (FF1B output report 1)',
       },
       battery: null,
-      fields: [],
+      fields: this.driverModel
+        ? [
+            {
+              key: 'driverModel',
+              label: 'Driver model',
+              value: this.driverModel,
+              confidence: Evidence.OBSERVED,
+              source: 'Reported by the keyboard (model query 15, as the official driver asks)',
+            },
+          ]
+        : [],
     };
   }
 
@@ -964,19 +1040,19 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
   }
 
   override getLayerIds(): readonly LayerId[] {
-    return ['base'];
+    return this.fnTables?.fn2 ? ['base', 'fn', 'layer2'] : ['base', 'fn'];
   }
 
   override async getKeymap(layer: LayerId = 'base'): Promise<KeymapState> {
-    if (layer !== 'base') return super.getKeymap(layer);
-    const saved = await this.opts.store.get<KeymapState>(`${this.key}/keymap`);
-    return saved ?? { layer: 'base', slots: {}, provenance: 'assumed-default' };
+    const store = layer === 'base' ? `${this.key}/keymap` : `${this.key}/keymap-${layer}`;
+    if (layer !== 'base' && layer !== 'fn' && layer !== 'layer2') return super.getKeymap(layer);
+    const saved = await this.opts.store.get<KeymapState>(store);
+    return saved ?? { layer, slots: {}, provenance: 'assumed-default' };
   }
 
   override async setKeymap(state: KeymapState): Promise<void> {
     if (!this.t) throw new ProtocolError('Not connected');
-    if (state.layer !== 'base')
-      throw new ProtocolError('Only the default layer can be written on this keyboard.');
+    if (state.layer !== 'base') return this.setFnLayerKeymap(state);
     const packets = keymapPackets(0, state.slots);
     // Macros used by the new map are written first (as the official driver does), so no key
     // points at a slot that is not there yet; slots the map no longer uses are cleared.
@@ -995,6 +1071,33 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     }
     await this.opts.store.set(`${this.key}/keymap`, {
       layer: 'base',
+      slots: state.slots,
+      provenance: 'mirror',
+      updatedAt: new Date().toISOString(),
+    } satisfies KeymapState);
+  }
+
+  /**
+   * Fn layers: written only with the confirmed factory table of the reported model, so keys the
+   * user leaves alone keep their factory Fn function. Without it nothing is sent.
+   */
+  private async setFnLayerKeymap(state: KeymapState): Promise<void> {
+    if (!this.t) throw new ProtocolError('Not connected');
+    const tables = this.fnTables;
+    const table =
+      state.layer === 'fn' ? tables?.fn1 : state.layer === 'layer2' ? tables?.fn2 : undefined;
+    if (!table) throw new SafetyBlockedError(this.fnBlockedReason);
+    if (Object.values(state.slots).some((a) => a.kind === 'macro'))
+      throw new ProtocolError('Macros can be assigned on the default layer.');
+    const layer = state.layer === 'fn' ? 1 : 2;
+    const packets = keymapPackets(layer, state.slots, table);
+    this.t.drainInput();
+    for (const p of packets) {
+      await this.t.sendOutputReport(REPORT_ID, p);
+      await this.waitForEcho(KEYMAP_CMD);
+    }
+    await this.opts.store.set(`${this.key}/keymap-${state.layer}`, {
+      layer: state.layer,
       slots: state.slots,
       provenance: 'mirror',
       updatedAt: new Date().toISOString(),
@@ -1057,7 +1160,8 @@ export const winbondProtocol: ProtocolDefinition = {
     limitations: [
       'Per-key LED order is the official driver’s matrix, confirmed on a sibling board (Pulsar PCMK TKL), not yet on an MK870.',
       'The key map, per-key colours and sleep time cannot be read from the keyboard; OpenKey shows what it last wrote.',
-      'Key map: the default layer (keys, two-modifier combinations, nine media keys); the FN1/FN layers are not written because their factory contents are unknown.',
+      'Key map: the default layer (keys, two-modifier combinations, nine media keys, macros). The Fn layer is written only with the confirmed factory table of the reported model; none is confirmed yet, so it is not sent.',
+      'Onboard profiles: the profile command is not fully decoded; not written.',
       'Macros: 10 slots of up to 62 presses and releases; the byte before the slot in a macro key’s entry is the 1 every key carries in the driver’s profiles (confirmed only for play once).',
       'Lighting is read back only when the keyboard answers the lighting query; otherwise OpenKey shows what it last wrote.',
       'Music response follows audio the vendor app streams (command 20); OpenKey does not stream audio.',

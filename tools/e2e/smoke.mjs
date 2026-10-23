@@ -987,6 +987,20 @@ try {
       );
     if (pkg?.includes('"bytes"')) failures.push('MK870 package contains answer bytes');
     if (shots) await page.screenshot({ path: `${shots}/mk870-protocol-check.png`, fullPage: true });
+    // Fn layer: edits are allowed, but Apply stays off and the notice says why.
+    await page.goto(base + '#/keymap');
+    await page.getByRole('tab', { name: /^Fn/ }).click();
+    await page.locator('.kb-key').nth(30).dispatchEvent('pointerdown');
+    await page.getByPlaceholder(/Search/).fill('volume');
+    await page.locator('.key-result').first().click();
+    await page
+      .locator('.cb-blocked')
+      .getByText(/factory Fn table/)
+      .waitFor();
+    if (await page.getByRole('button', { name: /Review 1 change/ }).isEnabled())
+      failures.push('MK870 Fn-layer apply is enabled without a factory table');
+    if (shots) await page.screenshot({ path: `${shots}/mk870-fn-blocked.png` });
+    results.push('mk870 demo: Fn-layer edit kept, apply blocked with the safety notice');
     results.push('mk870 demo: protocol check answered; package has its shape and the family hint');
     await ctx.close();
   }

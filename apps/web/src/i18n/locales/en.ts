@@ -1048,6 +1048,7 @@ export const en = {
   'config.mismatch': 'Saved, but the keyboard reports different values',
   'config.failed': 'Write failed · the keyboard state is unknown',
   'config.reverted': 'Local changes discarded',
+  'config.keptLocally': 'Your edits stay in this editor; nothing was sent to the keyboard.',
   'config.willVerify':
     'The keyboard reports this setting: the write will be checked by reading it back.',
   'config.noVerify':

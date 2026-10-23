@@ -44,7 +44,10 @@ export type WriteDecision =
  */
 export function writeDecision(support: FeatureSupport, ctx: SafetyContext): WriteDecision {
   if (!support.write)
-    return { kind: 'blocked', reason: 'The device or protocol offers no write for this feature.' };
+    return {
+      kind: 'blocked',
+      reason: support.blockedReason ?? 'The device or protocol offers no write for this feature.',
+    };
   const safety = support.safety ?? SafetyLevel.UNVERIFIED;
   if (safety === SafetyLevel.UNSAFE)
     return { kind: 'blocked', reason: 'Firmware-level operations are outside OpenKey’s scope.' };

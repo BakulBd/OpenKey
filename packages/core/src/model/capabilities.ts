@@ -96,6 +96,11 @@ export interface FeatureSupport {
   note?: string;
   /** Where the information comes from (official driver function, hardware observation …). */
   source?: string;
+  /**
+   * Why OpenKey does not write this feature on this keyboard (yet), in words a user can act on.
+   * Shown where the write would happen; without it the UI says the protocol offers no write.
+   */
+  blockedReason?: string;
 }
 
 export type Capabilities = Record<FeatureId, FeatureSupport>;

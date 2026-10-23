@@ -94,7 +94,11 @@ export function ChangeBar({
       </p>
     );
   return (
-    <div className={`changebar cb-${status}`} role="region" aria-label={t('config.region')}>
+    <div
+      className={`changebar cb-${status}${blockedReason ? ' cb-is-blocked' : ''}`}
+      role="region"
+      aria-label={t('config.region')}
+    >
       <div className="cb-state">
         {working ? (
           <Spinner />
@@ -105,15 +109,21 @@ export function ChangeBar({
         )}
         <div>
           <strong>{t(`config.${status}`, { n: count })}</strong>
+          {blockedReason && (
+            <p className="cb-blocked small" role="note">
+              <Icon name="info" /> <span>{blockedReason}</span>
+            </p>
+          )}
           <div className="small muted">
-            {blockedReason ??
-              (status === 'failed'
+            {blockedReason
+              ? t('config.keptLocally')
+              : status === 'failed'
                 ? t('config.failedMore')
                 : status === 'mismatch'
                   ? t('config.mismatchMore')
                   : verifies
                     ? t('config.willVerify')
-                    : t('config.noVerify'))}
+                    : t('config.noVerify')}
           </div>
         </div>
       </div>

@@ -33,6 +33,9 @@ behind the experimental opt-in. Sources and what was taken from each: docs/SOURC
   - sleep time.
   - macros stored on the keyboard (10 slots; play once, several times, toggle or while held),
     decoded from the official driver's macro uploader;
+  - the Fn layer is editable, and is written only with the keyboard's confirmed factory Fn table
+    (the model code is read on connection); until then Apply explains why nothing is sent;
+  - a clearer notice wherever a write is blocked, with the reason and what to do;
   - two read-only protocol checks (lighting query, model query) with a "Run all checks" button
     and a link to the tester guide;
   - lighting matched byte for byte against 45 USB captures from an MK870 owner (issue #13), with

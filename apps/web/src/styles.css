@@ -1827,6 +1827,25 @@ a.dev-chip:hover {
 .cb-modified {
   border-left-color: var(--staged);
 }
+.changebar.cb-is-blocked {
+  border-left-color: var(--info);
+}
+.cb-blocked {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--info) 10%, transparent);
+  color: var(--text);
+  line-height: 1.45;
+}
+.cb-blocked .icon {
+  color: var(--info);
+  flex: none;
+  margin-top: 2px;
+}
 .cb-saving,
 .cb-verifying {
   border-left-color: var(--info);

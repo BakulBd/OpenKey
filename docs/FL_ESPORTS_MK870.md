@@ -18,11 +18,18 @@ The Pulsar PCMK TKL (`0416:B23C`) uses the same protocol and the same adapter.
 | Sleep time          | 5 min to 1 h                                                                                                                        | No                                              |
 | Protocol checks     | Two read-only questions to the keyboard, used to finish the remaining features                                                      | Only the answer's shape and the model code      |
 
-**Not offered yet:**
+**Fn layer: ready, waiting for one fact.** The Fn tab works and the write path is built, but
+OpenKey only sends an Fn layer when it has your keyboard's factory Fn table. Writing the layer
+replaces every key on it, so without that table your built-in Fn shortcuts would be erased. Until
+then, Apply stays off and explains why; your edits stay in the editor. The keyboard's model code is
+shown under Device settings → Identity and in the protocol checks. Sending it in (see below) is
+what switches Fn-layer writing on.
 
-- **Fn layers and onboard profiles.** They need the model code your keyboard reports (see
-  "Sending your results"); with it, they can be added from the official driver's tables.
-- **Music response.** The effect is offered, but it follows audio the vendor app streams.
+**Onboard profiles: not yet.** The official driver's profile command is not fully decoded, and a
+wrong write could overwrite a stored profile. Meanwhile, the **Profiles** page saves and restores
+your lighting, key map, macros and sleep time from this browser.
+
+**Music response** is offered, but it follows audio the vendor app streams.
 
 **Never sent:** the firmware updater, serial-number and screen-firmware commands.
 
@@ -47,6 +54,7 @@ effect, what happened instead).
 
 - [ ] Device Lab → **Report** → **Run all checks**. Write down both results, e.g. "Answered",
       "No answer", and the model if one is shown (`driverModel: …`).
+- [ ] Device settings → Identity: is a **Driver model** shown? Write it down.
 - [ ] Lighting page: does it say "Read from the keyboard" or "Shown from OpenKey's last write"?
 
 ### Lighting
@@ -71,6 +79,8 @@ effect, what happened instead).
 - [ ] F12 → Volume up, F11 → Mute, F8 → Play/pause.
 - [ ] A key set to Disabled does nothing.
 - [ ] Fn and the Fn shortcuts still work.
+- [ ] Switch to the **Fn layer** tab and change a key: the notice explains why it is not sent, and
+      Apply stays off.
 - [ ] Restore layer defaults brings every key back.
 
 ### Macros

@@ -1,7 +1,13 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MemoryStateStore, PacketLog, isDiagnosticsDriver, isOpenKeyError } from '@openkey/core';
+import {
+  MemoryStateStore,
+  PacketLog,
+  isDiagnosticsDriver,
+  isOpenKeyError,
+  writeDecision,
+} from '@openkey/core';
 import type { Direction } from '@openkey/core';
 import { createDefaultRegistry, openDriver, winbond } from '@openkey/protocols';
 
@@ -66,7 +72,11 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       identification: 'identified',
     });
     expect(detectionTraffic).toBe(0);
-    expect(onConnect).toEqual([[0x07, 0x01]]);
+    // The two read-only questions the official driver asks on connection: lighting and model.
+    expect(onConnect).toEqual([
+      [0x07, 0x01],
+      [0x15, 0x00],
+    ]);
     expect((await driver.getDeviceInfo()).model).toBe('FL Esports MK870');
     expect(driver.getLayout().keys).toHaveLength(87);
     const caps = driver.getCapabilities();
@@ -77,7 +87,7 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       caps.macros.write,
       caps.fnLayer.write,
     ]).toEqual([true, true, true, false]);
-    expect(driver.getLayerIds()).toEqual(['base']);
+    expect(driver.getLayerIds()).toEqual(['base', 'fn']);
   });
 
   it('writes an effect with two colours and a rotating direction, and remembers it', async () => {
@@ -502,5 +512,79 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
     expect(other.facts).toBeUndefined();
     expect(JSON.stringify(other)).not.toContain('SN2026');
     expect(winbond.DRIVER_MODEL_CODES.size).toBeGreaterThan(150);
+  });
+
+  describe('Fn layers and onboard profiles', () => {
+    it('lets you edit the Fn layer but sends nothing without a confirmed factory table', async () => {
+      const { driver, sim } = await connect();
+      expect(driver.getLayerIds()).toEqual(['base', 'fn']);
+      const fn = driver.getCapabilities().fnLayer;
+      expect(fn.write).toBe(false);
+      expect(fn.read).toBe('mirror');
+      // The reason names what is missing and how to help, and the write gate shows it.
+      expect(fn.blockedReason).toMatch(/factory Fn table/);
+      expect(fn.blockedReason).toMatch(/model K223RGB/);
+      expect(fn.blockedReason).toMatch(/Run all checks/);
+      const gate = writeDecision(fn, { experimentalEnabled: true, simulated: false });
+      expect(gate).toEqual({ kind: 'blocked', reason: fn.blockedReason });
+      await expect(
+        driver.setKeymap({
+          layer: 'fn',
+          slots: { 2: { kind: 'special', code: 0x10 } },
+          provenance: 'mirror',
+        }),
+      ).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED');
+      expect(sim.packets).toEqual([]);
+      expect((await driver.getDeviceInfo()).fields).toContainEqual(
+        expect.objectContaining({ key: 'driverModel', value: 'K223RGB' }),
+      );
+    });
+
+    it('says the model is unknown when the keyboard does not report one', async () => {
+      const sim = new WinbondSimulator();
+      sim.modelCode = 'NOT_A_MODEL';
+      const { driver } = await connect(sim);
+      expect(driver.getCapabilities().fnLayer.blockedReason).toMatch(/not reported its model/);
+      expect((await driver.getDeviceInfo()).fields).toEqual([]);
+    });
+
+    it('writes layer 1 with the factory table for every key the user leaves alone', async () => {
+      const factory = Array.from(
+        { length: 132 },
+        (_, i) => [0x07, i % 2 ? 0x10 : 0x11, 0x00, 0x00] as [number, number, number, number],
+      );
+      winbond.FN_FACTORY_TABLES.set('K223RGB', { fn1: factory });
+      try {
+        const { driver, sim } = await connect();
+        const fn = driver.getCapabilities().fnLayer;
+        expect([fn.write, fn.blockedReason]).toEqual([true, undefined]);
+        await driver.setKeymap({
+          layer: 'fn',
+          slots: { 2: { kind: 'keyboard', usage: 0x04, modifiers: 0 } },
+          provenance: 'mirror',
+        });
+        const maps = sim.packets.filter((p) => p[0] === winbond.KEYMAP_CMD);
+        expect(maps).toHaveLength(10);
+        expect(maps.every((p) => p[1] === 1)).toBe(true);
+        expect([...maps[0]!.subarray(5, 9)]).toEqual(factory[0]);
+        expect([...maps[0]!.subarray(13, 17)]).toEqual([0x00, 0x04, 0x00, 0x00]);
+        expect([...maps[9]!.subarray(5 + 4 * 4, 5 + 5 * 4)]).toEqual(factory[130]);
+        expect((await driver.getKeymap('fn')).slots[2]).toEqual({
+          kind: 'keyboard',
+          usage: 0x04,
+          modifiers: 0,
+        });
+      } finally {
+        winbond.FN_FACTORY_TABLES.delete('K223RGB');
+      }
+    });
+
+    it('explains why onboard profiles are not written, and points to OpenKey profiles', async () => {
+      const { driver } = await connect();
+      const p = driver.getCapabilities().profiles;
+      expect(p.write).toBe(false);
+      expect(p.blockedReason).toMatch(/onboard profiles/);
+      expect(p.blockedReason).toMatch(/OpenKey profiles/);
+    });
   });
 });

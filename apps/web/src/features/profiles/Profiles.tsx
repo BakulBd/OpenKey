@@ -137,6 +137,11 @@ export default function Profiles() {
           ? t('profiles.hardware')
           : t('profiles.localOnly')}
       </div>
+      {deviceProfiles?.blockedReason && (
+        <p className="callout info small" role="note">
+          {deviceProfiles.blockedReason}
+        </p>
+      )}
       {device ? (
         <Card title={t('profiles.new')}>
           <div className="row wrap">
