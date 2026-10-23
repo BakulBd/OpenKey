@@ -197,6 +197,7 @@ export const en = {
   'demo.aj179': 'AJAZZ AJ179 mouse',
   'demo.razer': 'Razer BlackWidow V3',
   'demo.aula-f87s': 'AULA F87S 8K',
+  'demo.mk870': 'FL Esports MK870',
   'demo.lamparray': 'Dynamic Lighting (LampArray)',
   'guide.revisions': '{n} hardware revisions',
   'guide.rev.name': 'Revision',
@@ -625,6 +626,7 @@ export const en = {
   'rgb.parameters': 'Parameters',
   'rgb.color': 'Colour',
   'rgb.rainbow': 'Rainbow colours',
+  'rgb.color2': 'Second colour',
   'rgb.brightness': 'Brightness {v}',
   'rgb.speed': 'Speed {v}',
   'rgb.direction': 'Direction',
@@ -632,6 +634,10 @@ export const en = {
   'rgb.dir.right': 'Right',
   'rgb.dir.up': 'Up',
   'rgb.dir.down': 'Down',
+  'rgb.dir.clockwise': 'Clockwise',
+  'rgb.dir.anticlockwise': 'Anticlockwise',
+  'rgb.dir.inwards': 'Inwards',
+  'rgb.dir.outwards': 'Outwards',
 
   'perkey.lead':
     'Paint keys locally, then apply. Writes are rate-limited because the table is stored in flash.',
@@ -1180,6 +1186,17 @@ export const en = {
   'lab.evidence.families': 'Research signatures it resembles (no I/O, never selected)',
   'lab.report.package': 'Diagnostic package',
   'lab.report.capabilities': 'Download capability dump',
+  'lab.checks.title': 'Protocol checks',
+  'lab.checks.lead':
+    'Read-only requests the keyboard’s own software sends. Each runs only when you click it and changes nothing on the keyboard; the answer shows whether the keyboard speaks the protocol OpenKey uses for it.',
+  'lab.checks.run': 'Run check',
+  'lab.checks.reply': 'report {id}, {len} bytes, first byte {first}, {nz} non-zero',
+  'lab.checks.status.answered': 'Answered: the keyboard repeated the command.',
+  'lab.checks.status.unexpected': 'Answered, but without repeating the command.',
+  'lab.checks.status.no-answer': 'No answer.',
+  'lab.checks.status.error': 'The request could not be sent.',
+  'lab.checks.privacy':
+    'The diagnostic package keeps only the shape of each answer (report, length, first byte); the bytes themselves stay in this browser’s protocol trace.',
   'lab.report.notes': 'Research notes',
   'lab.report.notesLead':
     'Notes stay in this browser, tied to this device’s fingerprint. Label each with how you know it.',

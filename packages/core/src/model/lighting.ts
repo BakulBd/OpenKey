@@ -4,7 +4,17 @@ export interface Rgb {
   b: number;
 }
 
-export type Direction = 'left' | 'right' | 'up' | 'down';
+/** The four flat directions every lighting protocol with a direction knows. */
+export type PlaneDirection = 'left' | 'right' | 'up' | 'down';
+/** Plus the rotating and radial directions some firmwares offer (Winbond MK870 and siblings). */
+export type Direction = PlaneDirection | 'clockwise' | 'anticlockwise' | 'inwards' | 'outwards';
+
+export const PLANE_DIRECTIONS: readonly PlaneDirection[] = ['left', 'right', 'up', 'down'];
+
+/** The direction as one of the four flat ones; others fall back to `fallback`. */
+export function planeDirection(d: Direction, fallback: PlaneDirection = 'left'): PlaneDirection {
+  return (PLANE_DIRECTIONS as readonly string[]).includes(d) ? (d as PlaneDirection) : fallback;
+}
 
 /** Global lighting effect configuration. Field ranges come from the active effect catalog. */
 export interface RgbConfig {
@@ -12,6 +22,8 @@ export interface RgbConfig {
   color: Rgb;
   /** "Colourful"/rainbow flag – the effect cycles colours instead of using `color`. */
   colorful: boolean;
+  /** Second colour, for effects that blend two (see `controls.color2`). */
+  color2?: Rgb;
   brightness: number;
   speed: number;
   direction: Direction;
@@ -23,6 +35,8 @@ export interface EffectDescriptor {
   name: string;
   controls: {
     color: boolean;
+    /** The effect also uses a second colour. */
+    color2?: boolean;
     colorful: boolean;
     brightness: boolean;
     speed: boolean;

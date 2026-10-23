@@ -441,7 +441,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'adapter',
     adapters: ['by-tech'],
-    note: 'R75 RGB wired (258A:015E): BY Tech protocol; teach OpenKey its lighting layout with two key presses, then lighting is configurable. Newer R75 revisions using RK’s web software are not supported yet.',
+    note: 'R75 RGB wired (258A:015E): BY Tech protocol with its own 80-key picture and knob, and the effect list and controls from RK’s configuration for it. Teach OpenKey its lighting layout with two key presses (nothing is written), then effect, colour, brightness and speed are configurable and read back. Key maps, macros and per-key colours are not documented for this protocol. Newer R75 revisions using RK’s web software are not supported yet.',
     revisions: [
       {
         name: 'RGB wired',
@@ -449,7 +449,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
         adapter: 'by-tech',
         ids: ['258A:015E'],
         status: 'community',
-        tell: 'USB product string "BY Tech Gaming Keyboard"',
+        tell: 'USB product string "BY Tech Gaming Keyboard" (WebHID: "Gaming Keyboard")',
       },
       {
         name: 'web-software revision',
@@ -1474,6 +1474,36 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
         repo: 'sgtflixy/AulaControl',
         license: null,
         covers: 'AULA WIN60HE/WIN75HE research (other platform)',
+      },
+    ],
+  },
+  {
+    brand: 'FL Esports',
+    model: 'MK870',
+    group: 'asia',
+    level: 'adapter',
+    adapters: ['winbond-lighting'],
+    note: 'Wired board on a Nuvoton controller (0416:C345), configured with the official FL Esports driver’s own commands: 14 lighting effects with two colours, rainbow, brightness, speed and eight directions; per-key colours; the default layer’s key map (any key, keys with up to two modifiers, nine media keys, disabled, restore defaults); sleep time. The lighting is read back when the keyboard answers the official lighting query; the other settings cannot be read, so OpenKey shows what it last wrote. The FN layers are not written (their factory contents are unknown), and macros are played by the vendor app rather than stored on the keyboard. Device Lab → Report runs a read-only protocol check for support requests.',
+    revisions: [
+      {
+        name: 'wired',
+        chip: 'Winbond / Nuvoton',
+        adapter: 'winbond-lighting',
+        ids: ['0416:C345'],
+        status: 'community',
+        tell: 'USB product string “Gaming Keyboard”, vendor collection FF1B:0091',
+      },
+    ],
+    sources: [
+      {
+        repo: 'Mqlvin/keyboard-colour',
+        license: 'MIT',
+        covers: 'Winbond lighting packet, effects and directions (Linux app)',
+      },
+      {
+        repo: 'brainrom/winbond-kbdbl',
+        license: 'MIT',
+        covers: 'Older Winbond generation (0416:A0F8, 06 BE commands): per-key backlight',
       },
     ],
   },

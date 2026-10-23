@@ -146,12 +146,13 @@ export class ByTechDriver extends BaseKeyboardDriver {
           : 'settings page (leisiji/AulaSofwareLinux, verified on an AULA F75)',
         note: 'Read from the keyboard, patched, written back and read again to confirm.',
       });
-      c.sleep = this.model?.effects
-        ? configurable('device', true, ev, {
-            safety: SafetyLevel.SAFE_PERSISTENT,
-            source: 'settings page byte 0x18',
-          })
-        : feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, { confidence: Evidence.UNKNOWN });
+      c.sleep =
+        this.model?.effects === 'aula-fw24'
+          ? configurable('device', true, ev, {
+              safety: SafetyLevel.SAFE_PERSISTENT,
+              source: 'settings page byte 0x18',
+            })
+          : feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, { confidence: Evidence.UNKNOWN });
     } else {
       c.rgb = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
         read: 'none',
@@ -336,7 +337,7 @@ export class ByTechDriver extends BaseKeyboardDriver {
   }
 
   override getSettingsSchema(): SettingsSchema {
-    return this.model?.effects ? { sleepTime: [...AULA_SLEEP] } : {};
+    return this.model?.effects === 'aula-fw24' ? { sleepTime: [...AULA_SLEEP] } : {};
   }
 
   override async getSystemSettings(): Promise<SystemSettings> {

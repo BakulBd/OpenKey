@@ -135,6 +135,7 @@ const m: Partial<Messages> = {
   'demo.aj179': 'AJAZZ AJ179 মাউস',
   'demo.razer': 'Razer BlackWidow V3',
   'demo.aula-f87s': 'AULA F87S 8K',
+  'demo.mk870': 'FL Esports MK870',
   'demo.lamparray': 'ডায়নামিক লাইটিং (LampArray)',
   'guide.revisions': '{n}টি হার্ডওয়্যার সংস্করণ',
   'guide.rev.name': 'সংস্করণ',

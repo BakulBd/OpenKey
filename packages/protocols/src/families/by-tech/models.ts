@@ -19,8 +19,18 @@ export interface ByTechModel {
    * the page but does not decode or write it until the layout is confirmed on this model.
    */
   pageLayout: PageLayout | null;
-  /** Lighting effects in firmware order (1-based position = the value stored in the page). */
-  effects: 'aula-fw24' | null;
+  /**
+   * Lighting effects in firmware order (1-based position = the value stored in the page): the AULA
+   * Fw=24 list, or the controls an RK driver configuration gives each position (`ledOpt`).
+   */
+  effects: 'aula-fw24' | 'rk-ledopt' | null;
+  /**
+   * RK `LedOptN=animation,speed,brightness,direction,random,colour` flags per effect position; null
+   * for a position the configuration leaves out.
+   */
+  ledOpt?: readonly (readonly [number, number, number, number, number, number] | null)[];
+  /** Effect the vendor configuration selects by default (`DefLedIndex`). */
+  defaultEffect?: number;
   brightnessMax: number;
   /**
    * USB product IDs the identity is trusted on. RK's codes are generic (`a,0,0,0,0,0`), so an RK
@@ -63,14 +73,28 @@ export const BY_TECH_MODELS: readonly ByTechModel[] = [
     identity: '0a 00 00 00 00 00',
     brand: 'RK',
     model: 'R75 RGB (wired)',
-    layoutId: 'ak820-pro',
+    layoutId: 'rk-r75',
     // Older firmware generation (`Fw=1`): the AULA page layout is not confirmed for it.
     pageLayout: null,
-    effects: null,
+    effects: 'rk-ledopt',
+    // Dev/015E/KB.ini LedOpt1–LedOpt20 (LedOpt18 is absent), DefLedIndex=10.
+    ledOpt: [
+      [0, 0, 1, 0, 1, 1],
+      [0, 1, 1, 0, 1, 1],
+      [0, 1, 1, 0, 0, 0],
+      ...Array.from({ length: 11 }, () => [0, 1, 1, 0, 1, 1] as const),
+      [0, 1, 1, 0, 0, 0],
+      [0, 1, 1, 0, 0, 0],
+      [0, 1, 1, 0, 0, 0],
+      null,
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+    ],
+    defaultEffect: 10,
     brightnessMax: 5,
     productIds: [0x015e],
     source:
-      'RK driver configuration for USB 258A:015E (Dev/015E/KB.ini: Psd=a,0,0,0,0,0, Fw=1), as published by vinc3m1/kludgeknight (fact only)',
+      'RK driver configuration for USB 258A:015E (Dev/015E/KB.ini: Psd=a,0,0,0,0,0, Fw=1, LedOpt, DefLedIndex, key table), as published by vinc3m1/kludgeknight (facts only)',
   },
   {
     identity: '06 00 00 00 00 23',
@@ -123,7 +147,39 @@ const AULA_FW24_ROWS: readonly [number, string, number, number, number, number, 
 ];
 export const AULA_OFF_EFFECT = 21;
 
+/**
+ * The effect positions an RK configuration lists, with the controls its `LedOpt` flags give each.
+ * RK names the effects in a shared `led.xml` whose order does not match every board, so they are
+ * numbered; a position with no control is the firmware's off/indicator slot.
+ */
+export function rkEffectCatalog(model: ByTechModel): EffectCatalog {
+  const effects: EffectDescriptor[] = [];
+  (model.ledOpt ?? []).forEach((flags, i) => {
+    if (!flags) return;
+    const [, speed, light, direction, random, color] = flags;
+    const id = i + 1;
+    const off = flags.every((f) => f === 0);
+    effects.push({
+      id,
+      name: `Effect ${id}${id === model.defaultEffect ? ' (default)' : ''}${off ? ' (no controls)' : ''}`,
+      controls: {
+        color: !!color,
+        colorful: !!random,
+        brightness: !!light,
+        speed: !!speed,
+        direction: direction === 1 ? ['left', 'right'] : direction === 2 ? ['up', 'down'] : [],
+      },
+    });
+  });
+  return {
+    effects,
+    brightness: { min: 0, max: model.brightnessMax },
+    speed: { min: 0, max: 4 },
+  };
+}
+
 export function effectCatalog(model: ByTechModel): EffectCatalog {
+  if (model.effects === 'rk-ledopt') return rkEffectCatalog(model);
   const effects: EffectDescriptor[] = AULA_FW24_ROWS.map(
     ([id, name, speed, light, , random, color]) => ({
       id,

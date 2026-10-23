@@ -13,6 +13,7 @@ import layoutPro from './layouts/ak820-pro.json' with { type: 'json' };
 import layoutProOnline from './layouts/ak820-pro-online.json' with { type: 'json' };
 import layoutNova75 from './layouts/aula-nova75.json' with { type: 'json' };
 import layoutAk820Rgb from './layouts/ajazz-ak820-rgb.json' with { type: 'json' };
+import layoutRkR75 from './layouts/rk-r75.json' with { type: 'json' };
 import { ansiLayout } from './layouts/ansi.js';
 
 export type ConfigurationSupport = 'supported' | 'partial' | 'unsupported' | 'unknown';
@@ -185,6 +186,7 @@ export const LAYOUTS: Record<string, KeyboardLayout> = {
   'ak820-pro-online': layoutProOnline as KeyboardLayout,
   'aula-nova75': layoutNova75 as KeyboardLayout,
   'ajazz-ak820-rgb': layoutAk820Rgb as KeyboardLayout,
+  'rk-r75': layoutRkR75 as KeyboardLayout,
   'aula-f108-pro': ansiLayout({
     id: 'aula-f108-pro',
     name: 'AULA F108 Pro (ANSI, 104 keys)',
@@ -256,3 +258,4 @@ export function matchProfiles(
 export * from './catalog.js';
 export * from './layouts/ansi.js';
 export * from './guide.js';
+export * from './protocol-hints.js';

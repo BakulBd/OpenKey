@@ -165,6 +165,117 @@ setting do what the screen says.
 **Tests:** `tests/protocol/shared-receiver.test.ts`, built from the reported descriptors (shapes
 only), and `tests/integration/sonix-feature-variants.test.ts` for the cable.
 
+### FL Esports MK870 (`0416:C345`, "Gaming Keyboard"), Linux, October 2026
+
+**What the report showed.** A consumer collection, a mouse collection, and a vendor collection
+`FF1B:0091` with input and output report 1 of 63 bytes. Its owner has run
+[Mqlvin/keyboard-colour](https://github.com/Mqlvin/keyboard-colour) (MIT) on the keyboard
+successfully.
+
+**Sources checked:**
+
+- **Mqlvin/keyboard-colour (MIT).** A USBPcap capture of the vendor software. It gives the lighting
+  packet `07 00 00 00 0E mode brightness speed R G B R2 G2 B2 direction rainbow` on output report 1,
+  15 effect codes, brightness and speed 0–4, and 8 direction codes.
+- **[DanielGibson's Pulsar PCMK TKL notes](https://gist.github.com/DanielGibson/cd92c5faa6b2e0426351dc44193c6182)**
+  (no licence beyond the hidraw sample; facts only). Same lighting packet on `0416:B23C`
+  (Nuvoton NUC121), plus:
+  - per-key colours: `09 00 00 NN LEN` RGB, 8 packets, 132 LEDs, components up to `0xC1`, then
+    effect `0x0A`;
+  - logo lighting `08 … 0D`;
+  - its effect codes differ from the MK870's from code 4 on.
+- **Official FL Esports driver V1.06.16** ("Windows 1-mode: FL980, GP108, MK870 …",
+  fl-esports.com). The Inno Setup installer was unpacked and its Qt resources and code read; nothing
+  was copied.
+  - Its device list names `0416:B23C` (NUC121) and `0416:C345` (M252), so the MK870 and the
+    Pulsar PCMK share one protocol.
+  - Its default profiles list the 132 matrix positions in order. That fixes every LED and key index,
+    including the slots the gist left open (backslash 58, quote 78, Enter 80, Fn 121).
+  - Command table, from the app's debug labels:
+
+    | Command    | Use                            |
+    | ---------- | ------------------------------ |
+    | `01`       | handshake; also the sleep time |
+    | `04`, `05` | key reports                    |
+    | `06`       | multimedia                     |
+    | `07`       | lighting (`07 01` reads it)    |
+    | `08`       | side light                     |
+    | `09`       | per-key colours                |
+    | `0B`       | **firmware updater**           |
+    | `13`       | mouse keys                     |
+    | `14`       | profile / factory reset        |
+    | `15`       | serial number read             |
+    | `16`       | **serial number write**        |
+    | `17`       | light sync                     |
+    | `18`       | key map                        |
+    | `19`       | macro list                     |
+    | `21`–`26`  | LCD                            |
+    | `41`–`46`  | mouse                          |
+
+  - Key map, decoded from the code:
+    - `18 LAYER 00 N LEN`, 14 keys of 4 bytes per packet, 10 packets per layer;
+    - layers: 0 default, 1 FN1, 2 FN;
+    - entries: `00 USAGE 00 00` for a key, `01 00 00 00` for Fn, `07 CODE 00 00` for a media
+      key, `13 MOD1 KEY 00` / `13 MOD1 MOD2 KEY` for a key with modifiers;
+    - media codes: indices 0–7 match the app's menu (Volume up … Media player) and the Fn rows
+      of its profiles; Calculator is `0x32`.
+  - Sleep: `01 00 00 00 01 00` with the light-off and keyboard-sleep times in seconds,
+    big-endian, at bytes 13–16. The app refuses less than 300 s.
+  - Read-only lighting query: `07 01` ("Inquire Keyboard Light Config"). How the app parses its
+    answer is not decoded.
+- [brainrom/winbond-kbdbl](https://github.com/brainrom/winbond-kbdbl) (MIT): an older Winbond
+  generation (`0416:A0F8`, `06 BE` commands), not this protocol.
+- OpenRGB requests [#2445](https://gitlab.com/CalcProgrammer1/OpenRGB/-/issues/2445) (MK870) and
+  #3780 / #4116 (Pulsar PCMK): no packets beyond the gist.
+
+**What it changed in OpenKey (`winbond-lighting`):**
+
+- **MK870:** lighting (14 effects, two colours, rainbow, eight directions), per-key colours, the
+  default layer's key map, sleep time and key-map restore. All writes are experimental, and the
+  keyboard can't report its settings, so OpenKey shows what it last wrote.
+- **Pulsar PCMK TKL (`0416:B23C`):** the effects both sources agree on.
+- **Never sent:** `0B`, `16` and `22`.
+- **Diagnostics:** Device Lab → Report runs the read-only `07 01` check on a click. The diagnostic
+  package now has a descriptor fingerprint, a vendor-channel map, family hints, per-adapter match
+  reasons, evidence per feature and protocol-check answer shapes. It still carries no payloads.
+
+**Follow-up the same month:**
+
+- **Lighting read-back:** the driver's parser for the `07` answer (0x67F480) reads mode,
+  brightness, speed, colour, second colour, direction and rainbow at the positions of the lighting
+  write. OpenKey asks once on connection, as the driver does. If this keyboard answers, lighting is
+  read back from it and checked after every change; if not, OpenKey shows what it last wrote.
+- **Key-map acknowledgement:** the keyboard answers each `18` packet with an echo, which the
+  driver handles. OpenKey waits up to 150 ms for it between packets to pace the writes, but does
+  not count it as a read-back.
+- **Macros:** the driver's onboard macro list (`19 MACRO 00 K LEN`, 5 packets × 10 slots, sent
+  with retries) always goes out empty. Macro keys are played by the app itself through key reports
+  (`04` six-key, `05` full-key, "Write Key"). There is nothing for OpenKey to store on the keyboard.
+- **FN1/FN layers:** the key-map packet takes a layer, but the driver has no key-map read, and the
+  layers' factory contents are not in its files. Writing them would erase the Fn functions, so
+  OpenKey does not.
+- **Music rhythm:** the app streams levels with command `20`; not offered.
+
+### RK R75 RGB (`258A:015E`), the owner's keyboard, October 2026
+
+The owner's support bundle from 11 October predates the `by-tech` adapter. Detection now offers it
+for that exact descriptor, after asking once.
+
+[vinc3m1/kludgeknight](https://github.com/vinc3m1/kludgeknight) (GPL-3.0, facts only) was read
+again:
+
+- **Protocol does not apply.** Its packets are RK's older 65-byte `0A` reports on a `0001:0080`
+  collection. The R75 has neither; it has the BY Tech 519-byte report 6.
+- **Configuration facts do apply.** The R75's `Dev/015E/KB.ini` gives:
+  - every key's picture position, default key and matrix index (80 keys, the knob as K81);
+  - the controls of each lighting effect (`LedOpt1`–`20`, no 18);
+  - the default effect (10).
+- **Effect names stay unknown.** RK's shared `led.xml` names do not fit the R75's flags (effect 2
+  has a speed control but is "Customize" there), so OpenKey numbers the effects.
+
+**What it changed:** the R75 now shows its own keyboard and knob, and only its own effects with the
+right controls. The settings-page layout is still learned from two key presses, with nothing written.
+
 ## AJAZZ mice
 
 **AJ139 V2 MC** — [Ripariav/Ajazz-AJ139V2MC-Linux-Driver](https://github.com/Ripariav/Ajazz-AJ139V2MC-Linux-Driver)

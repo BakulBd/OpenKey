@@ -2,6 +2,7 @@ import type { Capabilities, FeatureId, FeatureStatus } from './model/capabilitie
 import { FEATURES } from './model/capabilities.js';
 import type { Evidence } from './evidence.js';
 import type { TransportMode } from './model/device.js';
+import type { ProtocolCheckResult } from './model/diagnostics.js';
 
 export const SUPPORT_BUNDLE_FORMAT = 'openkey-support-bundle';
 /**
@@ -48,6 +49,70 @@ export interface SupportDevice {
   interfaces: { interfaceNumber?: number; collections: SupportCollection[] }[];
 }
 
+/** Why one adapter was or was not considered for the device (no packet payloads). */
+export interface SupportCandidate {
+  id: string;
+  family: string;
+  applicable: boolean;
+  score: number;
+  reasons: string[];
+  rejections: string[];
+  consent?: { required: boolean; granted: boolean };
+  probe?: {
+    status: string;
+    summary: string;
+    identified: boolean;
+    steps: { name: string; status: string; detail: string }[];
+  };
+}
+
+/** One vendor-defined collection and how it can carry commands. */
+export interface SupportChannel {
+  interfaceIndex: number;
+  usagePage: string;
+  usage: string | null;
+  /**
+   * - command: output and input reports with the same ID (request / answer pairs);
+   * - feature: feature reports (set and get on the same report);
+   * - output-only: commands without an answer on this collection;
+   * - input-only: the keyboard reports something by itself (e.g. a status or a key event).
+   */
+  kind: 'command' | 'feature' | 'output-only' | 'input-only' | 'none';
+  reportIds: number[];
+  /** Largest report on the collection including the report-ID byte, as written on the wire. */
+  frameBytes: number;
+}
+
+/** What is publicly known about a protocol family the device appears to belong to. */
+export interface ProtocolHint {
+  id: string;
+  title: string;
+  /** `identity`: the USB identity is a known model; `descriptor`: only the report layout matches. */
+  basis: 'identity' | 'descriptor';
+  facts: string[];
+  sources: string[];
+}
+
+export interface SupportFeatureEvidence {
+  status: FeatureStatus;
+  confidence: string;
+  read: string;
+  write: boolean;
+}
+
+/** Derived from the descriptors and the session; helps a maintainer place the device. */
+export interface SupportAnalysis {
+  /** Order-independent description of the HID layout. */
+  signature: string;
+  /** Short stable hash of `signature`: identical boards give the same fingerprint. */
+  fingerprint: string;
+  channels: SupportChannel[];
+  hints: ProtocolHint[];
+  candidates: SupportCandidate[];
+  features: Partial<Record<FeatureId, SupportFeatureEvidence>>;
+  protocolChecks: ProtocolCheckResult[];
+}
+
 export interface SupportBundle {
   format: typeof SUPPORT_BUNDLE_FORMAT;
   version: typeof SUPPORT_BUNDLE_VERSION;
@@ -66,6 +131,8 @@ export interface SupportBundle {
   recentErrors: { at: string; kind: string; title: string }[];
   /** What was deliberately left out, so reviewers know the bundle is incomplete on purpose. */
   excluded: string[];
+  /** Added in OpenKey 0.3; absent from older packages and from imported files. */
+  analysis?: SupportAnalysis;
 }
 
 export interface SupportBundleInput {
@@ -78,11 +145,91 @@ export interface SupportBundleInput {
   recentErrors?: SupportBundle['recentErrors'];
   /** Opt-in: include the serial number (off by default). */
   includeSerial?: boolean;
+  candidates?: SupportCandidate[];
+  hints?: ProtocolHint[];
+  /** Results of protocol checks the user ran (reply shapes only). */
+  protocolChecks?: ProtocolCheckResult[];
   now?: Date;
 }
 
 const hex = (n: number): string => `0x${n.toString(16).toUpperCase().padStart(4, '0')}`;
 export const hexId = hex;
+
+const isVendorPage = (page: string) => parseInt(page, 16) >= 0xff00;
+
+/** Order-independent description of a device's HID layout (identity excluded). */
+export function descriptorSignature(device: SupportDevice): string {
+  return device.interfaces
+    .map((i) => i.collections.map(sig).sort().join(' + '))
+    .sort()
+    .join(' | ');
+}
+
+/** FNV-1a 32-bit hash of the signature, as 8 hex digits. */
+export function descriptorFingerprint(device: SupportDevice): string {
+  let h = 0x811c9dc5;
+  for (const ch of descriptorSignature(device)) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+/** The vendor-defined collections and how each can carry commands. */
+export function vendorChannels(device: SupportDevice): SupportChannel[] {
+  const out: SupportChannel[] = [];
+  device.interfaces.forEach((iface, interfaceIndex) => {
+    for (const c of iface.collections) {
+      if (!isVendorPage(c.usagePage)) continue;
+      const ins = new Set(c.inputReports.map((r) => r.reportId));
+      const outs = c.outputReports.map((r) => r.reportId);
+      const all = [...c.inputReports, ...c.outputReports, ...c.featureReports];
+      const kind: SupportChannel['kind'] = outs.some((id) => ins.has(id))
+        ? 'command'
+        : c.featureReports.length
+          ? 'feature'
+          : outs.length
+            ? 'output-only'
+            : ins.size
+              ? 'input-only'
+              : 'none';
+      out.push({
+        interfaceIndex,
+        usagePage: c.usagePage,
+        usage: c.usage,
+        kind,
+        reportIds: [...new Set(all.map((r) => r.reportId))].sort((a, b) => a - b),
+        frameBytes: all.reduce((m, r) => Math.max(m, r.size + (r.reportId ? 1 : 0)), 0),
+      });
+    }
+  });
+  return out;
+}
+
+/** Step details are kept short and never carry serial numbers or raw bytes. */
+function sanitizeCandidate(c: SupportCandidate): SupportCandidate {
+  const clip = (t: string) => (t.length > 160 ? `${t.slice(0, 157)}…` : t);
+  return {
+    ...c,
+    reasons: c.reasons.slice(0, 8).map(clip),
+    rejections: c.rejections.slice(0, 8).map(clip),
+    ...(c.probe
+      ? {
+          probe: {
+            ...c.probe,
+            summary: clip(c.probe.summary),
+            steps: c.probe.steps
+              .slice(0, 12)
+              .map((s) =>
+                /serial|\bsn\b/i.test(s.name)
+                  ? { name: s.name, status: s.status, detail: '(redacted)' }
+                  : { name: s.name, status: s.status, detail: clip(s.detail) },
+              ),
+          },
+        }
+      : {}),
+  };
+}
 
 /**
  * Builds a sanitized diagnostic package. It never contains typing data, macro contents, keymaps or
@@ -97,7 +244,28 @@ export function buildSupportBundle(input: SupportBundleInput): SupportBundle {
   }
   if (!input.includeSerial) excluded.push('serial number');
   const caps: Partial<Record<FeatureId, FeatureStatus>> = {};
-  if (input.capabilities) for (const f of FEATURES) caps[f] = input.capabilities[f].status;
+  const features: Partial<Record<FeatureId, SupportFeatureEvidence>> = {};
+  if (input.capabilities)
+    for (const f of FEATURES) {
+      const c = input.capabilities[f];
+      caps[f] = c.status;
+      if (c.status !== 'UNKNOWN')
+        features[f] = { status: c.status, confidence: c.confidence, read: c.read, write: c.write };
+    }
+  const analysis: SupportAnalysis | undefined = device
+    ? {
+        signature: descriptorSignature(device),
+        fingerprint: descriptorFingerprint(device),
+        channels: vendorChannels(device),
+        hints: input.hints ?? [],
+        candidates: (input.candidates ?? []).map(sanitizeCandidate),
+        features,
+        protocolChecks: (input.protocolChecks ?? []).map((r) => ({
+          ...r,
+          detail: r.detail.slice(0, 200),
+        })),
+      }
+    : undefined;
   return {
     format: SUPPORT_BUNDLE_FORMAT,
     version: SUPPORT_BUNDLE_VERSION,
@@ -113,11 +281,41 @@ export function buildSupportBundle(input: SupportBundleInput): SupportBundle {
       .slice(-20)
       .map(({ at, kind, title }) => ({ at, kind, title })),
     excluded,
+    ...(analysis ? { analysis } : {}),
   };
 }
 
 const fmtReports = (r: SupportReport[]): string =>
   r.map((x) => `${x.reportId}:${x.size}B`).join(',');
+
+function analysisLines(a: SupportAnalysis | undefined): string[] {
+  if (!a) return [];
+  const lines = [`### Analysis`, `- Descriptor fingerprint \`${a.fingerprint}\``];
+  for (const c of a.channels)
+    lines.push(
+      `- Vendor channel ${c.usagePage}:${c.usage ?? '?'} (interface ${c.interfaceIndex}): ${c.kind}, report ${c.reportIds.join('/') || '—'}, ${c.frameBytes}-byte frames`,
+    );
+  for (const h of a.hints)
+    lines.push(
+      `- Known family (${h.basis}): ${h.title}${h.facts.length ? ` — ${h.facts[0]}` : ''}`,
+    );
+  const applicable = a.candidates.filter((c) => c.applicable);
+  for (const c of applicable)
+    lines.push(
+      `- Adapter \`${c.id}\`: score ${c.score}${c.consent?.required ? `, consent ${c.consent.granted ? 'given' : 'not given'}` : ''}${c.probe ? `, probe ${c.probe.status}${c.probe.identified ? ' (identified)' : ''}` : ''}`,
+    );
+  if (!applicable.length && a.candidates.length) {
+    const near = [...a.candidates].sort((x, y) => y.score - x.score).slice(0, 3);
+    for (const c of near)
+      lines.push(`- Not matched \`${c.id}\`: ${c.rejections[0] ?? 'no reason recorded'}`);
+  }
+  for (const r of a.protocolChecks)
+    lines.push(
+      `- Protocol check ${r.title} (\`${r.command}\`): ${r.status}${r.reply ? `, report ${r.reply.reportId}, ${r.reply.length} B, first byte ${r.reply.firstByte}${r.reply.echo ? ' (echo)' : ''}, ${r.reply.nonZeroBytes} non-zero` : ''}`,
+    );
+  lines.push(``);
+  return lines;
+}
 
 /** A researcher's note, with how it is known. Never included in a package unless the user asks. */
 export interface ResearchNote {
@@ -155,6 +353,7 @@ export function supportBundleToIssue(b: SupportBundle, notes: ResearchNote[] = [
       ? `- ${b.detection.verdict ? `${b.detection.verdict}, ` : ''}${b.detection.confidence}: ${b.detection.reasons.join('; ')}`
       : '- not run',
     ``,
+    ...analysisLines(b.analysis),
     ...(notes.length
       ? [
           `### Research notes`,

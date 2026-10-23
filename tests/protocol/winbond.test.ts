@@ -1,0 +1,316 @@
+import { describe, expect, it } from 'vitest';
+import { MemoryStateStore, PacketLog, isDiagnosticsDriver, isOpenKeyError } from '@openkey/core';
+import { createDefaultRegistry, openDriver, winbond } from '@openkey/protocols';
+
+const { WinbondSimulator, lightingPacket } = winbond;
+
+async function connect(sim = new WinbondSimulator(), consent: string[] = []) {
+  const registry = createDefaultRegistry();
+  const group = sim.device.group();
+  const detection = await registry.detect(group, { level: 'handshake', consent });
+  // Detection sends nothing: the model is identified from its USB identity and report layout.
+  const detectionTraffic = sim.packets.length;
+  const kb = await openDriver(group, detection, {
+    registry,
+    log: new PacketLog(),
+    store: new MemoryStateStore(),
+    allowExperimental: true,
+  });
+  // Connecting sends only the official read-only lighting query.
+  const onConnect = sim.packets.map((p) => [...p.subarray(0, 2)]);
+  sim.packets.length = 0;
+  return { sim, detection, detectionTraffic, onConnect, driver: kb.driver };
+}
+
+describe('Winbond keyboards (FL Esports MK870)', () => {
+  it('builds the packet keyboard-colour captured from the vendor software', () => {
+    const p = lightingPacket({
+      effect: 0x02,
+      color: { r: 255, g: 0, b: 0 },
+      color2: { r: 0, g: 0, b: 255 },
+      colorful: true,
+      brightness: 4,
+      speed: 3,
+      direction: 'left',
+    });
+    expect(p).toHaveLength(63);
+    expect([...p.subarray(0, 16)]).toEqual([
+      0x07, 0, 0, 0, 0x0e, 0x02, 4, 3, 255, 0, 0, 0, 0, 255, 0x01, 0x01,
+    ]);
+    expect(p.subarray(16).every((b) => b === 0)).toBe(true);
+    expect(() => lightingPacket({ ...winbond.DEFAULT_CONFIG, effect: 0x64 })).toThrow(/not one/);
+  });
+
+  it('identifies the MK870 from its owner’s descriptors without sending anything', async () => {
+    const { detection, driver, detectionTraffic, onConnect } = await connect();
+    expect(detection.selected).toMatchObject({
+      protocolId: 'winbond-lighting',
+      identification: 'identified',
+    });
+    expect(detectionTraffic).toBe(0);
+    expect(onConnect).toEqual([[0x07, 0x01]]);
+    expect((await driver.getDeviceInfo()).model).toBe('FL Esports MK870');
+    expect(driver.getLayout().keys).toHaveLength(87);
+    const caps = driver.getCapabilities();
+    expect(caps.rgb.write).toBe(true);
+    expect([
+      caps.keymap.write,
+      caps.perKeyRgb.write,
+      caps.macros.write,
+      caps.fnLayer.write,
+    ]).toEqual([true, true, false, false]);
+    expect(driver.getLayerIds()).toEqual(['base']);
+  });
+
+  it('writes an effect with two colours and a rotating direction, and remembers it', async () => {
+    const { driver, sim } = await connect();
+    const spiral = driver.getRgbEffects().effects.find((e) => e.name === 'Spiral')!;
+    expect(spiral.controls.direction).toEqual(['clockwise', 'anticlockwise']);
+    const config = {
+      effect: spiral.id,
+      color: { r: 1, g: 2, b: 3 },
+      color2: { r: 4, g: 5, b: 6 },
+      colorful: false,
+      brightness: 2,
+      speed: 1,
+      direction: 'anticlockwise' as const,
+    };
+    await driver.setRgbConfig(config);
+    expect(sim.packets).toHaveLength(1);
+    expect([...sim.packets[0]!.subarray(0, 16)]).toEqual([
+      0x07, 0, 0, 0, 0x0e, 0x04, 2, 1, 1, 2, 3, 4, 5, 6, 0x07, 0,
+    ]);
+    expect(await driver.getRgbConfig()).toEqual(config);
+  });
+
+  it('gives an effect a direction it offers', async () => {
+    const { driver, sim } = await connect();
+    await driver.setRgbConfig({ ...winbond.DEFAULT_CONFIG, effect: 0x0f, direction: 'left' });
+    expect(sim.packets[0]![14]).toBe(winbond.DIRECTION_CODES.clockwise);
+  });
+
+  it('asks before using another Winbond "Gaming Keyboard", and ignores other products', async () => {
+    const other = new WinbondSimulator({
+      vendorId: 0x0416,
+      productId: 0xc999,
+      productName: 'Gaming Keyboard',
+    });
+    const plan = winbond.winbondProtocol.probePlan;
+    expect(plan.autoConsent?.(other.device.group()).auto).toBe(false);
+    const { driver } = await connect(other, ['winbond-lighting']);
+    expect((await driver.getDeviceInfo()).model).toBe('Winbond gaming keyboard');
+
+    const stranger = new WinbondSimulator({
+      vendorId: 0x0416,
+      productId: 0x1234,
+      productName: 'Something else',
+    });
+    const report = await createDefaultRegistry().detect(stranger.device.group());
+    expect(report.selected).toBeNull();
+  });
+
+  it('refuses an unknown effect', async () => {
+    const { driver, sim } = await connect();
+    await expect(
+      driver.setRgbConfig({ ...winbond.DEFAULT_CONFIG, effect: 0x05 }),
+    ).rejects.toSatisfy((e) => isOpenKeyError(e));
+    expect(sim.packets).toEqual([]);
+  });
+
+  it('numbers keys and LEDs by the official driver’s 6 × 22 matrix', async () => {
+    const { driver } = await connect();
+    const key = (id: string) => driver.getLayout().keys.find((k) => k.id === id)!;
+    expect(key('Esc')).toMatchObject({ slot: 0, light: 0 });
+    expect(key('W')).toMatchObject({ slot: 46, light: 46 });
+    expect(key('\\')).toMatchObject({ slot: 58, light: 58 });
+    expect(key('Right')).toMatchObject({ slot: 127, light: 127 });
+    // The Fn key lights up but cannot be remapped.
+    expect(key('Fn')).toMatchObject({ slot: -1, light: 121 });
+  });
+
+  it('writes per-key colours in eight packets, scaled to the vendor range, then shows them', async () => {
+    const { driver, sim } = await connect();
+    await driver.setPerKeyRgb({ 0: { r: 255, g: 0, b: 128 }, 127: { r: 0, g: 255, b: 0 } });
+    const perKey = sim.packets.filter((p) => p[0] === winbond.PER_KEY_CMD);
+    expect(perKey).toHaveLength(8);
+    expect([...perKey[0]!.subarray(0, 8)]).toEqual([0x09, 0, 0, 0, 0x36, 0xc1, 0x00, 0x61]);
+    // LED 127 is the second LED of packet 7 (126–131), which carries 6 LEDs.
+    expect([...perKey[7]!.subarray(0, 5)]).toEqual([0x09, 0, 0, 7, 0x12]);
+    expect([...perKey[7]!.subarray(8, 11)]).toEqual([0x00, 0xc1, 0x00]);
+    const last = sim.packets.at(-1)!;
+    expect([last[0], last[5]]).toEqual([0x07, winbond.CUSTOM_EFFECT]);
+    expect(await driver.getPerKeyRgb()).toEqual({
+      0: { r: 255, g: 0, b: 128 },
+      127: { r: 0, g: 255, b: 0 },
+    });
+  });
+
+  it('writes the default layer as the official driver does, with the Fn key kept', async () => {
+    const { driver, sim } = await connect();
+    // Caps Lock (slot 66) becomes Left Ctrl; F1 (slot 2) is disabled.
+    await driver.setKeymap({
+      layer: 'base',
+      slots: { 66: { kind: 'keyboard', usage: 0xe0, modifiers: 0 }, 2: { kind: 'disabled' } },
+      provenance: 'mirror',
+    });
+    const maps = sim.packets.filter((p) => p[0] === winbond.KEYMAP_CMD);
+    expect(maps).toHaveLength(10);
+    expect([...maps[0]!.subarray(0, 5)]).toEqual([0x18, 0, 0, 0, 56]);
+    expect([...maps[0]!.subarray(5, 9)]).toEqual([0x00, 0x29, 0x00, 0x00]); // Esc, default
+    expect([...maps[0]!.subarray(13, 17)]).toEqual([0, 0, 0, 0]); // F1, disabled
+    // Slot 66 is the 10th key of packet 4 (56–69).
+    expect([...maps[4]!.subarray(5 + 10 * 4, 5 + 11 * 4)]).toEqual([0x00, 0xe0, 0x00, 0x00]);
+    // Slot 121 (Fn) is the 9th key of packet 8 (112–125).
+    expect([...maps[8]!.subarray(5 + 9 * 4, 5 + 10 * 4)]).toEqual([0x01, 0x00, 0x00, 0x00]);
+    expect([...maps[9]!.subarray(0, 5)]).toEqual([0x18, 0, 0, 9, 24]);
+    expect((await driver.getKeymap('base')).slots[66]).toEqual({
+      kind: 'keyboard',
+      usage: 0xe0,
+      modifiers: 0,
+    });
+  });
+
+  it('encodes media keys and keys with modifiers as the official driver does', async () => {
+    const { driver, sim } = await connect();
+    expect(driver.getKeyActionKinds()).toContain('special');
+    expect(driver.getSpecialActions().map((a) => a.label)).toContain('Calculator');
+    await driver.setKeymap({
+      layer: 'base',
+      slots: {
+        // F12 → volume up; F1 → Win+Tab; F2 → Ctrl+Shift+Esc.
+        14: { kind: 'special', code: 0x10, label: 'Volume up' },
+        2: { kind: 'keyboard', usage: 0x2b, modifiers: 0x08 },
+        3: { kind: 'keyboard', usage: 0x29, modifiers: 0x03 },
+      },
+      provenance: 'mirror',
+    });
+    const maps = sim.packets.filter((p) => p[0] === winbond.KEYMAP_CMD);
+    const entry = (slot: number) => {
+      const p = maps[Math.floor(slot / 14)]!;
+      const at = 5 + (slot % 14) * 4;
+      return [...p.subarray(at, at + 4)];
+    };
+    expect(entry(14)).toEqual([0x07, 0x10, 0x00, 0x00]);
+    expect(entry(2)).toEqual([0x13, 0xe3, 0x2b, 0x00]);
+    expect(entry(3)).toEqual([0x13, 0xe0, 0xe1, 0x29]);
+  });
+
+  it('restores the key map from the driver’s default table', async () => {
+    const { driver, sim } = await connect();
+    await driver.restoreDefaults('keymap');
+    const maps = sim.packets.filter((p) => p[0] === winbond.KEYMAP_CMD);
+    expect(maps).toHaveLength(10);
+    expect([...maps[0]!.subarray(13, 17)]).toEqual([0x00, 0x3a, 0x00, 0x00]); // F1
+    expect((await driver.getKeymap('base')).slots).toEqual({});
+    await expect(driver.restoreDefaults('lighting')).rejects.toSatisfy((e) => isOpenKeyError(e));
+  });
+
+  it('writes the sleep time as the official driver does, with its limits', async () => {
+    const { driver, sim } = await connect();
+    expect(driver.getSettingsSchema().sleepTime?.map((o) => o.value)).toEqual([
+      300, 600, 900, 1800, 3600,
+    ]);
+    await driver.setSystemSettings({ sleepTime: 600 });
+    const p = sim.packets.at(-1)!;
+    expect([...p.subarray(0, 6)]).toEqual([0x01, 0, 0, 0, 0x01, 0x00]);
+    expect([...p.subarray(13, 17)]).toEqual([0x02, 0x58, 0x02, 0x58]);
+    expect(await driver.getSystemSettings()).toEqual({ sleepTime: 600 });
+    expect(() => winbond.sleepPacket(0, 120)).toThrow(/300/);
+    expect(() => winbond.sleepPacket(900, 600)).toThrow(/later/);
+  });
+
+  it('refuses key-map entries it cannot encode, sending nothing', async () => {
+    const { driver, sim } = await connect();
+    await expect(
+      driver.setKeymap({
+        layer: 'base',
+        slots: { 45: { kind: 'keyboard', usage: 0x04, modifiers: 0x07 } },
+        provenance: 'mirror',
+      }),
+    ).rejects.toSatisfy((e) => isOpenKeyError(e));
+    await expect(
+      driver.setKeymap({
+        layer: 'base',
+        slots: { 45: { kind: 'special', code: 0x99 } },
+        provenance: 'mirror',
+      }),
+    ).rejects.toSatisfy((e) => isOpenKeyError(e));
+    await expect(
+      driver.setKeymap({ layer: 'fn', slots: {}, provenance: 'mirror' }),
+    ).rejects.toSatisfy((e) => isOpenKeyError(e));
+    expect(sim.packets).toEqual([]);
+  });
+
+  it('runs the official read-only lighting query and keeps only the answer’s shape', async () => {
+    const { driver, sim } = await connect();
+    expect(isDiagnosticsDriver(driver)).toBe(true);
+    if (!isDiagnosticsDriver(driver)) return;
+    expect(driver.listProtocolChecks().map((c) => [c.id, c.command, c.effect])).toEqual([
+      ['lighting-query', '07 01', 'read-only'],
+    ]);
+    const r = await driver.runProtocolCheck('lighting-query');
+    expect(sim.packets).toHaveLength(1);
+    expect([...sim.packets[0]!.subarray(0, 3)]).toEqual([0x07, 0x01, 0x00]);
+    expect(sim.packets[0]!.subarray(2).every((b) => b === 0)).toBe(true);
+    expect(r).toMatchObject({
+      status: 'answered',
+      reply: { reportId: 1, length: 63, echo: true, firstByte: '0x07' },
+    });
+    expect(JSON.stringify(r)).not.toMatch(/"bytes"|\[7,1/);
+
+    sim.answersQueries = false;
+    expect((await driver.runProtocolCheck('lighting-query')).status).toBe('no-answer');
+    await expect(driver.runProtocolCheck('bootloader')).rejects.toThrow(/Unknown protocol check/);
+  });
+
+  it('offers the Pulsar PCMK only the effects both sources agree on', async () => {
+    const { driver } = await connect(
+      new WinbondSimulator({ vendorId: 0x0416, productId: 0xb23c, productName: 'Gaming Keyboard' }),
+    );
+    expect((await driver.getDeviceInfo()).model).toBe('Pulsar PCMK TKL / KT108');
+    expect(driver.getRgbEffects().effects.map((e) => e.id)).toEqual([0, 1, 2, 3, 6, 7, 8, 0x0a]);
+    await expect(
+      driver.setRgbConfig({ ...winbond.DEFAULT_CONFIG, effect: 0x0f }),
+    ).rejects.toSatisfy((e) => isOpenKeyError(e));
+  });
+
+  it('reads the lighting back from the keyboard when it answers the query', async () => {
+    const { driver } = await connect();
+    expect(driver.getCapabilities().rgb.read).toBe('device');
+    const config = {
+      effect: 0x02,
+      color: { r: 10, g: 20, b: 30 },
+      color2: { r: 40, g: 50, b: 60 },
+      colorful: true,
+      brightness: 3,
+      speed: 1,
+      direction: 'outwards' as const,
+    };
+    await driver.setRgbConfig(config);
+    expect(await driver.getRgbConfig()).toEqual(config);
+  });
+
+  it('keeps its own record when the keyboard does not answer the query', async () => {
+    const sim = new WinbondSimulator();
+    sim.answersQueries = false;
+    const { driver } = await connect(sim);
+    expect(driver.getCapabilities().rgb.read).toBe('mirror');
+    expect(await driver.getRgbConfig()).toEqual(winbond.DEFAULT_CONFIG);
+  });
+
+  it('parses only answers that echo the lighting command', () => {
+    const r = new Uint8Array(63);
+    r.set([0x07, 0x01, 0, 0, 0x0e, 0x0f, 9, 2, 1, 2, 3, 4, 5, 6, 0x07, 1]);
+    expect(winbond.parseLightingReply(r)).toEqual({
+      effect: 0x0f,
+      brightness: 4,
+      speed: 2,
+      color: { r: 1, g: 2, b: 3 },
+      color2: { r: 4, g: 5, b: 6 },
+      direction: 'anticlockwise',
+      colorful: true,
+    });
+    r[0] = 0x09;
+    expect(winbond.parseLightingReply(r)).toBeNull();
+  });
+});

@@ -957,6 +957,34 @@ try {
     await ctx.close();
   }
 
+  // MK870 demo (Winbond): the read-only protocol check runs on a click and only its shape is packaged.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[mk870] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'FL Esports MK870' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.locator('.dev-chip').getByText('FL Esports MK870').waitFor();
+    await page.goto(base + '#/lab');
+    await page.getByRole('tab', { name: 'Report', exact: true }).click();
+    await page.getByRole('heading', { name: 'Protocol checks' }).waitFor();
+    await page.getByRole('button', { name: 'Run check' }).click();
+    await page.getByText('Answered: the keyboard repeated the command.').waitFor();
+    await page.getByText('Preview the package').click();
+    const pkg = await page
+      .locator('details', { hasText: 'Preview the package' })
+      .locator('pre')
+      .textContent();
+    if (!pkg?.includes('"protocolChecks"') || !pkg.includes('"winbond-oem"'))
+      failures.push(
+        `MK870 package lacks the protocol check or the family hint: ${(pkg ?? '').slice(0, 300)}`,
+      );
+    if (pkg?.includes('"bytes"')) failures.push('MK870 package contains answer bytes');
+    if (shots) await page.screenshot({ path: `${shots}/mk870-protocol-check.png`, fullPage: true });
+    results.push('mk870 demo: protocol check answered; package has its shape and the family hint');
+    await ctx.close();
+  }
   // Screen gallery (demo): generated animations load into the local preview; nothing is uploaded.
   {
     const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });

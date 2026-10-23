@@ -112,6 +112,10 @@ SUBSYSTEM=="hidraw", ATTRS{idVendor}=="248a", ATTRS{idProduct}=="5e2e", MODE="06
 # AJAZZ AK992 (SEMICO firmware)
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1a2c", ATTRS{idProduct}=="9c00", MODE="0660", GROUP="plugdev", TAG+="uaccess"
 
+# FL Esports MK870, Pulsar PCMK TKL (Winbond OEM protocol)
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0416", ATTRS{idProduct}=="c345", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0416", ATTRS{idProduct}=="b23c", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+
 # AULA F87S 8K (cable and receiver), AJAZZ AK680 V2 / AK680 MAX (web-driver protocol)
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="38a6", ATTRS{idProduct}=="2908", MODE="0660", GROUP="plugdev", TAG+="uaccess"
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="fef9", MODE="0660", GROUP="plugdev", TAG+="uaccess"

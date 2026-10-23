@@ -24,6 +24,24 @@ behind the experimental opt-in. Sources and what was taken from each: docs/SOURC
   brightness, speed, direction and per-key colours on a full-size map.
 - **A4Tech Bloody B820R, HyperX Alloy Origins, Ducky One 2 RGB**: direct per-key and solid colours.
   Where no command gives the lighting back, OpenKey says to unplug instead of inventing one.
+- **FL Esports MK870** (and the Pulsar PCMK TKL), from the official FL Esports driver, keyboard-colour
+  (MIT) and the PCMK notes:
+  - lighting with two colours, rainbow and eight directions;
+  - per-key colours on the driver's own LED matrix;
+  - the default layer's key map: keys, keys with up to two modifiers, nine media keys, disabled
+    keys and restore defaults;
+  - sleep time.
+  - lighting read back from the keyboard when it answers the official lighting query, and checked
+    after every change.
+
+  Lighting now supports rotating and radial directions and a second colour.
+
+- **Diagnostics:** packages now carry a descriptor fingerprint, a vendor-channel map, protocol-family
+  hints, why each adapter matched or not, evidence per feature, and the answer shapes of read-only
+  protocol checks. They still carry no payloads or serial numbers. Device Lab → Report runs the
+  MK870's check, and the demo has an MK870.
+- **RK R75 RGB**: its own 80-key keyboard and knob, and its own effect list with the controls RK's
+  configuration gives each, instead of a generic picture and 20 unnamed effects.
 - **AJAZZ AK820 wired RGB (Moon switches)**, identified as `320F:505B` from the official AJAZZ
   driver's firmware updater. It runs on the EVision firmware: 18 effects, brightness, speed and
   per-key colours on its own 82-key map with the knob. Before this it fell back to the full-size

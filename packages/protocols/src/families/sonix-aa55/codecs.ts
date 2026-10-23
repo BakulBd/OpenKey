@@ -1,6 +1,7 @@
-import { ProtocolError, clamp, u16le } from '@openkey/core';
+import { ProtocolError, clamp, planeDirection, u16le } from '@openkey/core';
 import type {
   Direction,
+  PlaneDirection,
   KeyAction,
   KeymapState,
   Macro,
@@ -150,7 +151,12 @@ export const LED_OFFSETS = {
   effectModeType: 12,
 } as const;
 /** Direction values used by the online UI (wsclx/ak820pro-modder, INFERRED). */
-export const AA55_DIRECTIONS: Record<Direction, number> = { left: 0, down: 1, up: 2, right: 3 };
+export const AA55_DIRECTIONS: Record<PlaneDirection, number> = {
+  left: 0,
+  down: 1,
+  up: 2,
+  right: 3,
+};
 
 export function encodeLedEffect(
   c: RgbConfig,
@@ -168,7 +174,7 @@ export function encodeLedEffect(
   n[8] = c.colorful ? 1 : 0;
   n[9] = c.brightness;
   n[10] = c.speed;
-  n[11] = AA55_DIRECTIONS[c.direction];
+  n[11] = AA55_DIRECTIONS[planeDirection(c.direction)];
   n[12] = extra.effectModeType ?? 0;
   n[14] = 0xaa;
   n[15] = 0x55;

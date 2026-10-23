@@ -3,11 +3,12 @@ import {
   cadenceStats,
   compareDiagnostics,
   hexId,
+  isDiagnosticsDriver,
   parseSupportBundle,
   supportBundleToIssue,
   toHex,
 } from '@openkey/core';
-import type { PacketRecord, ResearchNote, SupportBundle } from '@openkey/core';
+import type { PacketRecord, ProtocolCheckResult, ResearchNote, SupportBundle } from '@openkey/core';
 import {
   analyzeDiagnostic,
   createDefaultRegistry,
@@ -27,7 +28,12 @@ import {
 } from '../../components/ui.js';
 import type { MessageKey } from '../../i18n/i18n.js';
 import { CollectionsTable } from '../shared/CollectionsTable.js';
-import { sessionSupportBundle, supportIssueUrl } from '../../lib/support.js';
+import {
+  protocolChecksFor,
+  recordProtocolCheck,
+  sessionSupportBundle,
+  supportIssueUrl,
+} from '../../lib/support.js';
 import { startReportMonitor } from '../../lib/monitor.js';
 import type { MonitoredReport } from '../../lib/monitor.js';
 import { deleteRecord, listRecords, newId, saveRecord } from '../../state/db.js';
@@ -456,6 +462,72 @@ function Monitor() {
   );
 }
 
+/**
+ * Read-only protocol checks the connected adapter offers. Each sends one request the vendor's own
+ * software sends, on a click, and keeps only the shape of the answer for the diagnostic package;
+ * the full answer stays in this browser's protocol trace.
+ */
+function ProtocolChecks({ onRun }: { onRun: () => void }) {
+  const t = useT();
+  const { device, session } = useKeyboard();
+  const key = session?.fingerprint.key ?? '';
+  const [busy, setBusy] = useState<string | null>(null);
+  const [results, setResults] = useState<ProtocolCheckResult[]>(() => protocolChecksFor(key));
+  useEffect(() => setResults(protocolChecksFor(key)), [key]);
+  if (!device || !isDiagnosticsDriver(device.driver)) return null;
+  const driver = device.driver;
+  const run = async (id: string) => {
+    setBusy(id);
+    try {
+      recordProtocolCheck(key, await driver.runProtocolCheck(id));
+      setResults(protocolChecksFor(key));
+      onRun();
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <Card title={t('lab.checks.title')}>
+      <p className="small">{t('lab.checks.lead')}</p>
+      <ul className="evidence-list">
+        {driver.listProtocolChecks().map((c) => {
+          const r = results.find((x) => x.id === c.id);
+          return (
+            <li key={c.id} className="row wrap between">
+              <span>
+                <strong>{c.title}</strong> <code className="mono">{c.command}</code>{' '}
+                <span className="small muted">{c.source}</span>
+                {r && (
+                  <span className="small" role="status">
+                    <br />
+                    {t(`lab.checks.status.${r.status}` as MessageKey)}
+                    {r.reply &&
+                      ` · ${t('lab.checks.reply', {
+                        id: r.reply.reportId,
+                        len: r.reply.length,
+                        first: r.reply.firstByte,
+                        nz: r.reply.nonZeroBytes,
+                      })}`}
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                className="btn ghost"
+                disabled={busy !== null}
+                onClick={() => void run(c.id)}
+              >
+                {busy === c.id ? t('common.loading') : t('lab.checks.run')}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="small muted">{t('lab.checks.privacy')}</p>
+    </Card>
+  );
+}
+
 const NOTE_KINDS: ResearchNote['evidence'][] = [
   'hardware',
   'vendor-software',
@@ -470,7 +542,12 @@ const NOTE_KINDS: ResearchNote['evidence'][] = [
 function ExportPanel() {
   const t = useT();
   const { session, device, conn, recentErrors } = useKeyboard();
-  const bundle = sessionSupportBundle(session, conn, recentErrors);
+  const [checksRun, setChecksRun] = useState(0);
+  const bundle = useMemo(
+    () => sessionSupportBundle(session, conn, recentErrors),
+    // checksRun: a protocol check adds its result to the package.
+    [session, conn, recentErrors, checksRun],
+  );
   const key = session?.fingerprint.key ?? 'no-device';
   const [notes, setNotes] = useState<{ id: string; note: ResearchNote }[]>([]);
   const [draft, setDraft] = useState('');
@@ -497,6 +574,7 @@ function ExportPanel() {
   };
   return (
     <>
+      <ProtocolChecks onRun={() => setChecksRun((n) => n + 1)} />
       <Card title={t('lab.report.package')}>
         <p>{t('lab.exportLead')}</p>
         <ul className="small">

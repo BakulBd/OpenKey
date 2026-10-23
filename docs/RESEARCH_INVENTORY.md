@@ -253,6 +253,12 @@ VIA boards are not listed one by one: 2,021 are indexed from the-via/keyboards@9
 | ---------------------------- | ---------- | ------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | boards running Vial firmware | 🟢 Via VIA | —                        | [vial-kb/vial-qmk](https://github.com/vial-kb/vial-qmk) (GPL-2.0): Vial protocol (facts only) | Nothing for VIA boards; a layout file when it is not in VIA’s catalogue. |
 
+## FL Esports
+
+| Model | OpenKey         | Revisions (chip: status)                            | Sources (licence)                                                                                                                                                                                                                                                                          | To verify                                                                       |
+| ----- | --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| MK870 | 🟢 Configurable | wired (0416:C345) — Winbond / Nuvoton: configurable | [Mqlvin/keyboard-colour](https://github.com/Mqlvin/keyboard-colour) (MIT): Winbond lighting packet, effects and directions (Linux app); [brainrom/winbond-kbdbl](https://github.com/brainrom/winbond-kbdbl) (MIT): Older Winbond generation (0416:A0F8, 06 BE commands): per-key backlight | An owner test on hardware (a `-hw.json` fixture) to promote writes to verified. |
+
 ## Windows Dynamic Lighting
 
 | Model                           | OpenKey         | Revisions (chip: status) | Sources (licence) | To verify                                                                       |

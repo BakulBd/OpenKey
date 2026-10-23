@@ -13,6 +13,7 @@ import { yjxMouseProtocol } from './families/yjx-mouse/protocol.js';
 import { lampArrayProtocol } from './families/lamparray/protocol.js';
 import { aj179MouseProtocol } from './families/aj179-mouse/protocol.js';
 import { semicoProtocol } from './families/semico/protocol.js';
+import { winbondProtocol } from './families/winbond/protocol.js';
 import { hubProtocol } from './families/hub-aa55/protocol.js';
 import { razerProtocol } from './families/razer/protocol.js';
 import { wootingProtocol } from './families/wooting/protocol.js';
@@ -51,6 +52,7 @@ export * as yjxMouse from './families/yjx-mouse/index.js';
 export * as lampArray from './families/lamparray/index.js';
 export * as aj179Mouse from './families/aj179-mouse/index.js';
 export * as semico from './families/semico/index.js';
+export * as winbond from './families/winbond/index.js';
 export * as hubAa55 from './families/hub-aa55/index.js';
 export * as razer from './families/razer/index.js';
 export * as wooting from './families/wooting/index.js';
@@ -76,6 +78,7 @@ export function createDefaultRegistry(): ProtocolRegistry {
     .register(lampArrayProtocol)
     .register(aj179MouseProtocol)
     .register(semicoProtocol)
+    .register(winbondProtocol)
     .register(hubProtocol)
     .register(razerProtocol)
     .register(wootingProtocol)

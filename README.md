@@ -1,6 +1,19 @@
-# OpenKey
+<h1 align="center">OpenKey</h1>
 
-**An open-source, local-first keyboard configurator that runs in your browser.**
+<p align="center">
+  <strong>An open-source, local-first keyboard configurator that runs in your browser.</strong>
+</p>
+
+<p align="center">
+  <a href="https://openkey-lovat.vercel.app"><img alt="Open the app" src="https://img.shields.io/badge/open-the%20app-6c7cff?style=for-the-badge"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-2ea44f?style=for-the-badge"></a>
+  <img alt="WebHID" src="https://img.shields.io/badge/WebHID-no%20installer-333?style=for-the-badge">
+  <img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-333?style=for-the-badge">
+</p>
+
+<p align="center">
+  <img src="docs/images/landing.png" alt="OpenKey start page: connect a keyboard, try a demo keyboard or inspect any HID device" width="900">
+</p>
 
 OpenKey talks to a keyboard directly over WebHID. There is no installer, no account, no server and no
 telemetry: the deployment is static files, and everything you create stays in your browser. Keyboards
@@ -14,6 +27,34 @@ are supported through protocol adapters, and OpenKey says exactly what it has ve
 > Razer, Wooting, Logitech, SteelSeries, EVision (Redragon …), HyperX, Ducky, A4Tech Bloody, any HID
 > LampArray (Windows Dynamic Lighting) keyboard, and AJAZZ mice. Any other keyboard can be inspected
 > read-only and reported so an adapter can be built. It never flashes firmware.
+
+## Screenshots
+
+All pictures come from the built-in demo keyboards (`pnpm screenshots`), which run the real protocol
+code against a firmware simulator, so you can try every screen without hardware.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/per-key.png" alt="Per-key colour painting on an AJAZZ AK820 MAX, with the changes listed before they are written"><br><sub><b>Per-key lighting</b>: paint, review, then write once</sub></td>
+    <td width="50%"><img src="docs/images/keymap.png" alt="Keymap studio with a key selected and the searchable action list"><br><sub><b>Keymap studio</b>: every layer, undo, diff before apply</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/screen.png" alt="Screen studio previewing a plasma animation for a 128×128 keyboard screen"><br><sub><b>Screen studio</b>: images, GIFs and a gallery for keyboard screens</sub></td>
+    <td><img src="docs/images/lighting.png" alt="Hardware lighting effects with colour, brightness, speed and direction"><br><sub><b>Hardware effects</b>: the keyboard's own effects and settings</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/overview.png" alt="Overview page explaining how OpenKey identified the keyboard"><br><sub><b>Detection you can read</b>: what was matched, asked and verified</sub></td>
+    <td><img src="docs/images/macros.png" alt="Macro studio with recorded key sequences and delays"><br><sub><b>Macro studio</b>: record, edit delays, bind to a key</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/doctor.png" alt="Connection doctor checking browser, permissions and keyboard interfaces"><br><sub><b>Connection doctor</b>: names the fix when a keyboard will not connect</sub></td>
+    <td><img src="docs/images/compatibility.png" alt="Compatibility center listing keyboards by verification state"><br><sub><b>Compatibility center</b>: every model with its evidence</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/tester.png" alt="Keyboard tester showing pressed keys and chatter detection"><br><sub><b>Keyboard tester</b>: every switch, chatter and rollover</sub></td>
+    <td><img src="docs/images/keymap-light.png" alt="Keymap studio in the light theme"><br><sub><b>Light and dark themes</b>, 11 languages, works offline</sub></td>
+  </tr>
+</table>
 
 ## What works today
 
@@ -31,6 +72,7 @@ are supported through protocol adapters, and OpenKey says exactly what it has ve
 | Any Windows Dynamic Lighting keyboard (HID LampArray)                                             | **Experimental** standards-based adapter: the lamp layout is read from the keyboard; per-key and solid colours.                                                                                                                                                                                                                                                                                                                                                                              |
 | EVision boards (Redragon K552/K556 …), HyperX Alloy Origins, Ducky One 2 RGB, A4Tech Bloody B820R | **Experimental** lighting from OpenRGB facts: EVision effects and per-key colours; direct per-key colours on the others.                                                                                                                                                                                                                                                                                                                                                                     |
 | AULA F87S 8K, AULA F108 Pro, AJAZZ AK680 V2 / MAX, AK992, AK35i V3 MAX, AKS075, RK M87            | **Experimental**: F87S effects and per-key with read-back (cable and receiver); F108 Pro on the AJAZZ protocol with its 240×135 screen capped at 141 frames; AK680 firmware, battery and lighting; AK992 effects; AK35i/AKS075 choose their screen size; RK M87 screen clock.                                                                                                                                                                                                                |
+| FL Esports MK870, Pulsar PCMK TKL (Winbond `0416`)                                                | **Experimental**, from the official FL Esports driver: lighting (read back when the keyboard answers), per-key colours, the default layer's key map (keys, combinations, media keys), sleep time, and a read-only protocol check. Owners: [test checklist](docs/FL_ESPORTS_MK870.md).                                                                                                                                                                                                        |
 | AJAZZ mice: AJ139 V2 MC, AJ179                                                                    | **Mouse settings**: debounce, polling rate, DPI levels, sleep, lift-off, Motion Sync, Angle Snap, lighting, battery, all read back.                                                                                                                                                                                                                                                                                                                                                          |
 | Not yet                                                                                           | Corsair (software lighting needs a keep-alive), most 2.4 GHz receivers (settings over radio), Bluetooth links (no settings channel), the AK820 wired single-colour (CRS `1A2C:9605`). Inspect and report them from the app; see the Compatibility page.                                                                                                                                                                                                                                      |
 | Any HID device                                                                                    | Read-only inspection with an explained verdict and next safe step, sanitized diagnostic package, device-support request, offline analysis of diagnostic files.                                                                                                                                                                                                                                                                                                                               |

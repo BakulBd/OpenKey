@@ -1,6 +1,7 @@
-import { Evidence, clamp } from '@openkey/core';
+import { Evidence, clamp, planeDirection } from '@openkey/core';
 import type {
   Direction,
+  PlaneDirection,
   EffectCatalog,
   EffectDescriptor,
   PerKeyRgb,
@@ -38,7 +39,12 @@ export const LIGHT_OFFSETS = {
 } as const;
 
 /** Radio-button wiring in FUN_0042ab40/FUN_00438xxx: right=1/left=0 (horizontal), up=2/down=3 (vertical). */
-export const DIRECTION_CODES: Record<Direction, number> = { left: 0, right: 1, up: 2, down: 3 };
+export const DIRECTION_CODES: Record<PlaneDirection, number> = {
+  left: 0,
+  right: 1,
+  up: 2,
+  down: 3,
+};
 export const DIRECTION_CONFIDENCE = Evidence.OBSERVED;
 
 type Ctl = EffectDescriptor['controls'];
@@ -109,7 +115,7 @@ export function encodeLightingData(cfg: RgbConfig, catalog: EffectCatalog): Uint
     catalog.brightness.max,
   );
   p[LIGHT_OFFSETS.speed] = clamp(cfg.speed, catalog.speed.min, catalog.speed.max);
-  p[LIGHT_OFFSETS.direction] = DIRECTION_CODES[cfg.direction];
+  p[LIGHT_OFFSETS.direction] = DIRECTION_CODES[planeDirection(cfg.direction)];
   return withTrailer(p, LIGHT_OFFSETS.trailer);
 }
 

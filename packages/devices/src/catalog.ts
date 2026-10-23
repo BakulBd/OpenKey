@@ -409,7 +409,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     status: 'community',
     hardware: { rgb: true, perKeyRgb: true, encoder: true },
     evidence:
-      'RK driver configuration Dev/015E/KB.ini ("R75RGB wired", Psd, Fw=1); report descriptor with the BY Tech command report (6 × 519 B)',
+      'RK driver configuration Dev/015E/KB.ini ("R75RGB wired", Psd, Fw=1, key table, LedOpt); report descriptor with the BY Tech command report (6 × 519 B), seen on the owner’s keyboard',
   },
   {
     brand: 'AULA',
@@ -636,6 +636,34 @@ export const CATALOG: readonly CatalogEntry[] = [
     hardware: { rgb: true, perKeyRgb: true, hallEffect: true },
     evidence: 'WootingKb/wooting-rgb-sdk (official, MPL-2.0)',
   })),
+  // ---- Winbond (USB vendor 0416) gaming keyboards
+  {
+    brand: 'FL Esports',
+    vendorId: 0x0416,
+    productId: 0xc345,
+    productName: 'Gaming Keyboard',
+    model: 'MK870',
+    link: 'usb',
+    mcu: 'Winbond / Nuvoton',
+    family: 'winbond-lighting',
+    status: 'community',
+    hardware: { rgb: true, perKeyRgb: true },
+    evidence:
+      'Official FL Esports driver V1.06.16 lists 0416:C345 (Nuvoton M252); its command table, key-map and sleep packets decoded from the driver. Lighting packet from Mqlvin/keyboard-colour (MIT), which an MK870 owner ran on the keyboard; descriptor FF1B:0091, report 1, 63 B',
+  },
+  {
+    brand: 'Pulsar',
+    vendorId: 0x0416,
+    productId: 0xb23c,
+    model: 'PCMK TKL (also sold as KT108 / Nautilus)',
+    link: 'usb',
+    mcu: 'Winbond / Nuvoton (NUC121)',
+    family: 'winbond-lighting',
+    status: 'community',
+    hardware: { rgb: true, perKeyRgb: true },
+    evidence:
+      'Official FL Esports driver V1.06.16 device list (0416:B23C, NUC121); lighting and per-key packets tested on a PCMK TKL by DanielGibson (gist, facts only)',
+  },
   // ---- EVision firmware boards (OpenRGB, facts only)
   {
     brand: 'AJAZZ',

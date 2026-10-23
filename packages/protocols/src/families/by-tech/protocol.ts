@@ -175,7 +175,7 @@ export const byTechProtocol: ProtocolDefinition = {
       'Lighting effect, colour, brightness, speed and sleep only; per-key colours, keymap and macros are not implemented.',
       'RK R75 and unknown models: read-only until the settings-page layout is confirmed with the keyboard’s own lighting shortcuts.',
       'USB cable only; the 2.4 GHz receiver and Bluetooth carry no settings.',
-      'The keyboard picture is a generic 75 % layout.',
+      'The RK R75 has its own keyboard picture; other models use a generic 75 % layout.',
     ],
     fixtures: [],
     verifiedIdentities: [],

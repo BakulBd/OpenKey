@@ -85,6 +85,7 @@ The adapters added on 2026-10-17 follow the same rule (own code, facts from the 
   files.
 - **aj179-mouse**: Rockeyxx/aj179-linux (MIT, Copyright (c) 2026 Omar).
 - **semico-lighting** (AJAZZ AK992): J0hnBloodborne/rea-jazz (MIT, Copyright (c) 2026 J0hnBloodborne).
+- **winbond-lighting** (FL Esports MK870 and other Winbond 0416 boards): Mqlvin/keyboard-colour (MIT, Copyright (c) 2025 Mqlvin): lighting packet, effect and direction codes.
 - **hub-aa55** (AULA F87S 8K, AJAZZ AK680): Dylan-1107/aula-f87s-hid (MIT, Copyright (c) 2026
   Dylan-1107), including its 87-key LED map; 10ishk/ak680-studio (Apache-2.0); somenever/not-ajazz-ak680-max-webhid
   (GPL-3.0, facts only).

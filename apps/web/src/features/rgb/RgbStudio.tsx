@@ -106,6 +106,18 @@ export function RgbStudio() {
               />
             </Field>
           )}
+          {ctl?.color2 && (
+            <Field
+              label={t('rgb.color2')}
+              hint={rgbToHex(draft.color2 ?? draft.color).toUpperCase()}
+            >
+              <input
+                type="color"
+                value={rgbToHex(draft.color2 ?? draft.color)}
+                onChange={(e) => set({ color2: hexToRgb(e.target.value) })}
+              />
+            </Field>
+          )}
           {(ctl?.colorful ?? true) && (
             <label className="check field-check">
               <input

@@ -1,5 +1,14 @@
 import { buildSupportBundle, hexId, supportBundleToIssue } from '@openkey/core';
-import type { ResearchNote, SupportBundle, SupportCollection } from '@openkey/core';
+import type {
+  ProtocolCheckResult,
+  ResearchNote,
+  SupportBundle,
+  SupportCandidate,
+  SupportCollection,
+  SupportDevice,
+} from '@openkey/core';
+import { protocolHints } from '@openkey/devices';
+import type { DetectionReport } from '@openkey/protocols';
 import type { HidCollection } from '@openkey/hid';
 import type { Session, RecentError } from '../state/keyboard.js';
 import type { ConnectionState } from '@openkey/core';
@@ -18,6 +27,48 @@ export function toSupportCollection(c: HidCollection): SupportCollection {
   };
 }
 
+/**
+ * Protocol-check results of this browser session, per device key. Kept in memory only: they are
+ * shapes of answers (no payloads) and go into a package only when the user exports it.
+ */
+const protocolChecks = new Map<string, ProtocolCheckResult[]>();
+
+export function recordProtocolCheck(deviceKey: string, result: ProtocolCheckResult): void {
+  const list = (protocolChecks.get(deviceKey) ?? []).filter((r) => r.id !== result.id);
+  protocolChecks.set(deviceKey, [...list, result]);
+}
+
+export function protocolChecksFor(deviceKey: string): ProtocolCheckResult[] {
+  return protocolChecks.get(deviceKey) ?? [];
+}
+
+/** Why each adapter was or was not considered, without packet bytes. */
+export function supportCandidates(detection: DetectionReport): SupportCandidate[] {
+  return detection.candidates.map((c) => ({
+    id: c.protocol.id,
+    family: c.protocol.family,
+    applicable: c.match.applicable,
+    score: c.match.score,
+    reasons: c.match.reasons,
+    rejections: c.match.rejections,
+    ...(c.consent ? { consent: { required: c.consent.required, granted: c.consent.granted } } : {}),
+    ...(c.probe
+      ? {
+          probe: {
+            status: c.probe.status,
+            summary: c.probe.summary,
+            identified: !!c.probe.identified,
+            steps: c.probe.steps.map((st) => ({
+              name: st.name,
+              status: st.status,
+              detail: st.detail ?? '',
+            })),
+          },
+        }
+      : {}),
+  }));
+}
+
 /** Sanitized diagnostic package for the current session (see core/support-bundle.ts for exclusions). */
 export function sessionSupportBundle(
   session: Session | null,
@@ -26,6 +77,21 @@ export function sessionSupportBundle(
 ): SupportBundle {
   const id = session?.group.identity;
   const sel = session?.detection.selected;
+  const device: SupportDevice | null = id
+    ? {
+        vendorId: hexId(id.vendorId),
+        productId: hexId(id.productId),
+        productName: id.productName,
+        ...(id.manufacturer ? { manufacturer: id.manufacturer } : {}),
+        ...(id.serialNumber ? { serialNumber: id.serialNumber } : {}),
+        ...(id.release !== undefined ? { release: hexId(id.release) } : {}),
+        transport: session!.group.transportHint,
+        interfaces: session!.group.interfaces.map((i) => ({
+          ...(i.interfaceNumber !== undefined ? { interfaceNumber: i.interfaceNumber } : {}),
+          collections: i.collections.map(toSupportCollection),
+        })),
+      }
+    : null;
   return buildSupportBundle({
     environment: {
       appVersion: APP_VERSION,
@@ -36,21 +102,14 @@ export function sessionSupportBundle(
       webHid: 'hid' in navigator,
       secureContext: isSecureContext,
     },
-    device: id
+    device,
+    ...(device ? { hints: protocolHints(device) } : {}),
+    ...(session
       ? {
-          vendorId: hexId(id.vendorId),
-          productId: hexId(id.productId),
-          productName: id.productName,
-          ...(id.manufacturer ? { manufacturer: id.manufacturer } : {}),
-          ...(id.serialNumber ? { serialNumber: id.serialNumber } : {}),
-          ...(id.release !== undefined ? { release: hexId(id.release) } : {}),
-          transport: session!.group.transportHint,
-          interfaces: session!.group.interfaces.map((i) => ({
-            ...(i.interfaceNumber !== undefined ? { interfaceNumber: i.interfaceNumber } : {}),
-            collections: i.collections.map(toSupportCollection),
-          })),
+          candidates: supportCandidates(session.detection),
+          protocolChecks: protocolChecksFor(session.fingerprint.key),
         }
-      : null,
+      : {}),
     adapter:
       session?.kind === 'device' && sel
         ? {

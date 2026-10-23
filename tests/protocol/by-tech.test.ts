@@ -9,6 +9,7 @@ import {
   toHex,
   writeDecision,
 } from '@openkey/core';
+import { MockHidDevice } from '@openkey/hid';
 import { byTech, createDefaultRegistry, openDriver } from '@openkey/protocols';
 import { noSleep } from '../helpers.js';
 
@@ -89,6 +90,37 @@ describe('BY Tech OEM protocol: detection', () => {
       'feature-set:82',
       'feature-get:82',
     ]);
+  });
+
+  it('offers the BY Tech adapter for the descriptor in the owner’s R75 support bundle', async () => {
+    // openkey-diagnostics-258A-015E.json (2026-10-11): one interface, five collections.
+    const col = (usagePage: number, usage: number, kind?: 'in' | 'feature', id = 0, size = 0) => ({
+      usagePage,
+      usage,
+      inputReports: kind === 'in' ? [{ reportId: id, size }] : [],
+      outputReports: [],
+      featureReports: kind === 'feature' ? [{ reportId: id, size }] : [],
+    });
+    const dev = new MockHidDevice(R75, [
+      {
+        info: {
+          collections: [
+            col(0x0c, 0x01, 'in', 2, 2),
+            col(0xff00, 0x01, 'in', 3, 3),
+            col(0xff00, 0x01, 'feature', 5, 5),
+            col(0xff00, 0x01, 'feature', 6, 519),
+            col(0x01, 0x02),
+          ],
+        },
+        behavior: {},
+      },
+    ]);
+    const report = await createDefaultRegistry().detect(dev.group(), { level: 'handshake' });
+    const c = report.candidates.find((x) => x.protocol.id === 'by-tech');
+    expect(c?.match.applicable).toBe(true);
+    expect(c?.consent).toMatchObject({ required: true, granted: false });
+    expect(report.catalog?.model).toMatch(/R75/);
+    expect(dev.traffic).toEqual([]);
   });
 
   it('never selects the family from descriptors alone', async () => {
@@ -201,6 +233,32 @@ describe('BY Tech OEM protocol: RK R75 and learning the layout', () => {
     const again = await connect(sim, ['by-tech'], store);
     expect(again.driver.layoutLearned).toBe(true);
     expect((await again.driver.getRgbConfig()).effect).toBe(2);
+  });
+
+  it('shows the R75’s own keyboard and the controls its configuration gives each effect', async () => {
+    const sim = new ByTechSimulator({ identity: R75, modelCode: R75_IDENTITY });
+    const { driver } = await connect(sim, ['by-tech']);
+    const layout = driver.getLayout();
+    expect(layout.id).toBe('rk-r75');
+    expect(layout.keys).toHaveLength(80);
+    expect(layout.extras?.map((e) => e.kind)).toEqual(['knob']);
+    // KB.ini matrix indices: Esc 0, Fn 65, Right 95; the R75 has no End key.
+    const byLabel = (l: string) => layout.keys.filter((k) => k.label === l).map((k) => k.slot);
+    expect(byLabel('Esc')).toEqual([0]);
+    expect(byLabel('Fn')).toEqual([65]);
+    expect(byLabel('→')).toEqual([95]);
+    expect(byLabel('End')).toEqual([]);
+    const effects = driver.getRgbEffects().effects;
+    // LedOpt1–17, 19 and 20 (18 is absent).
+    expect(effects.map((e) => e.id)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20,
+    ]);
+    expect(effects[0]!.controls).toMatchObject({ speed: false, brightness: true, color: true });
+    expect(effects[2]!.controls).toMatchObject({ speed: true, color: false, colorful: false });
+    expect(effects.find((e) => e.id === 10)?.name).toMatch(/default/);
+    expect(effects.at(-1)!.controls).toMatchObject({ brightness: false, speed: false });
+    expect(driver.getSettingsSchema()).toEqual({});
+    expect(sim.writes).toHaveLength(0);
   });
 
   it('refuses ambiguous observations', () => {

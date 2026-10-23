@@ -7,6 +7,7 @@ import {
   configurable,
   emptyCapabilities,
   clamp,
+  planeDirection,
   toHex,
 } from '@openkey/core';
 import type {
@@ -77,7 +78,7 @@ export function dongleLightingPacket(c: RgbConfig): Uint8Array {
     b[11] = c.colorful ? 1 : 0;
     b[12] = c.brightness;
     b[13] = c.speed;
-    b[14] = DIRECTION_CODES[c.direction];
+    b[14] = DIRECTION_CODES[planeDirection(c.direction)];
   }
   b[17] = 0xaa;
   b[18] = 0x55;
