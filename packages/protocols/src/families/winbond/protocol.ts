@@ -21,6 +21,9 @@ import type {
   EffectCatalog,
   KeyAction,
   KeyActionKind,
+  Macro,
+  MacroLimits,
+  MacroPlayMode,
   KeyboardLayout,
   KeymapState,
   LayerId,
@@ -98,8 +101,10 @@ const WAVE: Direction[] = ['up', 'down', 'left', 'right', 'inwards', 'outwards']
 const SPIN: Direction[] = ['clockwise', 'anticlockwise'];
 
 /**
- * Effects with the source's names, code, speed and directions. "Musical rhythm" (0x64) is left out:
- * it follows audio the vendor software streams, which OpenKey does not send.
+ * Effects with the source's names, code, speed and directions; every code but the custom table
+ * (0x0A) was captured on an MK870 (fixtures/rgb/mk870-lighting-captures-issue13.json). Music
+ * response (0x64) lights to the rhythm of audio the vendor app streams with command 20; without
+ * it the keyboard shows the effect's resting state.
  */
 export const MODES: readonly { id: number; name: string; speed: boolean; dirs: Direction[] }[] = [
   { id: 0x00, name: 'Static', speed: false, dirs: [] },
@@ -116,6 +121,7 @@ export const MODES: readonly { id: number; name: string; speed: boolean; dirs: D
   { id: 0x0e, name: 'Auto ripple', speed: true, dirs: [] },
   { id: 0x0f, name: 'Snake', speed: true, dirs: SPIN },
   { id: 0x10, name: 'Fireworks', speed: true, dirs: [] },
+  { id: 0x64, name: 'Music response (needs the vendor app’s audio)', speed: false, dirs: [] },
   // Shows the per-key table (Pulsar PCMK notes; the same command family).
   { id: 0x0a, name: 'Custom (per-key colours)', speed: false, dirs: [] },
 ];
@@ -279,6 +285,90 @@ const modifierUsages = (mask: number) =>
     .filter((i) => mask & (1 << i))
     .map((i) => 0xe0 + i);
 
+/**
+ * Macros (official driver, "Write Macro-data list", decoded from its macro uploader): each slot is a
+ * 256-byte record sent as five output reports `19 SLOT 00 K LEN …`, K = 0–4, LEN 0x3A (58) for
+ * K 0–3 and 0x18 (24) for K 4, each answered by a `19` echo (the driver retries up to four times).
+ * The record starts with an 8-byte header — `00 MODE 00 LEN 00 REPEAT 00 00`, MODE 0 play once,
+ * 1 play multiple times, 2 toggle, 3 while held; LEN = 4 × events — followed by the events,
+ * 4 bytes each: `CODE FLAGS DELAY_HI DELAY_LO`, CODE a HID key usage or mouse button (1 left,
+ * 2 right, 4 middle), FLAGS 0x10 for press plus 0x01 for a mouse button, and the delay in ms that
+ * follows the event, big-endian. Unused slots are sent as empty records.
+ */
+export const MACRO_CMD = 0x19;
+export const MACRO_SLOTS = 10;
+export const MACRO_RECORD_BYTES = 256;
+const MACRO_HEADER_BYTES = 8;
+export const MACRO_MAX_EVENTS = (MACRO_RECORD_BYTES - MACRO_HEADER_BYTES) / 4;
+const MACRO_PACKETS = [0x3a, 0x3a, 0x3a, 0x3a, 0x18] as const;
+const MACRO_RETRIES = 4;
+const MACRO_ACK_MS = 100;
+/** A key bound to macro slot S: `10 01 S 00` (the driver's profiles give every key 1 there). */
+const MACRO_ENTRY = 0x10;
+export const MACRO_MODES: Record<MacroPlayMode, number> = {
+  once: 0,
+  repeat: 1,
+  toggle: 2,
+  'while-held': 3,
+};
+const MOUSE_CODES = { left: 1, right: 2, middle: 4 } as const;
+
+export const MACRO_LIMITS: MacroLimits = {
+  slots: MACRO_SLOTS,
+  storageBytes: MACRO_SLOTS * MACRO_RECORD_BYTES,
+  minDelayMs: 0,
+  maxDelayMs: 0xffff,
+};
+
+/** How a slot is played, taken from the key that uses it. */
+export interface MacroPlay {
+  mode: MacroPlayMode;
+  repeat: number;
+}
+
+/** The 256-byte record of one macro (8-byte header, 248 bytes of events); delays are folded into the event before them. */
+export function macroRecord(macro: Macro | undefined, play: MacroPlay): Uint8Array {
+  const record = new Uint8Array(MACRO_RECORD_BYTES);
+  if (!macro || macro.events.length === 0) return record;
+  const events: number[][] = [];
+  for (const e of macro.events) {
+    if (e.type === 'delay') {
+      const last = events.at(-1);
+      if (!last) continue; // nothing to wait after
+      const ms = Math.min(0xffff, ((last[2]! << 8) | last[3]!) + Math.max(0, Math.round(e.ms)));
+      last[2] = ms >> 8;
+      last[3] = ms & 0xff;
+      continue;
+    }
+    const press = e.down ? 0x10 : 0x00;
+    if (e.type === 'key') {
+      if (e.usage < 0x04 || e.usage > 0xe7)
+        throw new ProtocolError(`Macro key 0x${e.usage.toString(16)} cannot be stored.`);
+      events.push([e.usage, press, 0, 0]);
+    } else events.push([MOUSE_CODES[e.button], press | 0x01, 0, 0]);
+  }
+  if (events.length > MACRO_MAX_EVENTS)
+    throw new ProtocolError(
+      `A macro holds at most ${MACRO_MAX_EVENTS} presses and releases on this keyboard (this one has ${events.length}).`,
+    );
+  const repeat = play.mode === 'repeat' ? clamp(play.repeat, 1, 255) : 1;
+  record.set([0x00, MACRO_MODES[play.mode], 0x00, events.length * 4, 0x00, repeat, 0x00, 0x00]);
+  record.set(events.flat(), MACRO_HEADER_BYTES);
+  return record;
+}
+
+/** The five packets of a slot (without the report ID). */
+export function macroPackets(slot: number, record: Uint8Array): Uint8Array[] {
+  let at = 0;
+  return MACRO_PACKETS.map((len, k) => {
+    const p = new Uint8Array(REPORT_BYTES);
+    p.set([MACRO_CMD, slot, 0x00, k, len]);
+    p.set(record.subarray(at, at + len), 5);
+    at += len;
+    return p;
+  });
+}
+
 function keyEntry(slot: number, action: KeyAction | undefined): readonly number[] {
   if (slot === FN_SLOT) return FN_ENTRY;
   const a = action ?? { kind: 'default' };
@@ -298,6 +388,12 @@ function keyEntry(slot: number, action: KeyAction | undefined): readonly number[
       if (mods.length === 2) return [COMBO_ENTRY, mods[0]!, mods[1]!, a.usage];
       throw new ProtocolError('This keyboard stores at most two modifiers with a key.');
     }
+    case 'macro':
+      if (a.index < 0 || a.index >= MACRO_SLOTS)
+        throw new ProtocolError(
+          `Macro ${a.index + 1} is outside the keyboard’s ${MACRO_SLOTS} slots.`,
+        );
+      return [MACRO_ENTRY, 0x01, a.index, 0x00];
     case 'special':
       if (!MEDIA_KEYS.some((m) => m.code === a.code))
         throw new ProtocolError(
@@ -454,8 +550,59 @@ export const PROTOCOL_CHECKS: readonly ProtocolCheckInfo[] = [
     source: 'FL Esports driver V1.06.16: “Inquire [Keyboard Light Config]”',
     effect: 'read-only',
   },
+  {
+    id: 'model-query',
+    title: 'Model query',
+    command: '15',
+    source:
+      'FL Esports driver V1.06.16: “Inquire [Device SN 0x15]”, which it asks on connection to choose the keyboard’s tables',
+    effect: 'read-only',
+  },
 ];
-const CHECK_BYTES: Record<string, readonly number[]> = { 'lighting-query': [0x07, 0x01] };
+const CHECK_BYTES: Record<string, readonly number[]> = {
+  'lighting-query': [0x07, 0x01],
+  'model-query': [0x15],
+};
+
+/**
+ * Model codes of the official FL Esports driver V1.06.16 (its `KeyInfo_<code>.config` and
+ * `<code>_Def….xml` resources). The driver picks a keyboard's key, Fn-layer and onboard tables by
+ * this code; the model query records a code only when it is one of these.
+ */
+// prettier-ignore
+export const DRIVER_MODEL_CODES: ReadonlySet<string> = new Set([
+  'COXCKT87RGB', 'CR810BTRGB', 'D87BRGB', 'D87RGB', 'D87SKRGB', 'FK5011URGB', 'FK5222URGB',
+  'FK5223URGB', 'FK5224URGB', 'GK5000RGB', 'GK687SRGB', 'GK8110IRRGB', 'GK8110NU01RGB',
+  'GK8110RGB', 'GK8110SKRGB', 'GK8120IRNU01RGB', 'GK8120IRRGB', 'GK8120NU01RGB', 'GK8120RGB',
+  'GK8120SKRGB', 'GK8150SKRGB', 'GK8170MRGB', 'GM518RGB', 'GM810RGB', 'GM810UKRGB', 'HDSC61RGB',
+  'K171RGB', 'K171UKRGB', 'K180CVRGB', 'K180ZETRGB', 'K181ZETRGB', 'K188BRGB', 'K188RGB',
+  'K191CVRGB', 'K191DPLRGB', 'K191UKDPLRGB', 'K191ZETRGB', 'K198UKRGB', 'K202BRGB', 'K202DRGB',
+  'K202ERGB', 'K202MechaRGB', 'K202RGB', 'K204RGB', 'K205RGB', 'K205UKRGB', 'K210RGB',
+  'K210ZETRGB', 'K212BRGB', 'K212DPLRGB', 'K215RGB', 'K216RGB', 'K217BTRGB', 'K217RGB',
+  'K220RGB', 'K221CVRGB', 'K221IRCVJPRGB', 'K221IRCVRGB', 'K221IRCVUKRGB', 'K221JPCVRGB',
+  'K221UKCVRGB', 'K223BILIRGB', 'K223BRGB', 'K223RGB', 'K224BRGB', 'K224BTRGB', 'K224RGB',
+  'K225CVRGB', 'K225JPCVRGB', 'K225UKCVRGB', 'K228BILIRGB', 'K228IRRGB', 'K228RGB',
+  'K232SKAG75RGB', 'K232SKRGB', 'K235RGB', 'K237BTRGB', 'K237RGB', 'K242BTRGB', 'K245RGB',
+  'K247BTRGB', 'K24RGB', 'K30RGB', 'K660CVRGB', 'K660ZETRGB', 'K662RGB', 'K665MRGB', 'K665RGB',
+  'K665UKIRIBARGB', 'K668RGB', 'K75RGB', 'K87RGB', 'K980CBZRGB', 'KC104RGB', 'KC104RRGB',
+  'KC104RZETRGB', 'KC104SKRGB', 'KC21BTRGB', 'KC66RGB', 'KC68RGB', 'KC84RGB', 'KD1IR_MRGB',
+  'KD3IR_MRGB', 'KG045BTRGB', 'KM87RGB', 'KR046BTRGB', 'KR081BTRGB', 'LP87ZETRGB', 'M87RGB',
+  'MK061X', 'MK061XRGB', 'MK104RGB', 'MK1061RGB', 'MK3108ASKRGB', 'MK3108SKRGB', 'MK6SKRGB',
+  'MK87RGB', 'Mek5', 'Mixabl84RGB', 'NK60RGB', 'NK60TRGB', 'NP87UKDrevoRGB', 'NP87ZETRGB',
+  'RTK61RGB', 'RTK68RGB', 'SD84RGB', 'SN87RGB', 'ST98RGB', 'TF84RGB', 'TK61BIRRGB', 'TK61IRRGB',
+  'TY61MiniRGB', 'TY69SKRGB', 'TY84DREVORGB', 'TY84HKRGB', 'TY84RGB', 'TYNYF84RGB', 'TYSW68RGB',
+  'VET61IRRGB', 'VS61RGB', 'VS84RGB', 'VS87RGB', 'VX9PRORGB', 'XS61BRGB', 'XS61CRGB',
+  'XS61FANRGB', 'XS61RGB', 'XS61_SNRGB', 'XS62RGB', 'XS62SKRGB', 'XS63RGB', 'XS63_SNRGB',
+  'XS84RGB', 'XS87RGB', 'Y75BBTRGB', 'Y75BTRGB', 'Y84BTRGB', 'ZK104UKDrevoRGB', 'ZK87DrevoRGB',
+]);
+
+/** The driver model code an answer names, if it names one of `DRIVER_MODEL_CODES`. */
+export function modelCodeIn(reply: Uint8Array): string | undefined {
+  const text = Array.from(reply, (b) => (b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : ' '));
+  for (const token of text.join('').split(/[^A-Za-z0-9_]+/))
+    if (DRIVER_MODEL_CODES.has(token)) return token;
+  return undefined;
+}
 const CHECK_TIMEOUT_MS = 500;
 /** Longest wait for the keyboard's echo of a key-map packet. */
 const KEYMAP_ACK_MS = 150;
@@ -507,8 +654,8 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
   }
 
   /** Waits up to `KEYMAP_ACK_MS` for an answer that repeats `command`; true when one came. */
-  private async waitForEcho(command: number): Promise<boolean> {
-    const deadline = Date.now() + KEYMAP_ACK_MS;
+  private async waitForEcho(command: number, ms = KEYMAP_ACK_MS): Promise<boolean> {
+    const deadline = Date.now() + ms;
     while (this.t && Date.now() < deadline) {
       const r = await this.t.readInputReport(Math.max(1, deadline - Date.now()));
       if (!r) return false;
@@ -549,10 +696,10 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
       confidence: Evidence.OBSERVED,
       source: 'USB identity and product string',
     });
-    c.rgb = configurable(this.lightingReadable ? 'device' : 'mirror', true, Evidence.INFERRED, {
+    c.rgb = configurable(this.lightingReadable ? 'device' : 'mirror', true, Evidence.OBSERVED, {
       safety: SafetyLevel.SAFE_PERSISTENT,
       source:
-        'Mqlvin/keyboard-colour (MIT), captured from the vendor software, which an MK870 owner ran on 0416:C345; lighting query and its answer layout from the official FL Esports driver',
+        '45 USB captures from an MK870 owner (OpenKey issue #13): every effect, direction, colour, brightness and speed, byte for byte the packet OpenKey sends; lighting query from the official FL Esports driver',
       value: `${this.modes.length - 1} effects, two colours, rainbow, brightness and speed 0–${LEVEL_MAX}, eight directions`,
       note: this.lightingReadable
         ? 'Read from the keyboard and read back after each change.'
@@ -570,7 +717,7 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
       source:
         'Official FL Esports driver V1.06.16: key-map packet 18 and its default QWERTY profile, decoded from the driver',
       value:
-        'default layer: keys, keys with up to two modifiers, nine media keys, disabled, factory default',
+        'default layer: keys, keys with up to two modifiers, nine media keys, macros, disabled, factory default',
       note: 'The keyboard cannot report its key map; OpenKey shows what it last wrote. The Fn key stays fixed. Restore the defaults to undo.',
     });
     c.fnLayer = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
@@ -587,9 +734,12 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
       source: 'Official FL Esports driver V1.06.16: default QWERTY profile',
       note: 'Restores the key map by writing the driver’s default table; the lighting and sleep stay as they are.',
     });
-    c.macros = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-      confidence: Evidence.INFERRED,
-      note: 'In the official driver the keyboard does not store macro contents: its onboard macro list (command 19) is sent empty, and macros are played by the vendor app through key reports (commands 04 and 05). A web page cannot keep running in the background to play them.',
+    c.macros = configurable('mirror', true, Evidence.INFERRED, {
+      safety: SafetyLevel.CAUTION,
+      source:
+        'Official FL Esports driver V1.06.16: macro uploader (command 19), decoded from the driver',
+      value: `${MACRO_SLOTS} macros of up to ${MACRO_MAX_EVENTS} presses and releases; play once, several times, toggle or while held`,
+      note: 'Stored on the keyboard: a macro plays once it is assigned to a key in the key map. The keyboard cannot report its macros; OpenKey shows what it last wrote.',
     });
     return c;
   }
@@ -656,6 +806,8 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     await this.opts.store.set(this.key, config);
   }
 
+  readonly testGuide = 'docs/FL_ESPORTS_MK870.md';
+
   listProtocolChecks(): readonly ProtocolCheckInfo[] {
     return PROTOCOL_CHECKS;
   }
@@ -682,14 +834,20 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
           detail: `No input report within ${CHECK_TIMEOUT_MS} ms.`,
         };
       const reply = replyShape(REPORT_ID, r, bytes[0]!);
+      const model = id === 'model-query' && reply.echo ? modelCodeIn(r) : undefined;
       return {
         ...base,
         at,
         status: reply.echo ? 'answered' : 'unexpected',
         reply,
-        detail: reply.echo
-          ? 'The keyboard answered on the vendor channel, repeating the command.'
-          : 'The keyboard sent an input report that does not repeat the command.',
+        ...(model ? { facts: { driverModel: model } } : {}),
+        detail: !reply.echo
+          ? 'The keyboard sent an input report that does not repeat the command.'
+          : id !== 'model-query'
+            ? 'The keyboard answered on the vendor channel, repeating the command.'
+            : model
+              ? `The keyboard reported the driver model ${model}.`
+              : 'The keyboard answered, but with no model code from the driver’s list; nothing from the answer is kept.',
       };
     } catch (e) {
       return {
@@ -702,7 +860,76 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
   }
 
   override getKeyActionKinds(): readonly KeyActionKind[] {
-    return ['default', 'disabled', 'keyboard', 'special'];
+    return ['default', 'disabled', 'keyboard', 'special', 'macro'];
+  }
+
+  override getMacroLimits(): MacroLimits {
+    return MACRO_LIMITS;
+  }
+
+  override async getMacros(): Promise<Macro[]> {
+    return (await this.opts.store.get<Macro[]>(`${this.key}/macros`)) ?? [];
+  }
+
+  /** Stores the macros, and writes the slots the current key map uses (others are cleared). */
+  override async setMacros(macros: Macro[]): Promise<void> {
+    for (const m of macros)
+      if (m.index < 0 || m.index >= MACRO_SLOTS)
+        throw new ProtocolError(
+          `Macro ${m.index + 1} is outside the keyboard’s ${MACRO_SLOTS} slots.`,
+        );
+    const keymap = await this.getKeymap('base');
+    // Encode everything first: nothing is sent if one macro does not fit.
+    const records = this.macroRecords(macros, keymap.slots);
+    await this.writeMacroSlots(records);
+    await this.opts.store.set(`${this.key}/macros`, macros);
+  }
+
+  /** How each slot is played, from the keys bound to it; two keys must agree. */
+  private macroPlays(slots: Record<number, KeyAction>): Map<number, MacroPlay> {
+    const plays = new Map<number, MacroPlay>();
+    for (const a of Object.values(slots)) {
+      if (a.kind !== 'macro') continue;
+      const play = { mode: a.mode, repeat: a.mode === 'repeat' ? a.repeat : 1 };
+      const had = plays.get(a.index);
+      if (had && (had.mode !== play.mode || had.repeat !== play.repeat))
+        throw new ProtocolError(
+          `Macro ${a.index + 1} is used by two keys with different play modes; this keyboard stores one mode per macro.`,
+        );
+      plays.set(a.index, play);
+    }
+    return plays;
+  }
+
+  private macroRecords(macros: Macro[], slots: Record<number, KeyAction>): Uint8Array[] {
+    const plays = this.macroPlays(slots);
+    return Array.from({ length: MACRO_SLOTS }, (_, i) => {
+      const play = plays.get(i);
+      return play
+        ? macroRecord(
+            macros.find((m) => m.index === i),
+            play,
+          )
+        : macroRecord(undefined, { mode: 'once', repeat: 1 });
+    });
+  }
+
+  /** Sends every slot, each packet acknowledged by a `19` echo (resent up to four times). */
+  private async writeMacroSlots(records: Uint8Array[]): Promise<void> {
+    if (!this.t) throw new ProtocolError('Not connected');
+    this.t.drainInput();
+    for (const [slot, record] of records.entries())
+      for (const p of macroPackets(slot, record)) {
+        let acked = false;
+        for (let attempt = 0; attempt < MACRO_RETRIES && !acked; attempt++) {
+          await this.t.sendOutputReport(REPORT_ID, p);
+          acked = await this.waitForEcho(MACRO_CMD, MACRO_ACK_MS);
+        }
+        if (!acked)
+          throw new ProtocolError(
+            `The keyboard did not confirm macro slot ${slot + 1}; nothing more was sent.`,
+          );
+      }
   }
 
   override getSpecialActions(): readonly { code: number; label: string }[] {
@@ -751,6 +978,14 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     if (state.layer !== 'base')
       throw new ProtocolError('Only the default layer can be written on this keyboard.');
     const packets = keymapPackets(0, state.slots);
+    // Macros used by the new map are written first (as the official driver does), so no key
+    // points at a slot that is not there yet; slots the map no longer uses are cleared.
+    const records = this.macroRecords(await this.getMacros(), state.slots);
+    const usesMacros = Object.values(state.slots).some((a) => a.kind === 'macro');
+    const hadMacros = Object.values((await this.getKeymap('base')).slots).some(
+      (a) => a.kind === 'macro',
+    );
+    if (usesMacros || hadMacros) await this.writeMacroSlots(records);
     this.t.drainInput();
     // The keyboard answers each key-map packet with an `18` echo (handled by the official driver);
     // waiting briefly for it paces the writes to the keyboard's memory. An echo is not a read-back.
@@ -823,11 +1058,11 @@ export const winbondProtocol: ProtocolDefinition = {
       'Per-key LED order is the official driver’s matrix, confirmed on a sibling board (Pulsar PCMK TKL), not yet on an MK870.',
       'The key map, per-key colours and sleep time cannot be read from the keyboard; OpenKey shows what it last wrote.',
       'Key map: the default layer (keys, two-modifier combinations, nine media keys); the FN1/FN layers are not written because their factory contents are unknown.',
-      'Macros: the vendor app plays them itself (key reports 04/05); the keyboard’s macro list (19) is sent empty, so there is nothing to store on the keyboard.',
+      'Macros: 10 slots of up to 62 presses and releases; the byte before the slot in a macro key’s entry is the 1 every key carries in the driver’s profiles (confirmed only for play once).',
       'Lighting is read back only when the keyboard answers the lighting query; otherwise OpenKey shows what it last wrote.',
-      'Musical rhythm needs the vendor software’s audio stream and is not offered.',
+      'Music response follows audio the vendor app streams (command 20); OpenKey does not stream audio.',
     ],
-    fixtures: [],
+    fixtures: ['fixtures/rgb/mk870-lighting-captures-issue13.json'],
     verifiedIdentities: [],
   },
   name: 'Winbond OEM keyboard protocol (FL Esports MK870, Pulsar PCMK …)',

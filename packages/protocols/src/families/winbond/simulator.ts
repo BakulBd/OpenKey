@@ -8,6 +8,12 @@ export class WinbondSimulator {
   readonly packets: Uint8Array[] = [];
   /** Whether the simulated keyboard answers the lighting query (tests both outcomes). */
   answersQueries = true;
+  /** What the simulated keyboard answers to the model query. */
+  modelCode = 'K223RGB';
+  /** Whether the simulated keyboard acknowledges macro packets. */
+  acksMacros = true;
+  /** Macro records received, by slot. */
+  readonly macroRecords = new Map<number, Uint8Array>();
   /** Last lighting record written (`07 00 …`); starts as static red at full brightness. */
   lighting = Uint8Array.from([
     0x07,
@@ -74,11 +80,29 @@ export class WinbondSimulator {
           onOutput: (_id, d, ctx) => {
             this.packets.push(d);
             if (d[0] === 0x07 && d[1] === 0x00) this.lighting = d.slice();
-            // Key-map packets are acknowledged with an echo of the command (official driver).
-            if (d[0] === 0x18) {
+            // Macro records are kept per slot (five packets each) and acknowledged.
+            if (d[0] === 0x19 && this.acksMacros) {
+              const record = this.macroRecords.get(d[1]!) ?? new Uint8Array(256);
+              const offset = d[3]! * 0x3a;
+              record.set(d.subarray(5, 5 + d[4]!), offset);
+              this.macroRecords.set(d[1]!, record);
+            }
+            // Key-map and macro packets are acknowledged with an echo of the command.
+            if (d[0] === 0x18 || (d[0] === 0x19 && this.acksMacros)) {
               const ack = new Uint8Array(REPORT_BYTES);
               ack.set(d.subarray(0, 5));
               ctx.emitInput(ack);
+            }
+            // Model query: answers with a model code (an assumption for tests; the real code is
+            // what the protocol check is for).
+            if (this.answersQueries && d[0] === 0x15) {
+              const r = new Uint8Array(REPORT_BYTES);
+              r[0] = 0x15;
+              r.set(
+                Array.from(this.modelCode, (c) => c.charCodeAt(0)),
+                4,
+              );
+              ctx.emitInput(r);
             }
             // Lighting query: answers with the lighting record, as the official driver reads it.
             if (this.answersQueries && d[0] === 0x07 && d[1] === 0x01) {

@@ -1,8 +1,26 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MemoryStateStore, PacketLog, isDiagnosticsDriver, isOpenKeyError } from '@openkey/core';
+import type { Direction } from '@openkey/core';
 import { createDefaultRegistry, openDriver, winbond } from '@openkey/protocols';
 
 const { WinbondSimulator, lightingPacket } = winbond;
+
+interface Capture {
+  capture: string;
+  set: Record<string, number | number[]>;
+  packet: string;
+}
+const CAPTURES = JSON.parse(
+  readFileSync(
+    path.resolve(import.meta.dirname, '../../fixtures/rgb/mk870-lighting-captures-issue13.json'),
+    'utf8',
+  ),
+) as { reportId: number; captures: Capture[] };
+const hexBytes = (h: string) => h.split(' ').map((x) => parseInt(x, 16));
+const byCode = (code: number) =>
+  Object.entries(winbond.DIRECTION_CODES).find(([, c]) => c === code)![0] as Direction;
 
 async function connect(sim = new WinbondSimulator(), consent: string[] = []) {
   const registry = createDefaultRegistry();
@@ -38,7 +56,7 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       0x07, 0, 0, 0, 0x0e, 0x02, 4, 3, 255, 0, 0, 0, 0, 255, 0x01, 0x01,
     ]);
     expect(p.subarray(16).every((b) => b === 0)).toBe(true);
-    expect(() => lightingPacket({ ...winbond.DEFAULT_CONFIG, effect: 0x64 })).toThrow(/not one/);
+    expect(() => lightingPacket({ ...winbond.DEFAULT_CONFIG, effect: 0x05 })).toThrow(/not one/);
   });
 
   it('identifies the MK870 from its owner’s descriptors without sending anything', async () => {
@@ -58,7 +76,7 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       caps.perKeyRgb.write,
       caps.macros.write,
       caps.fnLayer.write,
-    ]).toEqual([true, true, false, false]);
+    ]).toEqual([true, true, true, false]);
     expect(driver.getLayerIds()).toEqual(['base']);
   });
 
@@ -247,6 +265,7 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
     if (!isDiagnosticsDriver(driver)) return;
     expect(driver.listProtocolChecks().map((c) => [c.id, c.command, c.effect])).toEqual([
       ['lighting-query', '07 01', 'read-only'],
+      ['model-query', '15', 'read-only'],
     ]);
     const r = await driver.runProtocolCheck('lighting-query');
     expect(sim.packets).toHaveLength(1);
@@ -312,5 +331,176 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
     });
     r[0] = 0x09;
     expect(winbond.parseLightingReply(r)).toBeNull();
+  });
+
+  describe('the 45 lighting captures from an MK870 (issue #13)', () => {
+    it('has one capture per effect, direction, colour, brightness and speed step', () => {
+      expect(CAPTURES.reportId).toBe(1);
+      expect(CAPTURES.captures).toHaveLength(45);
+    });
+
+    for (const c of CAPTURES.captures)
+      it(`reproduces ${c.capture} byte for byte`, () => {
+        const bytes = hexBytes(c.packet);
+        expect(bytes[0]).toBe(CAPTURES.reportId);
+        const p = bytes.slice(1);
+        // The settings the owner made, read from the capture with OpenKey's own names.
+        const config = {
+          effect: p[5]!,
+          brightness: p[6]!,
+          speed: p[7]!,
+          color: { r: p[8]!, g: p[9]!, b: p[10]! },
+          color2: { r: p[11]!, g: p[12]!, b: p[13]! },
+          direction: byCode(p[14]!),
+          colorful: p[15] === 1,
+        };
+        expect([...lightingPacket(config)]).toEqual(p);
+        expect(winbond.MODES.some((m) => m.id === config.effect)).toBe(true);
+      });
+
+    it('names directions and effects as the captures do', () => {
+      const dir = (name: string) =>
+        CAPTURES.captures.find((c) => c.capture.endsWith(`/${name}.pcapng`))!.set.direction;
+      expect(dir('outwards')).toBe(winbond.DIRECTION_CODES.outwards);
+      expect(dir('inwards')).toBe(winbond.DIRECTION_CODES.inwards);
+      expect(dir('anticlockwise')).toBe(winbond.DIRECTION_CODES.anticlockwise);
+      const code = (file: string) =>
+        CAPTURES.captures.find((c) => c.capture === `Lightning Mode/${file}.pcapng`)!.set.effect;
+      const named = (name: string) => winbond.MODES.find((m) => m.name.startsWith(name))!.id;
+      expect(code('static')).toBe(named('Static'));
+      expect(code('auto-ripple')).toBe(named('Auto ripple'));
+      expect(code('fireworks')).toBe(named('Fireworks'));
+      expect(code('musical-response')).toBe(named('Music response'));
+      expect(code('Typing Response/up')).toBe(named('Typing response'));
+    });
+  });
+
+  describe('macros (official driver, command 19)', () => {
+    const copyPaste = {
+      index: 0,
+      events: [
+        { type: 'key' as const, usage: 0xe0, down: true },
+        { type: 'delay' as const, ms: 20 },
+        { type: 'key' as const, usage: 0x06, down: true },
+        { type: 'key' as const, usage: 0x06, down: false },
+        { type: 'delay' as const, ms: 300 },
+        { type: 'key' as const, usage: 0xe0, down: false },
+        { type: 'mouse' as const, button: 'left' as const, down: true },
+        { type: 'mouse' as const, button: 'left' as const, down: false },
+      ],
+    };
+
+    it('encodes a record: header, then code, flags and the following delay per event', () => {
+      const r = winbond.macroRecord(copyPaste, { mode: 'once', repeat: 1 });
+      expect(r).toHaveLength(256);
+      expect([...r.subarray(0, 8)]).toEqual([0, 0, 0, 24, 0, 1, 0, 0]);
+      expect([...r.subarray(8, 32)]).toEqual([
+        0xe0, 0x10, 0x00, 0x14, 0x06, 0x10, 0x00, 0x00, 0x06, 0x00, 0x01, 0x2c, 0xe0, 0x00, 0x00,
+        0x00, 0x01, 0x11, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00,
+      ]);
+      expect(r.subarray(32).every((b) => b === 0)).toBe(true);
+      const looped = winbond.macroRecord(copyPaste, { mode: 'repeat', repeat: 5 });
+      expect([looped[1], looped[5]]).toEqual([1, 5]);
+      expect(winbond.macroRecord(copyPaste, { mode: 'while-held', repeat: 9 })[1]).toBe(3);
+    });
+
+    it('splits a record into five packets of 58, 58, 58, 58 and 24 bytes', () => {
+      const r = winbond.macroRecord(copyPaste, { mode: 'once', repeat: 1 });
+      const ps = winbond.macroPackets(3, r);
+      expect(ps.map((p) => [...p.subarray(0, 5)])).toEqual([
+        [0x19, 3, 0, 0, 0x3a],
+        [0x19, 3, 0, 1, 0x3a],
+        [0x19, 3, 0, 2, 0x3a],
+        [0x19, 3, 0, 3, 0x3a],
+        [0x19, 3, 0, 4, 0x18],
+      ]);
+      expect([...ps[0]!.subarray(5, 63)]).toEqual([...r.subarray(0, 58)]);
+      expect([...ps[4]!.subarray(5, 29)]).toEqual([...r.subarray(232, 256)]);
+    });
+
+    it('stores a macro on the keyboard when a key is bound to it, and clears unused slots', async () => {
+      const { driver, sim } = await connect();
+      expect(driver.getKeyActionKinds()).toContain('macro');
+      expect(driver.getMacroLimits().slots).toBe(10);
+      await driver.setMacros([copyPaste]);
+      // F5 (slot 7) plays macro 1 three times.
+      await driver.setKeymap({
+        layer: 'base',
+        slots: { 7: { kind: 'macro', index: 0, mode: 'repeat', repeat: 3 } },
+        provenance: 'mirror',
+      });
+      const stored = sim.macroRecords.get(0)!;
+      expect([...stored.subarray(0, 8)]).toEqual([0, 1, 0, 24, 0, 3, 0, 0]);
+      expect(sim.macroRecords.get(1)!.every((b) => b === 0)).toBe(true);
+      expect(sim.macroRecords.size).toBe(10);
+      const maps = sim.packets.filter((p) => p[0] === winbond.KEYMAP_CMD);
+      expect([...maps[0]!.subarray(5 + 7 * 4, 5 + 8 * 4)]).toEqual([0x10, 0x01, 0x00, 0x00]);
+      // Macros go out before the key map, so no key points at a missing slot.
+      expect(sim.packets.findIndex((p) => p[0] === 0x19)).toBeLessThan(
+        sim.packets.findIndex((p) => p[0] === 0x18),
+      );
+      expect(await driver.getMacros()).toEqual([copyPaste]);
+    });
+
+    it('refuses macros it cannot store, before sending anything', async () => {
+      const { driver, sim } = await connect();
+      const long = {
+        index: 1,
+        events: Array.from({ length: 63 }, (_, i) => ({
+          type: 'key' as const,
+          usage: 0x04,
+          down: i % 2 === 0,
+        })),
+      };
+      await driver.setKeymap({
+        layer: 'base',
+        slots: { 7: { kind: 'macro', index: 1, mode: 'once', repeat: 1 } },
+        provenance: 'mirror',
+      });
+      sim.packets.length = 0;
+      await expect(driver.setMacros([long])).rejects.toThrow(/62/);
+      await expect(
+        driver.setKeymap({
+          layer: 'base',
+          slots: {
+            7: { kind: 'macro', index: 0, mode: 'once', repeat: 1 },
+            8: { kind: 'macro', index: 0, mode: 'toggle', repeat: 1 },
+          },
+          provenance: 'mirror',
+        }),
+      ).rejects.toThrow(/different play modes/);
+      await expect(driver.setMacros([{ index: 12, events: [] }])).rejects.toThrow(/slots/);
+      expect(sim.packets).toEqual([]);
+    });
+
+    it('stops when the keyboard does not confirm a macro packet', async () => {
+      const { driver, sim } = await connect();
+      sim.acksMacros = false;
+      await driver
+        .setKeymap({
+          layer: 'base',
+          slots: { 7: { kind: 'macro', index: 0, mode: 'once', repeat: 1 } },
+          provenance: 'mirror',
+        })
+        .catch(() => undefined);
+      sim.packets.length = 0;
+      await expect(driver.setMacros([copyPaste])).rejects.toThrow(/did not confirm/);
+      // Four attempts of the first packet, then nothing more.
+      expect(sim.packets.map((p) => p[0])).toEqual([0x19, 0x19, 0x19, 0x19]);
+    });
+  });
+
+  it('records the driver model code from the model query, and nothing that is not on its list', async () => {
+    const { driver, sim } = await connect();
+    if (!isDiagnosticsDriver(driver)) throw new Error('no checks');
+    const r = await driver.runProtocolCheck('model-query');
+    expect([...sim.packets.at(-1)!.subarray(0, 2)]).toEqual([0x15, 0x00]);
+    expect(r).toMatchObject({ status: 'answered', facts: { driverModel: 'K223RGB' } });
+    expect(r.detail).toMatch(/K223RGB/);
+    sim.modelCode = 'SN20260123456';
+    const other = await driver.runProtocolCheck('model-query');
+    expect(other.facts).toBeUndefined();
+    expect(JSON.stringify(other)).not.toContain('SN2026');
+    expect(winbond.DRIVER_MODEL_CODES.size).toBeGreaterThan(150);
   });
 });

@@ -31,6 +31,12 @@ behind the experimental opt-in. Sources and what was taken from each: docs/SOURC
   - the default layer's key map: keys, keys with up to two modifiers, nine media keys, disabled
     keys and restore defaults;
   - sleep time.
+  - macros stored on the keyboard (10 slots; play once, several times, toggle or while held),
+    decoded from the official driver's macro uploader;
+  - two read-only protocol checks (lighting query, model query) with a "Run all checks" button
+    and a link to the tester guide;
+  - lighting matched byte for byte against 45 USB captures from an MK870 owner (issue #13), with
+    the Music response effect added;
   - lighting read back from the keyboard when it answers the official lighting query, and checked
     after every change.
 

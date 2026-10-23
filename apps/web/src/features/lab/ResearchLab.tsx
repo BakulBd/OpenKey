@@ -38,6 +38,7 @@ import { startReportMonitor } from '../../lib/monitor.js';
 import type { MonitoredReport } from '../../lib/monitor.js';
 import { deleteRecord, listRecords, newId, saveRecord } from '../../state/db.js';
 import { href } from '../../app/router.js';
+import { REPO_URL } from '../../config.js';
 import { VerdictCard } from '../shared/VerdictCard.js';
 
 type Tab = 'evidence' | 'inspector' | 'trace' | 'monitor' | 'offline' | 'export';
@@ -476,10 +477,11 @@ function ProtocolChecks({ onRun }: { onRun: () => void }) {
   useEffect(() => setResults(protocolChecksFor(key)), [key]);
   if (!device || !isDiagnosticsDriver(device.driver)) return null;
   const driver = device.driver;
-  const run = async (id: string) => {
-    setBusy(id);
+  const checks = driver.listProtocolChecks();
+  const run = async (ids: string[]) => {
+    setBusy(ids.length > 1 ? 'all' : ids[0]!);
     try {
-      recordProtocolCheck(key, await driver.runProtocolCheck(id));
+      for (const id of ids) recordProtocolCheck(key, await driver.runProtocolCheck(id));
       setResults(protocolChecksFor(key));
       onRun();
     } finally {
@@ -487,10 +489,30 @@ function ProtocolChecks({ onRun }: { onRun: () => void }) {
     }
   };
   return (
-    <Card title={t('lab.checks.title')}>
+    <Card
+      title={t('lab.checks.title')}
+      actions={
+        <button
+          type="button"
+          className="btn primary"
+          disabled={busy !== null}
+          onClick={() => void run(checks.map((c) => c.id))}
+        >
+          {busy === 'all' ? t('common.loading') : t('lab.checks.runAll')}
+        </button>
+      }
+    >
       <p className="small">{t('lab.checks.lead')}</p>
+      {driver.testGuide && (
+        <p className="callout info small">
+          {t('lab.checks.guideLead')}{' '}
+          <a href={`${REPO_URL}/blob/main/${driver.testGuide}`} target="_blank" rel="noreferrer">
+            {t('lab.checks.guide')}
+          </a>
+        </p>
+      )}
       <ul className="evidence-list">
-        {driver.listProtocolChecks().map((c) => {
+        {checks.map((c) => {
           const r = results.find((x) => x.id === c.id);
           return (
             <li key={c.id} className="row wrap between">
@@ -508,6 +530,9 @@ function ProtocolChecks({ onRun }: { onRun: () => void }) {
                         first: r.reply.firstByte,
                         nz: r.reply.nonZeroBytes,
                       })}`}
+                    {Object.entries(r.facts ?? {}).map(([k, v]) => (
+                      <strong key={k}> · {t('lab.checks.fact', { name: k, value: v })}</strong>
+                    ))}
                   </span>
                 )}
               </span>
@@ -515,7 +540,7 @@ function ProtocolChecks({ onRun }: { onRun: () => void }) {
                 type="button"
                 className="btn ghost"
                 disabled={busy !== null}
-                onClick={() => void run(c.id)}
+                onClick={() => void run([c.id])}
               >
                 {busy === c.id ? t('common.loading') : t('lab.checks.run')}
               </button>

@@ -1,0 +1,386 @@
+{
+  "device": {
+    "vendorId": "0x0416",
+    "productId": "0xC345",
+    "productName": "Gaming Keyboard",
+    "model": "FL Esports MK870",
+    "release": "0x0100"
+  },
+  "transport": "usb",
+  "interface": "interface 2, vendor collection FF1B:0091; interrupt OUT endpoint 4 (64 bytes), IN endpoint 3",
+  "reportId": 1,
+  "source": "USB captures (usbmon, Linux) by the keyboard owner, attached to github.com/BakulBd/OpenKey/issues/13 (MK870.zip); written by Mqlvin/keyboard-colour, which the owner reports working on the keyboard. Only the lighting writes are kept here: no descriptors beyond the identity, no timing, no serial number.",
+  "confidence": "OBSERVED",
+  "notes": "Every packet completed on the keyboard (URB status 0). The keyboard sent nothing back: the capturing program does not read the IN endpoint. Fields not named by a capture keep the program’s values at the time.",
+  "captures": [
+    {
+      "capture": "Animation Speed/0_lowest.pcapng",
+      "set": {
+        "speed": 0
+      },
+      "packet": "01 07 00 00 00 0e 03 04 00 ff ff ff ff ff ff 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Animation Speed/100_highest.pcapng",
+      "set": {
+        "speed": 4
+      },
+      "packet": "01 07 00 00 00 0e 03 04 04 ff ff ff ff ff ff 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Animation Speed/25.pcapng",
+      "set": {
+        "speed": 1
+      },
+      "packet": "01 07 00 00 00 0e 03 04 01 ff ff ff ff ff ff 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Animation Speed/50.pcapng",
+      "set": {
+        "speed": 2
+      },
+      "packet": "01 07 00 00 00 0e 03 04 02 ff ff ff ff ff ff 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Animation Speed/75.pcapng",
+      "set": {
+        "speed": 3
+      },
+      "packet": "01 07 00 00 00 0e 03 04 03 ff ff ff ff ff ff 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Backlit Brightness/0.pcapng",
+      "set": {
+        "brightness": 0
+      },
+      "packet": "01 07 00 00 00 0e 00 00 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Backlit Brightness/100.pcapng",
+      "set": {
+        "brightness": 4
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Backlit Brightness/25.pcapng",
+      "set": {
+        "brightness": 1
+      },
+      "packet": "01 07 00 00 00 0e 00 01 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Backlit Brightness/50.pcapng",
+      "set": {
+        "brightness": 2
+      },
+      "packet": "01 07 00 00 00 0e 00 02 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Backlit Brightness/75.pcapng",
+      "set": {
+        "brightness": 3
+      },
+      "packet": "01 07 00 00 00 0e 00 03 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/Aurora/inwards.pcapng",
+      "set": {
+        "effect": 7,
+        "direction": 5
+      },
+      "packet": "01 07 00 00 00 0e 07 04 00 ff ff ff ff ff ff 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/Aurora/outwards.pcapng",
+      "set": {
+        "effect": 7,
+        "direction": 4
+      },
+      "packet": "01 07 00 00 00 0e 07 04 00 ff ff ff ff ff ff 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/Snake/anticlockwise.pcapng",
+      "set": {
+        "effect": 15,
+        "direction": 7
+      },
+      "packet": "01 07 00 00 00 0e 0f 04 00 ff ff ff ff ff ff 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/Snake/clockwise.pcapng",
+      "set": {
+        "effect": 15,
+        "direction": 6
+      },
+      "packet": "01 07 00 00 00 0e 0f 04 00 ff ff ff ff ff ff 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/Typing Response/down.pcapng",
+      "set": {
+        "effect": 12,
+        "direction": 3
+      },
+      "packet": "01 07 00 00 00 0e 0c 04 00 ff ff ff ff ff ff 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/Typing Response/up.pcapng",
+      "set": {
+        "effect": 12,
+        "direction": 2
+      },
+      "packet": "01 07 00 00 00 0e 0c 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/auto-ripple.pcapng",
+      "set": {
+        "effect": 14
+      },
+      "packet": "01 07 00 00 00 0e 0e 04 00 ff ff ff ff ff ff 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/breathe.pcapng",
+      "set": {
+        "effect": 1
+      },
+      "packet": "01 07 00 00 00 0e 01 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/cross.pcapng",
+      "set": {
+        "effect": 11
+      },
+      "packet": "01 07 00 00 00 0e 0b 04 00 ff ff ff ff ff ff 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/fireworks.pcapng",
+      "set": {
+        "effect": 16
+      },
+      "packet": "01 07 00 00 00 0e 10 04 00 ff ff ff ff ff ff 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/musical-response.pcapng",
+      "set": {
+        "effect": 100
+      },
+      "packet": "01 07 00 00 00 0e 64 04 00 ff ff ff ff ff ff 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/neon.pcapng",
+      "set": {
+        "effect": 3
+      },
+      "packet": "01 07 00 00 00 0e 03 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/reactive.pcapng",
+      "set": {
+        "effect": 6
+      },
+      "packet": "01 07 00 00 00 0e 06 04 00 ff ff ff ff ff ff 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/ripple.pcapng",
+      "set": {
+        "effect": 8
+      },
+      "packet": "01 07 00 00 00 0e 08 04 00 ff ff ff ff ff ff 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/spiral/anticlockwise.pcapng",
+      "set": {
+        "effect": 4,
+        "direction": 7
+      },
+      "packet": "01 07 00 00 00 0e 04 04 00 ff ff ff ff ff ff 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/spiral/clockwise.pcapng",
+      "set": {
+        "effect": 4,
+        "direction": 6
+      },
+      "packet": "01 07 00 00 00 0e 04 04 00 ff ff ff ff ff ff 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/stars.pcapng",
+      "set": {
+        "effect": 9
+      },
+      "packet": "01 07 00 00 00 0e 09 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/static.pcapng",
+      "set": {
+        "effect": 0
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/wave/down.pcapng",
+      "set": {
+        "effect": 2,
+        "direction": 3
+      },
+      "packet": "01 07 00 00 00 0e 02 04 00 ff ff ff ff ff ff 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/wave/inwards.pcapng",
+      "set": {
+        "effect": 2,
+        "direction": 5
+      },
+      "packet": "01 07 00 00 00 0e 02 04 00 ff ff ff ff ff ff 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/wave/left.pcapng",
+      "set": {
+        "effect": 2,
+        "direction": 1
+      },
+      "packet": "01 07 00 00 00 0e 02 04 00 ff ff ff ff ff ff 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/wave/outwards.pcapng",
+      "set": {
+        "effect": 2,
+        "direction": 4
+      },
+      "packet": "01 07 00 00 00 0e 02 04 00 ff ff ff ff ff ff 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/wave/right.pcapng",
+      "set": {
+        "effect": 2,
+        "direction": 0
+      },
+      "packet": "01 07 00 00 00 0e 02 04 00 ff ff ff ff ff ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Lightning Mode/wave/up.pcapng",
+      "set": {
+        "effect": 2,
+        "direction": 2
+      },
+      "packet": "01 07 00 00 00 0e 02 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Primary Color/0-0-0_black.pcapng",
+      "set": {
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 00 00 00 ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Primary Color/0-0-255_blue.pcapng",
+      "set": {
+        "color": [
+          0,
+          0,
+          255
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 00 00 ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Primary Color/0-255-0_green.pcapng",
+      "set": {
+        "color": [
+          0,
+          255,
+          0
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 00 ff 00 ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Primary Color/255-0-0_red.pcapng",
+      "set": {
+        "color": [
+          255,
+          0,
+          0
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff 00 00 ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Primary Color/255-255-255_white.pcapng",
+      "set": {
+        "color": [
+          255,
+          255,
+          255
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Secondary Color/0-0-0_black.pcapng",
+      "set": {
+        "color2": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Secondary Color/0-0-255_blue.pcapng",
+      "set": {
+        "color2": [
+          0,
+          0,
+          255
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff 00 00 ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Secondary Color/0-255-0_green.pcapng",
+      "set": {
+        "color2": [
+          0,
+          255,
+          0
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff 00 ff 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Secondary Color/255-0-0_red.pcapng",
+      "set": {
+        "color2": [
+          255,
+          0,
+          0
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff ff 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "Secondary Color/255-255-255_white.pcapng",
+      "set": {
+        "color2": [
+          255,
+          255,
+          255
+        ]
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff ff ff ff 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "capture": "rainbow.pcapng",
+      "set": {
+        "colorful": 1
+      },
+      "packet": "01 07 00 00 00 0e 00 04 00 ff ff ff ff ff ff 03 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ]
+}

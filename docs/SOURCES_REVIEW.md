@@ -239,6 +239,22 @@ successfully.
   package now has a descriptor fingerprint, a vendor-channel map, family hints, per-adapter match
   reasons, evidence per feature and protocol-check answer shapes. It still carries no payloads.
 
+**USB captures from an MK870 owner ([issue #13](https://github.com/BakulBd/OpenKey/issues/13)).**
+The owner captured 45 lighting changes on Linux (usbmon), one setting per file: every effect,
+direction, primary and secondary colour, brightness and speed step, and rainbow. Each holds one
+64-byte interrupt OUT on endpoint 4 (report 1), which the keyboard accepted. The keyboard's
+descriptor shows the vendor interface with IN endpoint 3 and OUT endpoint 4 (64 bytes) and
+release 1.00.
+
+- Every packet is byte for byte what OpenKey's encoder builds; the replay test covers all 45
+  (`fixtures/rgb/mk870-lighting-captures-issue13.json`).
+- The file names settle the direction names (right 0 … anticlockwise 7) and the speed scale
+  (0 slowest, 4 fastest).
+- Music response (`0x64`) is accepted, so OpenKey now offers it.
+- Lighting is now OBSERVED for `0416:C345`. It stays behind the experimental switch until
+  OpenKey's own write is confirmed on an MK870.
+- The captures hold no answers: the capturing program never reads the IN endpoint.
+
 **Follow-up the same month:**
 
 - **Lighting read-back:** the driver's parser for the `07` answer (0x67F480) reads mode,
@@ -248,9 +264,21 @@ successfully.
 - **Key-map acknowledgement:** the keyboard answers each `18` packet with an echo, which the
   driver handles. OpenKey waits up to 150 ms for it between packets to pace the writes, but does
   not count it as a read-back.
-- **Macros:** the driver's onboard macro list (`19 MACRO 00 K LEN`, 5 packets × 10 slots, sent
-  with retries) always goes out empty. Macro keys are played by the app itself through key reports
-  (`04` six-key, `05` full-key, "Write Key"). There is nothing for OpenKey to store on the keyboard.
+- **Macros (corrected):** a further read of the driver found its real macro uploader (0x76DB70,
+  slot `onMacroListHaveChangedSendToDevice`). Macros **are** stored on the keyboard:
+  - Each bound macro gets the next slot during the key-map write.
+  - Its 256-byte record goes out as `19 SLOT 00 K LEN` (58 × 4 + 24 bytes), each packet
+    acknowledged and retried up to 4 times.
+  - The record is an 8-byte header (`00 MODE 00 4×EVENTS 00 REPEAT 00 00`; modes: once, multiple,
+    toggle, while held), then events of 4 bytes `CODE FLAGS DELAY_HI DELAY_LO`. Flags are `0x10`
+    for press and `0x01` for a mouse button (1 left, 2 right, 4 middle).
+  - The key that plays it is written `10 01 SLOT 00`. The `01` is the per-key value the driver's
+    profiles give every key; it is the one byte not confirmed for repeat modes.
+  - Unused slots are cleared: those were the "empty" `19` packets seen first.
+- **Model code:** the driver picks each keyboard's key, Fn and onboard tables by a model code (159
+  codes, from `KeyInfo_<code>.config`). It asks the keyboard on connection with `15` ("Device SN").
+  OpenKey's "Model query" check records the code only when it is one of the driver's codes. With an
+  MK870's code, its Fn-layer defaults and profile support can be taken from the driver.
 - **FN1/FN layers:** the key-map packet takes a layer, but the driver has no key-map read, and the
   layers' factory contents are not in its files. Writing them would erase the Fn functions, so
   OpenKey does not.

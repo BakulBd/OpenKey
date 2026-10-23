@@ -969,14 +969,19 @@ try {
     await page.goto(base + '#/lab');
     await page.getByRole('tab', { name: 'Report', exact: true }).click();
     await page.getByRole('heading', { name: 'Protocol checks' }).waitFor();
-    await page.getByRole('button', { name: 'Run check' }).click();
-    await page.getByText('Answered: the keyboard repeated the command.').waitFor();
+    await page.getByRole('button', { name: 'Run all checks' }).click();
+    await page.getByText('driverModel: K223RGB').waitFor();
+    await page.getByText('Answered: the keyboard repeated the command.').first().waitFor();
     await page.getByText('Preview the package').click();
     const pkg = await page
       .locator('details', { hasText: 'Preview the package' })
       .locator('pre')
       .textContent();
-    if (!pkg?.includes('"protocolChecks"') || !pkg.includes('"winbond-oem"'))
+    if (
+      !pkg?.includes('"protocolChecks"') ||
+      !pkg.includes('"winbond-oem"') ||
+      !pkg.includes('"driverModel": "K223RGB"')
+    )
       failures.push(
         `MK870 package lacks the protocol check or the family hint: ${(pkg ?? '').slice(0, 300)}`,
       );

@@ -1190,6 +1190,11 @@ export const en = {
   'lab.checks.lead':
     'Read-only requests the keyboard’s own software sends. Each runs only when you click it and changes nothing on the keyboard; the answer shows whether the keyboard speaks the protocol OpenKey uses for it.',
   'lab.checks.run': 'Run check',
+  'lab.checks.runAll': 'Run all checks',
+  'lab.checks.guideLead':
+    'Helping test this keyboard? Run all checks, export the package below, and send it with the checklist:',
+  'lab.checks.guide': 'tester guide',
+  'lab.checks.fact': '{name}: {value}',
   'lab.checks.reply': 'report {id}, {len} bytes, first byte {first}, {nz} non-zero',
   'lab.checks.status.answered': 'Answered: the keyboard repeated the command.',
   'lab.checks.status.unexpected': 'Answered, but without repeating the command.',

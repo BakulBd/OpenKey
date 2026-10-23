@@ -1483,7 +1483,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'asia',
     level: 'adapter',
     adapters: ['winbond-lighting'],
-    note: 'Wired board on a Nuvoton controller (0416:C345), configured with the official FL Esports driver’s own commands: 14 lighting effects with two colours, rainbow, brightness, speed and eight directions; per-key colours; the default layer’s key map (any key, keys with up to two modifiers, nine media keys, disabled, restore defaults); sleep time. The lighting is read back when the keyboard answers the official lighting query; the other settings cannot be read, so OpenKey shows what it last wrote. The FN layers are not written (their factory contents are unknown), and macros are played by the vendor app rather than stored on the keyboard. Device Lab → Report runs a read-only protocol check for support requests.',
+    note: 'Wired board on a Nuvoton controller (0416:C345), configured with the official FL Esports driver’s own commands: 15 lighting effects (all checked against an owner’s USB captures) with two colours, rainbow, brightness, speed and eight directions; per-key colours; the default layer’s key map (any key, keys with up to two modifiers, nine media keys, macros, disabled, restore defaults); 10 macros stored on the keyboard; sleep time. The lighting is read back when the keyboard answers the official lighting query; the other settings cannot be read, so OpenKey shows what it last wrote. The FN layers wait for the keyboard’s model code (Device Lab → Report → Run all checks). Device Lab → Report runs a read-only protocol check for support requests.',
     revisions: [
       {
         name: 'wired',

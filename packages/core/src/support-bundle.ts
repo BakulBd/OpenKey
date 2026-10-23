@@ -260,10 +260,20 @@ export function buildSupportBundle(input: SupportBundleInput): SupportBundle {
         hints: input.hints ?? [],
         candidates: (input.candidates ?? []).map(sanitizeCandidate),
         features,
-        protocolChecks: (input.protocolChecks ?? []).map((r) => ({
-          ...r,
-          detail: r.detail.slice(0, 200),
-        })),
+        protocolChecks: (input.protocolChecks ?? []).map((r) => {
+          // Facts are short identifiers from an adapter's allowlist; anything else is dropped.
+          const facts = Object.fromEntries(
+            Object.entries(r.facts ?? {}).filter(
+              ([k, v]) => /^[A-Za-z0-9]{1,32}$/.test(k) && /^[A-Za-z0-9_]{1,32}$/.test(v),
+            ),
+          );
+          const { facts: _raw, ...rest } = r;
+          return {
+            ...rest,
+            detail: r.detail.slice(0, 200),
+            ...(Object.keys(facts).length ? { facts } : {}),
+          };
+        }),
       }
     : undefined;
   return {
@@ -311,7 +321,13 @@ function analysisLines(a: SupportAnalysis | undefined): string[] {
   }
   for (const r of a.protocolChecks)
     lines.push(
-      `- Protocol check ${r.title} (\`${r.command}\`): ${r.status}${r.reply ? `, report ${r.reply.reportId}, ${r.reply.length} B, first byte ${r.reply.firstByte}${r.reply.echo ? ' (echo)' : ''}, ${r.reply.nonZeroBytes} non-zero` : ''}`,
+      `- Protocol check ${r.title} (\`${r.command}\`): ${r.status}${r.reply ? `, report ${r.reply.reportId}, ${r.reply.length} B, first byte ${r.reply.firstByte}${r.reply.echo ? ' (echo)' : ''}, ${r.reply.nonZeroBytes} non-zero` : ''}${
+        r.facts && Object.keys(r.facts).length
+          ? `; ${Object.entries(r.facts)
+              .map(([k, v]) => `${k} \`${v}\``)
+              .join(', ')}`
+          : ''
+      }`,
     );
   lines.push(``);
   return lines;

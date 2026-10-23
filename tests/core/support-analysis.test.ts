@@ -195,4 +195,26 @@ describe('diagnostic analysis', () => {
     });
     expect(supportBundleToIssue(b)).toMatch(/Not matched `evision`: no FF1C collection/);
   });
+
+  it('keeps only short identifiers as check facts', () => {
+    const b = buildSupportBundle({
+      environment: env,
+      device: MK870,
+      connectionState: 'READY',
+      protocolChecks: [
+        {
+          id: 'model-query',
+          title: 'Model query',
+          command: '15',
+          source: 'driver',
+          status: 'answered',
+          facts: { driverModel: 'K223RGB', note: 'free text with spaces' },
+          detail: 'ok',
+          at: '2026-10-24T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(b.analysis?.protocolChecks[0]!.facts).toEqual({ driverModel: 'K223RGB' });
+    expect(supportBundleToIssue(b)).toMatch(/driverModel `K223RGB`/);
+  });
 });

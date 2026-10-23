@@ -39,6 +39,11 @@ export interface ProtocolCheckResult {
   source: string;
   status: ProtocolCheckStatus;
   reply?: ProtocolReplyShape;
+  /**
+   * Facts read from the answer, only from an adapter's allowlist (e.g. a model code the vendor's
+   * own driver lists); never free text, serial numbers or payload bytes.
+   */
+  facts?: Record<string, string>;
   detail: string;
   at: string;
 }
@@ -46,6 +51,8 @@ export interface ProtocolCheckResult {
 /** A driver that offers protocol checks (see `ProtocolCheckInfo`). */
 export interface DiagnosticsDriver {
   listProtocolChecks(): readonly ProtocolCheckInfo[];
+  /** Repository path of a guide for owners testing this keyboard (e.g. `docs/….md`). */
+  readonly testGuide?: string;
   runProtocolCheck(id: string): Promise<ProtocolCheckResult>;
 }
 
