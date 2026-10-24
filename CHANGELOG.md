@@ -26,8 +26,8 @@ behind the experimental opt-in. Sources and what was taken from each: docs/SOURC
   Where no command gives the lighting back, OpenKey says to unplug instead of inventing one.
 - **FL Esports MK870** (and the Pulsar PCMK TKL), from the official FL Esports driver, keyboard-colour
   (MIT) and the PCMK notes. **Verified by an MK870 owner** (issue #13): every lighting effect,
-  per-key colours, the base layer's key map and all 10 macro slots, so these no longer need the
-  experimental switch on the MK870. The FN1 layer and sleep time stay experimental until tested.
+  per-key colours, the base and FN1 key maps, all 10 macro slots and restore defaults, so these no
+  longer need the experimental switch on the MK870. Sleep time stays experimental until tested.
   - **Fixed:** the lights went dark when the app connected. OpenKey asked the keyboard for its
     lighting (`07 01`) and model (`15`) on connection; it now sends nothing until you change
     something. The lighting query is gone, and the model query runs only from Device Lab;

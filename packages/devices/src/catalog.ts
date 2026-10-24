@@ -650,7 +650,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     status: 'verified',
     hardware: { rgb: true, perKeyRgb: true },
     evidence:
-      'Owner-verified from OpenKey (issue #13): lighting (every effect), per-key colours, base-layer key map and all 10 macro slots; the FN1 layer and sleep time are still experimental. Commands from the official FL Esports driver V1.06.16 (0416:C345, Nuvoton M252); lighting matches 45 captures of the official app; descriptor FF1B:0091, report 1, 63 B',
+      'Owner-verified from OpenKey (issue #13): lighting (every effect), per-key colours, base and FN1 key maps, all 10 macro slots and restore defaults; sleep time is still experimental. Commands from the official FL Esports driver V1.06.16 (0416:C345, Nuvoton M252); lighting matches 45 captures of the official app; descriptor FF1B:0091, report 1, 63 B',
   },
   {
     brand: 'Pulsar',

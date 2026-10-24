@@ -3,23 +3,25 @@
 OpenKey configures the MK870 with the official FL Esports driver's own commands (V1.06.16). The
 lighting packets match, byte for byte, 45 USB captures an MK870 owner made on their keyboard
 ([issue #13](https://github.com/BakulBd/OpenKey/issues/13)), and the same owner tested OpenKey on
-it: **lighting, per-key colours, the base key map and all 10 macros are verified** and work without
-the experimental switch. The **FN1 layer** and **sleep time** still need a test: that is what the
-checklist below is for.
+it: **lighting, per-key colours, the base and FN1 key maps, all 10 macros and restore defaults are
+verified** and work without the experimental switch. Only the **sleep time** still needs a test, and
+the fix for the lights going dark on connection needs a confirmation: that is what the checklist
+below is for.
 
 The Pulsar PCMK TKL (`0416:B23C`) uses the same protocol and the same adapter.
 
 ## What works
 
-| Feature         | What you can do                                                                                                                     | Status       |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| Lighting        | 15 effects, colour, second colour, rainbow, brightness 0–4, speed 0–4, 8 directions                                                 | Verified     |
-| Per-key colours | Paint keys and apply                                                                                                                | Verified     |
-| Key map, base   | Any key, keys with up to two modifiers, 9 media keys, macros, disabled, restore defaults                                            | Verified     |
-| Macros          | 10 macros of up to 62 presses/releases with delays; play once, several times, on/off (toggle) or while held; stored on the keyboard | Verified     |
-| Key map, FN1    | The same, on the second layout (hold Fn+Tab 3 s to switch)                                                                          | Experimental |
-| Sleep time      | 5 min to 1 h: after this long without a key press the lights turn off and the keyboard sleeps; any key wakes it                     | Experimental |
-| Model check     | One read-only question to the keyboard (Device Lab), only when you click it                                                         | Diagnostic   |
+| Feature          | What you can do                                                                                                                     | Status       |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Lighting         | 15 effects, colour, second colour, rainbow, brightness 0–4, speed 0–4, 8 directions                                                 | Verified     |
+| Per-key colours  | Paint keys and apply                                                                                                                | Verified     |
+| Key map, base    | Any key, keys with up to two modifiers, 9 media keys, macros, disabled                                                              | Verified     |
+| Key map, FN1     | The same, on the second layout (see below how to use it)                                                                            | Verified     |
+| Restore defaults | Writes the official default table back to a layer                                                                                   | Verified     |
+| Macros           | 10 macros of up to 62 presses/releases with delays; play once, several times, on/off (toggle) or while held; stored on the keyboard | Verified     |
+| Sleep time       | 5 min to 1 h: after this long without a key press the lights turn off and the keyboard sleeps; any key wakes it                     | Experimental |
+| Model check      | One read-only question to the keyboard (Device Lab), only when you click it                                                         | Diagnostic   |
 
 The keyboard cannot report its settings, so OpenKey shows what it last wrote. Changes made with the
 Fn shortcuts are not shown in the app.
@@ -27,10 +29,12 @@ Fn shortcuts are not shown in the app.
 **Nothing is sent when the app connects.** Earlier builds asked the keyboard for its lighting on
 connection, and the lights went dark until another effect was chosen. That query is gone.
 
-**Two layouts on the keyboard.** The MK870 stores a base layer and an FN1 layer; hold **Fn+Tab for
-3 seconds** to switch between them. OpenKey edits both (Keymap → _Base layer_ / _FN1 layer
-(Fn+Tab)_). The Fn shortcuts below are built into the keyboard and are not changed by either
-layer. Switching layouts is done on the keyboard; OpenKey does not switch them from the computer.
+**Two layouts on the keyboard.** The MK870 stores a base layer and an FN1 layer, and OpenKey edits
+both (Keymap → _Base layer_ / _FN1 layer (Fn+Tab)_). To use FN1: **hold Fn+Tab for 3 seconds,
+release both keys, then press the key on its own** (release Fn first; Fn+key still gives the built-in
+Fn shortcut). Do the same to go back to the base layer. The Fn shortcuts below are built into the
+keyboard and are not changed by either layer. Switching layouts is done on the keyboard; OpenKey
+does not switch them from the computer.
 
 **If anything goes wrong:** Keymap → Restore firmware defaults → _Restore layer defaults_ writes the
 official default table back to that layer, and **holding Fn+Esc for 3 seconds** restores the
@@ -46,7 +50,7 @@ keyboard's factory defaults.
    connect (it covers `0416:C345`).
 2. Open the app, click **Connect keyboard** and choose the MK870. It should show **FL Esports
    MK870**.
-3. Verified features apply after a confirmation. The FN1 layer and sleep time ask you to turn on
+3. Verified features apply after a confirmation. Only the sleep time asks you to turn on
    **experimental writes** first.
 
 **To undo:** Keymap → **Restore firmware defaults → Restore layer defaults** writes the official
@@ -62,18 +66,11 @@ effect, what happened instead).
 - [ ] Connect: the lighting stays as it was (it no longer goes dark), and Fn+↑ / Fn+↓ still change
       the brightness.
 
-### FN1 layer (most important)
+### Sleep (most important)
 
-- [ ] On the _FN1 layer (Fn+Tab)_ tab set F1 → Volume up and click **Review and send**. Hold Fn+Tab
-      for 3 s: F1 now turns the volume up. Hold Fn+Tab again: F1 is F1 again.
-- [ ] Set a key on FN1 to a macro: it plays only on the FN1 layout.
-- [ ] After writing FN1, the Fn shortcuts below still work.
-- [ ] On the FN1 tab, **Restore layer defaults** brings FN1 back to normal.
-
-### Sleep
-
-- [ ] Set 5 minutes and leave the keyboard alone: after about 5 minutes the lights turn off. A key
-      press wakes it.
+- [ ] Device settings → Sleep: set **5 minutes** and apply (turn on experimental writes when asked).
+      Leave the keyboard alone: after about 5 minutes the lights turn off. A key press wakes it.
+- [ ] Set **1 hour** and apply: the lights stay on after 5 minutes without typing.
 
 ### Model check
 
@@ -82,7 +79,7 @@ effect, what happened instead).
 
 ### Already verified (only if you want to re-check)
 
-- [ ] Lighting effects, per-key colours, base-layer keys and macros still work.
+- [ ] Lighting effects, per-key colours, base and FN1 keys, macros and restore defaults still work.
 
 ## Built-in Fn shortcuts (from the keyboard's manual)
 

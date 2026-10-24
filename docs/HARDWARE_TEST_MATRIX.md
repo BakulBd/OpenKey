@@ -75,9 +75,9 @@ Every other catalogue entry is community, research or unsupported — see the Co
 Every feature below is **EXPERIMENTAL**: implemented from the cited sources and tested against
 simulators only. Writes stay behind the experimental opt-in until an owner test produces a `-hw.json`
 fixture. Exception: on the **FL Esports MK870** an owner verified the lighting, per-key colours,
-base-layer key map and macros
+base and FN1 key maps, macros and restore defaults
 ([`fixtures/verification/mk870-owner-test-issue13.json`](../fixtures/verification/mk870-owner-test-issue13.json));
-its FN1 layer and sleep time are still experimental.
+its sleep time is still experimental.
 
 | Adapter                                       | Keyboards                                                             | Implemented                                                                                                              | Read-back                                            |
 | --------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |

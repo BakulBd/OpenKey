@@ -286,7 +286,14 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
   it('marks the MK870 features its owner tested as verified, and only on the MK870', async () => {
     const { driver } = await connect();
     const caps = driver.getCapabilities();
-    for (const f of ['rgb', 'perKeyRgb', 'keymap', 'macros'] as const) {
+    for (const f of [
+      'rgb',
+      'perKeyRgb',
+      'keymap',
+      'fnLayer',
+      'macros',
+      'factoryDefaults',
+    ] as const) {
       expect(caps[f].confidence).toBe(Evidence.VERIFIED);
       expect(caps[f].source).toMatch(/owner test, OpenKey issue #13/);
       expect(writeDecision(caps[f], { simulated: false, experimentalEnabled: false })).toEqual({
@@ -294,7 +301,7 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       });
     }
     // Not yet owner-tested: stays behind the experimental opt-in.
-    for (const f of ['fnLayer', 'sleep'] as const) {
+    for (const f of ['sleep'] as const) {
       expect(caps[f].confidence).toBe(Evidence.INFERRED);
       expect(writeDecision(caps[f], { simulated: false, experimentalEnabled: false }).kind).toBe(
         'experimental',
@@ -324,7 +331,14 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       verified: { feature: string }[];
     };
     expect(file.confidence).toBe('VERIFIED');
-    expect(file.verified.map((x) => x.feature)).toEqual(['rgb', 'perKeyRgb', 'keymap', 'macros']);
+    expect(file.verified.map((x) => x.feature)).toEqual([
+      'rgb',
+      'perKeyRgb',
+      'keymap',
+      'fnLayer',
+      'macros',
+      'factoryDefaults',
+    ]);
   });
 
   it('offers the Pulsar PCMK only the effects both sources agree on', async () => {

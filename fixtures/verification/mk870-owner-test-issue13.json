@@ -12,37 +12,57 @@
   "verified": [
     {
       "feature": "rgb",
-      "commands": ["07 00 (lighting)"],
+      "commands": [
+        "07 00 (lighting)"
+      ],
       "result": "all lighting effects work as expected"
     },
     {
       "feature": "perKeyRgb",
-      "commands": ["09 (per-key colours)", "07 00 effect 0x0A"],
+      "commands": [
+        "09 (per-key colours)",
+        "07 00 effect 0x0A"
+      ],
       "result": "per-key colours work"
     },
     {
       "feature": "keymap",
-      "commands": ["18, layer 0 (base key map)"],
+      "commands": [
+        "18, layer 0 (base key map)"
+      ],
       "result": "base-layer editing works as intended"
     },
     {
+      "feature": "fnLayer",
+      "commands": [
+        "18, layer 1 (FN1 key map)"
+      ],
+      "result": "FN1 assignments work: hold Fn+Tab 3 s, release both, then press the key on its own (Fn released first)"
+    },
+    {
       "feature": "macros",
-      "commands": ["19 (macro records)", "18 (macro keys)"],
+      "commands": [
+        "19 (macro records)",
+        "18 (macro keys)"
+      ],
       "result": "all 10 macro slots work"
+    },
+    {
+      "feature": "factoryDefaults",
+      "commands": [
+        "18 with the driver's default table"
+      ],
+      "result": "Restore Firmware Defaults works as intended"
     }
   ],
   "notTested": [
-    {
-      "feature": "fnLayer",
-      "reason": "the tested app version kept Review and send disabled on the Fn layer; FN1 writes are enabled since"
-    },
     {
       "feature": "sleep",
       "reason": "not tried"
     }
   ],
   "observations": [
-    "When the app connected, the lighting looked off or black (RGB 0,0,0) and Fn+Up brightness had no visible effect until another effect was chosen. That app version sent the official driver's lighting query (07 01) and model query (15) on connection; OpenKey no longer sends anything on connection.",
+    "When the app connected, the lighting looked off or black (RGB 0,0,0) and Fn+Up brightness had no visible effect until another effect was chosen. That app version sent the official driver's lighting query (07 01) and model query (15) on connection; OpenKey no longer sends anything on connection. A later test of this fix is pending.",
     "Built-in Fn shortcuts from the manual (lighting, Fn+Esc factory reset, Fn+Tab FN1 layer, Fn+Win lock, media Fn+F2 to F8, Fn+F12 key lock, speed and brightness) all work; Fn+F1, F9, F10 and F11 (player, email, home page, calculator) did not launch anything on COSMIC; Fn+~ (rollover mode) inconclusive."
   ]
 }

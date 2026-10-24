@@ -287,6 +287,9 @@ release 1.00.
   effect, per-key colours, base-layer editing and all 10 macro slots work, so these are VERIFIED
   for `0416:C345` (`fixtures/verification/mk870-owner-test-issue13.json`). The Fn layer could not be
   tested: that build still kept it blocked. Sleep was not tried.
+  - **Second test (same day):** FN1 writes work, and so does Restore Firmware Defaults, so both are
+    VERIFIED. To use FN1: hold Fn+Tab for 3 s, release both, then press the key on its own (Fn
+    released first). Sleep is still untested.
   - **Lights dark on connection:** right after the app connected, the lighting looked black, and
     Fn+Up did nothing visible until another effect was chosen. That build sent the lighting query
     (`07 01`, rest zero) and the model query (`15`) on connection. A static black lighting is what

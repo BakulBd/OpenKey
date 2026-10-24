@@ -74,8 +74,11 @@ export interface WinbondModel {
   /** Effect codes confirmed for this model; all of `MODES` when absent. */
   effects?: readonly number[];
   /** Features an owner confirmed on this model's hardware (see `fixtures/verification`). */
-  verified?: readonly ('rgb' | 'perKeyRgb' | 'keymap' | 'macros')[];
+  verified?: readonly VerifiedFeature[];
 }
+
+export type VerifiedFeature =
+  'rgb' | 'perKeyRgb' | 'keymap' | 'fnLayer' | 'macros' | 'factoryDefaults';
 
 /** Owner test of the MK870, OpenKey issue #13 (2026-10-24). */
 export const MK870_OWNER_TEST = 'fixtures/verification/mk870-owner-test-issue13.json';
@@ -85,7 +88,7 @@ export const MODELS: readonly WinbondModel[] = [
     vendorId: VENDOR_ID,
     productId: 0xc345,
     model: 'FL Esports MK870',
-    verified: ['rgb', 'perKeyRgb', 'keymap', 'macros'],
+    verified: ['rgb', 'perKeyRgb', 'keymap', 'fnLayer', 'macros', 'factoryDefaults'],
   },
   // Listed by the official FL Esports driver (NUC121); lighting and per-key tested by
   // DanielGibson, whose effect list agrees with the MK870's only on these codes.
@@ -703,9 +706,9 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
       confidence: Evidence.OBSERVED,
       source: 'USB identity and product string',
     });
-    const level = (f: 'rgb' | 'perKeyRgb' | 'keymap' | 'macros', otherwise: Evidence) =>
+    const level = (f: VerifiedFeature, otherwise: Evidence) =>
       verified.has(f) ? Evidence.VERIFIED : otherwise;
-    const cite = (f: 'rgb' | 'perKeyRgb' | 'keymap' | 'macros', source: string) =>
+    const cite = (f: VerifiedFeature, source: string) =>
       verified.has(f) ? `${owner}; ${source}` : source;
     c.rgb = configurable('mirror', true, level('rgb', Evidence.OBSERVED), {
       safety: SafetyLevel.SAFE_PERSISTENT,
@@ -740,12 +743,14 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     // FN1 is the keyboard's second full layout (owner's manual: hold Fn+Tab for 3 s to switch);
     // the Fn shortcuts are built into the firmware, not stored in this layer. The official driver
     // writes "Default & FN1" (packet 18, layers 0 and 1) on two-layer boards.
-    c.fnLayer = configurable('mirror', true, Evidence.INFERRED, {
+    c.fnLayer = configurable('mirror', true, level('fnLayer', Evidence.INFERRED), {
       safety: SafetyLevel.CAUTION,
-      source:
+      source: cite(
+        'fnLayer',
         'MK870 manual (Fn+Tab, hold 3 s: FN1 layer; Fn+Esc, hold 3 s: factory defaults) and the official FL Esports driver (key-map packet 18, layer 1)',
+      ),
       value: 'FN1 layer: keys, combinations, media keys, macros, disabled',
-      note: 'FN1 is the keyboard’s second layout: hold Fn+Tab for 3 seconds to switch to it and back. The Fn shortcuts (volume, lighting …) are built into the keyboard and stay as they are. Undo: Restore layer defaults, or hold Fn+Esc for 3 seconds for factory defaults.',
+      note: 'FN1 is the keyboard’s second layout. To use it, hold Fn+Tab for 3 seconds, release both, then press the key on its own (without Fn); do the same to go back. The Fn shortcuts (volume, lighting …) are built into the keyboard and stay as they are. Undo: Restore layer defaults, or hold Fn+Esc for 3 seconds for factory defaults.',
     });
     c.profiles = feature(FeatureStatus.FIRMWARE_LIMITED, {
       confidence: Evidence.INFERRED,
@@ -761,9 +766,12 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
       value: 'Lights off and keyboard asleep after 5 min to 1 h without typing',
       note: 'The official FL Esports app has the same setting. After this much time without a key press the keyboard turns its lights off and sleeps; any key press wakes it. The keyboard cannot report it; OpenKey shows what it last wrote.',
     });
-    c.factoryDefaults = configurable('none', true, Evidence.INFERRED, {
+    c.factoryDefaults = configurable('none', true, level('factoryDefaults', Evidence.INFERRED), {
       safety: SafetyLevel.CAUTION,
-      source: 'Official FL Esports driver V1.06.16: default QWERTY profile',
+      source: cite(
+        'factoryDefaults',
+        'Official FL Esports driver V1.06.16: default QWERTY profile',
+      ),
       note: 'Restores the key map by writing the driver’s default table; the lighting and sleep stay as they are.',
     });
     c.macros = configurable('mirror', true, level('macros', Evidence.INFERRED), {
@@ -1090,7 +1098,7 @@ export const winbondProtocol: ProtocolDefinition = {
     status: 'community',
     transports: { input: ['usb'], configuration: ['usb'] },
     verification:
-      'MK870 (0416:C345): lighting, per-key colours, base-layer key map and macros verified by an owner from OpenKey (issue #13); lighting packets match 45 captures of the official app byte for byte. FN1 layer and sleep decoded from the official FL Esports driver, not yet owner-tested.',
+      'MK870 (0416:C345): lighting, per-key colours, base and FN1 key maps, macros and restore defaults verified by an owner from OpenKey (issue #13); lighting packets match 45 captures of the official app byte for byte. Sleep time decoded from the official FL Esports driver, not yet owner-tested.',
     safety:
       'Nothing is sent while detecting: the keyboard is identified from its USB identity, product string and exact report layout. Nothing is sent on connection. Only the lighting, per-key, key-map, macro and sleep packets of the official driver are sent; features not yet owner-tested stay behind the experimental opt-in. The read-only model query runs only when the user starts a protocol check. The firmware-update (0B), serial-number (16) and LCD-firmware (22) commands are never sent.',
     provenance: [
@@ -1121,7 +1129,7 @@ export const winbondProtocol: ProtocolDefinition = {
     ],
     license: 'MIT',
     limitations: [
-      'Verified by an MK870 owner: lighting (every effect), per-key colours, base-layer key map and all 10 macro slots. The FN1 layer and sleep time are not yet owner-tested; on the Pulsar PCMK only lighting and per-key are tested (by DanielGibson).',
+      'Verified by an MK870 owner: lighting (every effect), per-key colours, base and FN1 key maps, all 10 macro slots and restore defaults. Sleep time is not yet owner-tested; on the Pulsar PCMK only lighting and per-key are tested (by DanielGibson).',
       'The lighting, key map, per-key colours, macros and sleep time cannot be read from the keyboard; OpenKey shows what it last wrote.',
       'Key map: the default and FN1 layers (keys, two-modifier combinations, nine media keys, macros); the Fn shortcuts are built into the firmware and are not changed. A third “FN” layer (three-layer models) is written only with its confirmed factory table.',
       'Onboard layouts are switched on the keyboard (Fn+Tab, hold 3 s); OpenKey does not switch them from the computer.',
@@ -1135,7 +1143,8 @@ export const winbondProtocol: ProtocolDefinition = {
         productId: 0xc345,
         productName: PRODUCT_NAME,
         transport: 'usb',
-        scope: 'lighting (every effect), per-key colours, base-layer key map, 10 macro slots',
+        scope:
+          'lighting (every effect), per-key colours, base and FN1 key maps, 10 macro slots, restore defaults',
         evidence: MK870_OWNER_TEST,
       },
     ],
