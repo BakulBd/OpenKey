@@ -379,7 +379,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'adapter',
     adapters: ['rk-classic'],
-    note: 'RK61, RK61 RGB, RK61 Plus, ISO and Bluetooth dual-mode models: lighting effect, colour, brightness, speed and sleep over USB (classic RK protocol). Key maps not yet.',
+    note: 'RK61, RK61 RGB, RK61 Plus, ISO and Bluetooth dual-mode models: lighting effect, colour, brightness, speed and sleep over USB, plus key maps and per-key colours (RGB models) on each model’s own layout from RK’s key table (classic RK protocol).',
     sources: [
       { repo: 'oddlyspaced/rkcu', license: null, covers: 'RK61 USB configuration' },
       {
@@ -395,7 +395,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'adapter',
     adapters: ['rk-classic'],
-    note: 'RK84 N, RK84 Pro N and RK84 ISO: lighting and sleep (classic RK protocol). The first RK84RGB (258A:0059) and the newest RK84 web-software models are not supported yet.',
+    note: 'RK84 N, RK84 Pro N and RK84 ISO: lighting, sleep, key maps and per-key colours (classic RK protocol). The first RK84RGB (258A:0059) and the newest RK84 web-software models are not supported yet.',
   },
   {
     brand: 'Royal Kludge',
@@ -403,7 +403,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'adapter',
     adapters: ['rk-classic', 'qmk-via'],
-    note: 'RK87, RK87 RGB, RK87T, RK87 (882) and the wired R87: lighting and sleep (classic RK protocol). R87 Pro: sources disagree (VIA, or a SinoWealth protocol at 258A:019F); connect it and OpenKey tries VIA.',
+    note: 'RK87, RK87 RGB, RK87T, RK87 (882) and the wired R87: lighting, sleep, key maps and per-key colours on RGB models (classic RK protocol). R87 Pro: sources disagree (VIA, or a SinoWealth protocol at 258A:019F); connect it and OpenKey tries VIA.',
     revisions: [
       {
         name: 'RK87, RGB, RK87T, 882',
@@ -1286,7 +1286,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'adapter',
     adapters: ['hub-aa55'],
-    note: 'AULA’s web-driver protocol (38A6:2908; receiver 0C45:FEF9): effect, colour, brightness, speed and per-key colours on all 87 keys, read from the keyboard and read back after each change. Through the receiver, OpenKey first checks that it relays an F87S.',
+    note: 'AULA’s web-driver protocol (38A6:2908; receiver 0C45:FEF9): effect, colour, brightness, speed and per-key colours on all 87 keys and the knob-ring and side-light colours, read from the keyboard and read back after each change. Through the receiver, OpenKey first checks that it relays an F87S.',
     revisions: [
       {
         name: 'wired',
@@ -1371,7 +1371,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'depends',
     adapters: ['by-tech'],
-    note: 'The wired M87 (258A:01A2) is a BY Tech board: OpenKey identifies it by its model code (asked first) and sets the screen clock, which the keyboard loses at every power-up. Lighting needs its layout taught once; picture upload and the receiver are not supported yet.',
+    note: 'The wired M87 (258A:01A2) is a BY Tech board: OpenKey identifies it by its model code (asked first) and sets the screen clock, which the keyboard loses at every power-up. Lighting needs its layout taught once. Its 2.4 GHz receiver (258A:0150) sets the screen clock too. Picture upload is not supported yet.',
     revisions: [
       {
         name: 'M87 wired',
@@ -1550,7 +1550,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'adapter',
     adapters: ['aj179-mouse'],
-    note: 'Polling rate (125–1000 Hz), six DPI levels, lift-off, Motion Sync, Angle Snap, sleep, wake-on-move, debounce (0–20 ms) and lighting, read from the mouse and read back after changes, over the cable or the receiver (they share one set of settings). Button mapping and macros are not written (no read-back).',
+    note: 'Polling rate (125–1000 Hz), six DPI levels, lift-off, Motion Sync, Angle Snap, sleep, wake-on-move, debounce (0–20 ms) and lighting, read from the mouse and read back after changes, over the cable or the receiver (they share one set of settings). Button mapping and macros are written too (experimental: the mouse cannot report them back; the left button stays a click).',
     revisions: [
       {
         name: 'receiver',

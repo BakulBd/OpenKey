@@ -13,8 +13,27 @@ export interface HubModel {
   /** LED slot per key name (`ansiLayout` names); only models with a confirmed map get per-key colours. */
   ledMap?: Record<string, number>;
   layout?: 'tkl';
+  /** Lighting zones with one colour each, read and written as 24-byte blocks. */
+  zones?: readonly HubZone[];
   source: string;
 }
+
+export interface HubZone {
+  id: string;
+  name: string;
+  read: number;
+  write: number;
+}
+
+/**
+ * The F87S 8K's knob ring and side light bars (Dylan-1107/aula-f87s-hid HID-PROTOCOL.md §5.5, MIT):
+ * one colour per zone; both side bars are one zone. Read, change, write back and read again was
+ * tested by the source through the receiver; the cable path uses the same commands.
+ */
+const F87S_ZONES: readonly HubZone[] = [
+  { id: 'ring', name: 'Knob ring', read: 0x1b, write: 0x2b },
+  { id: 'side', name: 'Side light bars', read: 0x1d, write: 0x2d },
+];
 
 /** AULA F87S 8K: row-major LED addresses, confirmed on the keyboard key by key (KEY-MAPPING.md). */
 const F87S_LEDS: Record<string, number> = {
@@ -121,6 +140,7 @@ export const HUB_MODELS: readonly HubModel[] = [
     body: { vendorId: 0x38a6, productId: 0x2908 },
     ledMap: F87S_LEDS,
     layout: 'tkl',
+    zones: F87S_ZONES,
     source: F87S_SRC,
   },
   {
@@ -132,6 +152,7 @@ export const HUB_MODELS: readonly HubModel[] = [
     body: { vendorId: 0x38a6, productId: 0x2908 },
     ledMap: F87S_LEDS,
     layout: 'tkl',
+    zones: F87S_ZONES,
     source: F87S_SRC,
   },
   ...[0x80bc, 0x80c1, 0x80c2].map((productId): HubModel => ({

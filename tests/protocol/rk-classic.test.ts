@@ -84,4 +84,97 @@ describe('classic RK protocol', () => {
         .kind,
     ).toBe('experimental');
   });
+
+  describe('key maps and per-key colours from RK’s key table', () => {
+    const sets = (dev: MockHidDevice) =>
+      dev.traffic.filter((t: MockTraffic) => t.op === 'feature-set').map((t) => t.data);
+
+    it('draws the RK61 from RK’s own key rectangles, with its table indices', async () => {
+      const { driver } = await connect(rk(0x004a, 'RK61RGB Wired'));
+      const layout = driver.getLayout();
+      expect(layout.keys).toHaveLength(61);
+      const esc = layout.keys.find((k) => k.label === 'Esc')!;
+      expect([esc.slot, esc.light, esc.usage, esc.x, esc.y]).toEqual([1, 1, 0x29, 0, 0]);
+      expect(layout.keys.find((k) => k.label === 'Fn')!.slot).toBe(-1);
+      expect(layout.width).toBeGreaterThan(14);
+      expect(layout.width).toBeLessThan(16);
+      const caps = driver.getCapabilities();
+      expect([caps.keymap.write, caps.perKeyRgb.write]).toEqual([true, true]);
+    });
+
+    it('writes the whole table: factory codes, the changed key, Fn unchanged', async () => {
+      const dev = rk(0x004a, 'RK61RGB Wired');
+      const { driver } = await connect(dev);
+      const caps = driver.getLayout().keys.find((k) => k.label === 'Caps')!;
+      await driver.setKeymap({
+        layer: 'base',
+        slots: {
+          [caps.slot]: { kind: 'keyboard', usage: 0x06, modifiers: 0x01 },
+          1: { kind: 'consumer', usage: 0xe9 },
+        },
+        provenance: 'mirror',
+      });
+      const r = sets(dev);
+      expect(r).toHaveLength(9);
+      expect([...r[0]!.subarray(0, 4)]).toEqual([9, 1, 0x01, 0xf8]);
+      expect([...r[8]!.subarray(0, 2)]).toEqual([9, 9]);
+      const table = new Uint8Array([
+        ...r[0]!.subarray(4),
+        ...r.slice(1).flatMap((x) => [...x.subarray(2)]),
+      ]);
+      const at = (i: number) => [...table.subarray(i * 4, i * 4 + 4)];
+      expect(at(caps.slot)).toEqual([0x00, 0x01, 0x06, 0x00]); // Ctrl+C
+      expect(at(1)).toEqual([0x01, 0x00, 0x00, 0xe9]); // Esc → volume up
+      const a = driver.getLayout().keys.find((k) => k.label === 'A')!;
+      expect(at(a.slot)).toEqual([0, 0, 0x04, 0]);
+      const fn = driver.getLayout().keys.find((k) => k.label === 'Fn')!;
+      expect(at(Number(fn.id.slice(1)))).toEqual([0, 0, 0xb0, 0]);
+      const shift = driver.getLayout().keys.find((k) => k.label === 'Shift')!;
+      expect(at(shift.slot)).toEqual([0, 0x02, 0, 0]);
+      expect((await driver.getKeymap()).slots[1]).toEqual({ kind: 'consumer', usage: 0xe9 });
+    });
+
+    it('refuses actions the table cannot hold, before sending anything', async () => {
+      const dev = rk(0x004a, 'RK61RGB Wired');
+      const { driver } = await connect(dev);
+      await expect(
+        driver.setKeymap({
+          layer: 'base',
+          slots: { 1: { kind: 'macro', index: 0, mode: 'once', repeat: 1 } },
+          provenance: 'mirror',
+        }),
+      ).rejects.toThrow(/cannot hold/);
+      expect(sets(dev)).toEqual([]);
+    });
+
+    it('selects the Custom effect, then sends the 7 colour reports', async () => {
+      const dev = rk(0x004a, 'RK61RGB Wired');
+      const { driver } = await connect(dev);
+      await driver.setPerKeyRgb({ 1: { r: 255, g: 0, b: 0 }, 7: { r: 0, g: 0, b: 255 } });
+      const r = sets(dev);
+      expect(r).toHaveLength(8);
+      expect(r[0]![4]).toBe(14);
+      expect([...r[1]!.subarray(0, 5)]).toEqual([7, 1, 0x03, 0x7e, 0x01]);
+      expect([...r[1]!.subarray(5 + 3, 5 + 6)]).toEqual([255, 0, 0]);
+      expect([...r[1]!.subarray(5 + 21, 5 + 24)]).toEqual([0, 0, 255]);
+      expect((await driver.getRgbConfig()).effect).toBe(14);
+      expect(driver.getRgbEffects().customEffect).toBe(14);
+    });
+
+    it('offers no per-key colours on a single-colour board, and no key map where a key type is unknown', async () => {
+      const single = (await connect(rk(0x0060, 'RK61'))).driver.getCapabilities();
+      expect([single.keymap.write, single.perKeyRgb.write]).toEqual([true, false]);
+      const odd = (await connect(rk(0x00d6, 'RK'))).driver.getCapabilities();
+      expect(odd.keymap.write).toBe(false);
+    });
+
+    it('has a key table for every model on RK’s list, each code known', async () => {
+      for (const [pid] of rkClassic.RK_CLASSIC_MODELS) {
+        const keys = await rkClassic.rkModelKeys(pid);
+        expect(keys, pid.toString(16)).not.toBeNull();
+        for (const [, , , , vk, , type] of keys!.keys)
+          if (type === undefined) expect(() => rkClassic.factoryCode(vk)).not.toThrow();
+      }
+    });
+  });
 });

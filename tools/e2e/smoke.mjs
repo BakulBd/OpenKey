@@ -987,21 +987,115 @@ try {
       );
     if (pkg?.includes('"bytes"')) failures.push('MK870 package contains answer bytes');
     if (shots) await page.screenshot({ path: `${shots}/mk870-protocol-check.png`, fullPage: true });
-    // Fn layer: edits are allowed, but Apply stays off and the notice says why.
+    // FN1 layer (Fn+Tab): a change is reviewed and written like on the base layer.
     await page.goto(base + '#/keymap');
-    await page.getByRole('tab', { name: /^Fn/ }).click();
+    await page.getByRole('tab', { name: /FN1 layer/ }).click();
     await page.locator('.kb-key').nth(30).dispatchEvent('pointerdown');
     await page.getByPlaceholder(/Search/).fill('volume');
     await page.locator('.key-result').first().click();
+    await page.getByRole('button', { name: /Review 1 change/ }).click();
     await page
-      .locator('.cb-blocked')
-      .getByText(/factory Fn table/)
+      .getByRole('dialog')
+      .getByRole('button', { name: /Write 1 change/ })
+      .click();
+    await page
+      .locator('.changebar')
+      .getByText(/Saved · the keyboard cannot report it back|Saved and verified/)
       .waitFor();
-    if (await page.getByRole('button', { name: /Review 1 change/ }).isEnabled())
-      failures.push('MK870 Fn-layer apply is enabled without a factory table');
-    if (shots) await page.screenshot({ path: `${shots}/mk870-fn-blocked.png` });
-    results.push('mk870 demo: Fn-layer edit kept, apply blocked with the safety notice');
+    if (shots) await page.screenshot({ path: `${shots}/mk870-fn1-written.png` });
+    results.push('mk870 demo: FN1 layer change reviewed and written');
     results.push('mk870 demo: protocol check answered; package has its shape and the family hint');
+    await ctx.close();
+  }
+
+  // AJ179 demo: a mouse button is remapped on the Buttons page (written, kept as OpenKey's record).
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[aj179] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'AJAZZ AJ179 mouse' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/keymap');
+    await page.locator('.kb-key', { hasText: 'Back' }).dispatchEvent('pointerdown');
+    await page.getByPlaceholder(/Search/).fill('wheel');
+    await page.locator('.key-result').first().click();
+    await page.getByRole('button', { name: /Review 1 change/ }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Write 1 change/ })
+      .click();
+    await page
+      .locator('.changebar')
+      .getByText(/Saved · the keyboard cannot report it back|Saved and verified/)
+      .waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/aj179-buttons.png` });
+    results.push('aj179 demo: back button remapped and written');
+    await ctx.close();
+  }
+
+  // RK61 demo (classic RK): the key map and per-key colours on the layout from RK's own key table.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[rk61] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'RK61 RGB' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/keymap');
+    await page.locator('.kb-key').first().waitFor();
+    const keys = await page.locator('.kb-key').count();
+    if (keys !== 61) failures.push(`RK61 layout has ${keys} keys, expected 61`);
+    await page
+      .locator('.kb-key', { hasText: /^Caps$/ })
+      .first()
+      .dispatchEvent('pointerdown');
+    await page.getByPlaceholder(/Search/).fill('escape');
+    await page.locator('.key-result').first().click();
+    await page.getByRole('button', { name: /Review 1 change/ }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Write 1 change/ })
+      .click();
+    await page
+      .locator('.changebar')
+      .getByText(/Saved · the keyboard cannot report it back|Saved and verified/)
+      .waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/rk61-keymap.png` });
+    await page.goto(base + '#/perkey');
+    await page
+      .getByRole('button', { name: 'Fill all' })
+      .click()
+      .catch(() => undefined);
+    if (shots) await page.screenshot({ path: `${shots}/rk61-perkey.png` });
+    results.push('rk61 demo: layout from RK’s key table, Caps Lock remapped and written');
+    await ctx.close();
+  }
+
+  // AULA F87S demo: the knob ring's colour is read, changed alone and read back.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => failures.push(`[f87s] pageerror: ${e.message}`));
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'AULA F87S 8K' }).click();
+    await page.waitForURL(/#\/overview/);
+    await page.goto(base + '#/rgb');
+    await page.getByRole('tab', { name: 'Light zones' }).click();
+    const ring = page.getByLabel('Knob ring');
+    await ring.waitFor();
+    await ring.fill('#ff0000');
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    if (await dialog.isVisible().catch(() => false))
+      await dialog
+        .getByRole('button')
+        .filter({ hasText: /Write|Apply|Continue/ })
+        .first()
+        .click();
+    await page.getByText('Saved and verified by read-back').first().waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/f87s-light-zones.png` });
+    results.push('f87s demo: knob ring colour written and verified by read-back');
     await ctx.close();
   }
   // Screen gallery (demo): generated animations load into the local preview; nothing is uploaded.

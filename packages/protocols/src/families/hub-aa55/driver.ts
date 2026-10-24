@@ -15,6 +15,7 @@ import type {
   DeviceInfo,
   EffectCatalog,
   KeyboardLayout,
+  LightZone,
   PerKeyRgb,
   RgbConfig,
   TransportMode,
@@ -27,6 +28,8 @@ import {
   EFFECT_BYTES,
   HUB_PROTOCOL_ID,
   TABLE_BYTES,
+  ZONE_BYTES,
+  ZONE_COLOR_OFFSET,
   decodeEffect,
   decodeInfo,
   decodeTable,
@@ -38,7 +41,7 @@ import {
 } from './codec.js';
 import type { HubEffect, HubInfo } from './codec.js';
 import { hubLayout } from './models.js';
-import type { HubModel } from './models.js';
+import type { HubModel, HubZone } from './models.js';
 
 /** One transfer at a time; each packet waits for its own reply before the next is sent. */
 export class HubSession {
@@ -97,6 +100,8 @@ export class HubDriver extends BaseKeyboardDriver {
   info: HubInfo | null = null;
   /** Whether the keyboard answered the lighting read with a valid block. */
   lighting = false;
+  /** Zones whose block the keyboard returned on connection. */
+  private zonesRead: HubZone[] = [];
   private readonly layout: KeyboardLayout | null;
 
   constructor(
@@ -139,6 +144,10 @@ export class HubDriver extends BaseKeyboardDriver {
     // Only a valid answer to the lighting read enables lighting; a model without it times out here.
     const block = await this.session.read(Cmd.GET_LED_EFFECT, EFFECT_BYTES).catch(() => null);
     this.lighting = !!block && isEffectBlock(block) && this.bodyMatches;
+    this.zonesRead = [];
+    if (this.bodyMatches)
+      for (const z of this.model.zones ?? [])
+        if (await this.session.read(z.read, ZONE_BYTES).catch(() => null)) this.zonesRead.push(z);
   }
 
   async disconnect(): Promise<void> {
@@ -201,6 +210,18 @@ export class HubDriver extends BaseKeyboardDriver {
           confidence: Evidence.INFERRED,
           note: other ?? 'The LED map of this model is not confirmed yet.',
         });
+    if (this.zonesRead.length)
+      c.lightZones = configurable(
+        'device',
+        true,
+        this.transport === '2.4ghz' ? Evidence.OBSERVED : Evidence.INFERRED,
+        {
+          safety: SafetyLevel.SAFE_PERSISTENT,
+          source: `${src}; zone blocks 0x1B/0x1D read, 0x2B/0x2D written (HID-PROTOCOL.md §5.5)`,
+          value: this.zonesRead.map((z) => z.name).join(', '),
+          note: 'One colour per zone. OpenKey reads each zone, changes only its colour, writes it back and reads it again; the zone’s other settings stay as they are.',
+        },
+      );
     c.keymap = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
       confidence: Evidence.INFERRED,
       note: 'The key-map commands are documented for some models but not with read-back; not written yet.',
@@ -348,5 +369,35 @@ export class HubDriver extends BaseKeyboardDriver {
       brightness: e.brightness > 0 ? e.brightness : BRIGHTNESS_MAX,
       speed: e.speed,
     });
+  }
+
+  override async getLightZones(): Promise<LightZone[]> {
+    const out: LightZone[] = [];
+    for (const z of this.zonesRead) {
+      const b = await this.s().read(z.read, ZONE_BYTES);
+      const o = ZONE_COLOR_OFFSET;
+      out.push({ id: z.id, name: z.name, color: { r: b[o]!, g: b[o + 1]!, b: b[o + 2]! } });
+    }
+    return out;
+  }
+
+  /**
+   * Reads each zone's block and writes it back with only the colour changed (the source: a block
+   * built from scratch blanked the zone after a preset change), then reads it again.
+   */
+  override async setLightZones(zones: Pick<LightZone, 'id' | 'color'>[]): Promise<void> {
+    for (const { id, color } of zones) {
+      const z = this.zonesRead.find((x) => x.id === id);
+      if (!z) throw new ProtocolError(`Zone “${id}” is not available on this keyboard.`);
+      const block = (await this.s().read(z.read, ZONE_BYTES)).slice();
+      block.set(
+        [color.r, color.g, color.b].map((v) => Math.max(0, Math.min(255, Math.round(v)))),
+        ZONE_COLOR_OFFSET,
+      );
+      await this.s().transfer(z.write, block);
+      const back = await this.s().read(z.read, ZONE_BYTES);
+      if (back.some((v, i) => v !== block[i]))
+        throw new ReadbackMismatchError(`The keyboard did not keep the colour of the ${z.name}.`);
+    }
   }
 }

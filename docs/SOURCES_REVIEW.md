@@ -230,12 +230,13 @@ successfully.
 
 **What it changed in OpenKey (`winbond-lighting`):**
 
-- **MK870:** lighting (14 effects, two colours, rainbow, eight directions), per-key colours, the
-  default layer's key map, sleep time and key-map restore. All writes are experimental, and the
-  keyboard can't report its settings, so OpenKey shows what it last wrote.
+- **MK870:** lighting (15 effects, two colours, rainbow, eight directions), per-key colours, the
+  base and FN1 key maps, macros, sleep time and key-map restore. Lighting, per-key, the base key
+  map and macros are owner-verified; the rest is experimental. The keyboard can't report its
+  settings, so OpenKey shows what it last wrote.
 - **Pulsar PCMK TKL (`0416:B23C`):** the effects both sources agree on.
 - **Never sent:** `0B`, `16` and `22`.
-- **Diagnostics:** Device Lab → Report runs the read-only `07 01` check on a click. The diagnostic
+- **Diagnostics:** Device Lab → Report runs the read-only `15` model check on a click. The diagnostic
   package now has a descriptor fingerprint, a vendor-channel map, family hints, per-adapter match
   reasons, evidence per feature and protocol-check answer shapes. It still carries no payloads.
 
@@ -259,8 +260,8 @@ release 1.00.
 
 - **Lighting read-back:** the driver's parser for the `07` answer (0x67F480) reads mode,
   brightness, speed, colour, second colour, direction and rainbow at the positions of the lighting
-  write. OpenKey asks once on connection, as the driver does. If this keyboard answers, lighting is
-  read back from it and checked after every change; if not, OpenKey shows what it last wrote.
+  write. OpenKey asked once on connection, as the driver does, until the owner test below; it no
+  longer sends it.
 - **Key-map acknowledgement:** the keyboard answers each `18` packet with an echo, which the
   driver handles. OpenKey waits up to 150 ms for it between packets to pace the writes, but does
   not count it as a read-back.
@@ -275,13 +276,29 @@ release 1.00.
   - The key that plays it is written `10 01 SLOT 00`. The `01` is the per-key value the driver's
     profiles give every key; it is the one byte not confirmed for repeat modes.
   - Unused slots are cleared: those were the "empty" `19` packets seen first.
-- **Model code:** the driver picks each keyboard's key, Fn and onboard tables by a model code (159
-  codes, from `KeyInfo_<code>.config`). It asks the keyboard on connection with `15` ("Device SN").
-  OpenKey's "Model query" check records the code only when it is one of the driver's codes. With an
-  MK870's code, its Fn-layer defaults and profile support can be taken from the driver.
-- **FN1/FN layers:** the key-map packet takes a layer, but the driver has no key-map read, and the
-  layers' factory contents are not in its files. Writing them would erase the Fn functions, so
-  OpenKey does not.
+- **Owner's manual and tests (October 2026).** The MK870 owner sent the manual's Fn table with test
+  results on Linux. **Fn+Tab (hold 3 s) switches to the FN1 layer**, so FN1 is a second full layout.
+  The Fn shortcuts (lighting, media, Win lock, all-key lock) are built into the firmware, and
+  **Fn+Esc (hold 3 s) restores factory defaults**. This matches the driver writing "Default & FN1" on
+  two-layer boards, with a separate "FN" layer only on three-layer models. OpenKey therefore writes
+  FN1 from the same default table as the base layer, with Fn kept; the third layer stays gated.
+
+- **Owner test from OpenKey (2026-10-24, issue #13, Linux/COSMIC, wired MK870).** Every lighting
+  effect, per-key colours, base-layer editing and all 10 macro slots work, so these are VERIFIED
+  for `0416:C345` (`fixtures/verification/mk870-owner-test-issue13.json`). The Fn layer could not be
+  tested: that build still kept it blocked. Sleep was not tried.
+  - **Lights dark on connection:** right after the app connected, the lighting looked black, and
+    Fn+Up did nothing visible until another effect was chosen. That build sent the lighting query
+    (`07 01`, rest zero) and the model query (`15`) on connection. A static black lighting is what
+    `07 01` would give if this firmware read it as a lighting write. No capture shows an answer to
+    it. OpenKey now sends nothing on connection and no longer has the lighting query; the model
+    query stays a Device Lab check, run only on a click.
+
+**Model code:** the driver picks each keyboard's key, Fn and onboard tables by a model code (159
+codes, from `KeyInfo_<code>.config`). It asks the keyboard with `15` ("Device SN"). OpenKey's
+"Model query" check records the code only when it is one of the driver's codes. A three-layer
+model's third ("FN") layer is written only with its confirmed factory table.
+
 - **Music rhythm:** the app streams levels with command `20`; not offered.
 
 ### RK R75 RGB (`258A:015E`), the owner's keyboard, October 2026
@@ -378,3 +395,27 @@ sources (openrazer, OpenRGB, Solaar, somenever, thanks4opensource) are used for 
 | [Lightning-13/rk-m75](https://github.com/Lightning-13/rk-m75)                                       | MIT        | read    | The M75 (`258A:0163`, report 9 × 520) is CDevG5KB too: OpenKey treats it as a BY Tech board to teach.                                                                                                                                                                                              | Live colour streaming (fades after ~1 s without a keep-alive).                                        |
 | [witchbladeq/AULA-F99-PRO-OpenRGB](https://github.com/witchbladeq/AULA-F99-PRO-OpenRGB)             | MIT        | read    | New evidence for receiver writes (`04` write, `0A` save, apply flag).                                                                                                                                                                                                                              | Still disagrees with the RK decompile on the save step: the receiver stays read-only.                 |
 | [thanks4opensource/NotLinuxAjazzAK33RGB](https://github.com/thanks4opensource/NotLinuxAjazzAK33RGB) | GPL-3.0    | skimmed | —                                                                                                                                                                                                                                                                                                  | The AK33's USB identity and descriptors are not published; no adapter until a diagnostic arrives.     |
+
+### Pending features closed from existing sources (October 2026)
+
+- **RK classic key maps and per-key colours.** rnayabed/rangoli and vinc3m1/kludgeknight (GPL-3.0,
+  facts only) give the report layouts: 9 key-map reports (`09 n`, first adds `01 F8`, 4 bytes per key
+  at `index × 4`, big-endian) and 7 colour reports (`07 n`, first adds `03 7E 01`, R G B at
+  `index × 3`) after the lighting report selects RGB effect 14 (Custom). Firmware key codes:
+  `modifiers << 16 | HID usage << 8`, media `0x01000000 | usage`, Fn `0xB000`. kludgeknight's author
+  tested key maps on an RK F68 and S79. The per-model tables come from the KB.ini files of RK's own
+  software (`pnpm rk-keys`): all 78 listed models have one; one model (`0x00D6`) has five keys of
+  another type, so its key map is not written. Neither source can disable a key, so OpenKey does not
+  offer it.
+- **RK M87 receiver.** ElXreno/rk-m87-sync (MIT) documents the receiver framing (report 0x13), the
+  status read `07` (link state, measured on hardware) and the clock write `0B`. Its command table
+  showed that the AULA receiver adapter's `0x0B` "version read" is a clock write on RK's platform; that
+  adapter now refuses RK receivers and reads version only from AULA's own receiver.
+- **AULA F87S zones.** Dylan-1107/aula-f87s-hid §5.5 (MIT): knob ring `1B`/`2B` and side bars
+  `1D`/`2D`, 24-byte blocks, colour in bytes 1–3, the rest written back as read (tested by the source
+  through the receiver).
+- **AJ179 buttons and macros.** Rockeyxx/aj179-linux (MIT): button table `09` and macro upload `08`,
+  checked on the mouse by the source.
+- **Not closed:** the AK992 key map (rea-jazz documents the upload framing but not the key encoding,
+  untested), the BY Tech key map and per-key colours (sources disagree), the AK820 single-colour
+  (`1A2C:9605`, no packet source), Corsair (no research yet).

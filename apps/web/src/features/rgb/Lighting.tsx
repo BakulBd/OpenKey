@@ -6,8 +6,9 @@ import { PageHeader } from '../../components/ui.js';
 import { readRoute } from '../../app/router.js';
 import { RgbStudio } from './RgbStudio.js';
 import { PerKeyStudio } from './PerKeyStudio.js';
+import { ZonesStudio } from './ZonesStudio.js';
 
-type Tab = 'effects' | 'perkey';
+type Tab = 'effects' | 'perkey' | 'zones';
 
 /**
  * Lighting workspace: hardware effects and per-key colour are two modes of the same lighting
@@ -21,6 +22,7 @@ export default function Lighting() {
     ? ([
         device.caps.rgb.write || device.caps.rgb.read !== 'none' ? 'effects' : null,
         navigationMode(device.caps.perKeyRgb) === 'show' ? 'perkey' : null,
+        navigationMode(device.caps.lightZones) === 'show' ? 'zones' : null,
       ].filter(Boolean) as Tab[])
     : [];
   const [tab, setTab] = useState<Tab>(() =>
@@ -29,7 +31,10 @@ export default function Lighting() {
   if (!device) return null;
   return (
     <div className="page">
-      <PageHeader title={t('nav.rgb')} lead={t(tab === 'perkey' ? 'perkey.lead' : 'rgb.lead')} />
+      <PageHeader
+        title={t('nav.rgb')}
+        lead={t(tab === 'perkey' ? 'perkey.lead' : tab === 'zones' ? 'zones.lead' : 'rgb.lead')}
+      />
       {tabs.length > 1 && (
         <div className="tabs" role="tablist" aria-label={t('nav.rgb')}>
           {tabs.map((x) => (
@@ -43,7 +48,13 @@ export default function Lighting() {
               className={`tab ${tab === x ? 'on' : ''}`}
               onClick={() => setTab(x)}
             >
-              {t(x === 'perkey' ? 'nav.perkey' : 'rgb.effects')}
+              {t(
+                x === 'perkey'
+                  ? 'nav.perkey'
+                  : x === 'zones'
+                    ? 'feature.lightZones'
+                    : 'rgb.effects',
+              )}
             </button>
           ))}
         </div>
@@ -58,7 +69,7 @@ export default function Lighting() {
           hidden={tab !== x}
           className="stack-page"
         >
-          {x === 'perkey' ? <PerKeyStudio /> : <RgbStudio />}
+          {x === 'perkey' ? <PerKeyStudio /> : x === 'zones' ? <ZonesStudio /> : <RgbStudio />}
         </div>
       ))}
     </div>

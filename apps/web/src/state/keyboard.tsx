@@ -162,7 +162,8 @@ export type DemoKind =
   | 'lamparray'
   | 'razer'
   | 'aula-f87s'
-  | 'mk870';
+  | 'mk870'
+  | 'rk61';
 export const DEMO_KINDS: readonly DemoKind[] = [
   'ak820',
   'via',
@@ -176,6 +177,7 @@ export const DEMO_KINDS: readonly DemoKind[] = [
   'aula-f75',
   'aula-f87s',
   'rk-r75',
+  'rk61',
   'mk870',
 ];
 
@@ -778,6 +780,10 @@ export function KeyboardProvider({
       if (kind === 'razer') {
         const { razer } = await import('@openkey/protocols');
         return void (await attach(new razer.RazerSimulator().device.group(), true));
+      }
+      if (kind === 'rk61') {
+        const { rkClassic } = await import('@openkey/protocols');
+        return void (await attach(new rkClassic.RkClassicSimulator().device.group(), true));
       }
       if (kind === 'mk870') {
         const { winbond } = await import('@openkey/protocols');

@@ -8,6 +8,7 @@ import { byTechProtocol } from './families/by-tech/protocol.js';
 import { royuanProtocol } from './families/royuan/protocol.js';
 import { rkClassicProtocol } from './families/rk-classic/protocol.js';
 import { aulaReceiverProtocol } from './families/aula-receiver/protocol.js';
+import { rkM87ReceiverProtocol } from './families/aula-receiver/rk-m87.js';
 import { hmkProtocol } from './families/hmk/protocol.js';
 import { yjxMouseProtocol } from './families/yjx-mouse/protocol.js';
 import { lampArrayProtocol } from './families/lamparray/protocol.js';
@@ -73,6 +74,7 @@ export function createDefaultRegistry(): ProtocolRegistry {
     .register(royuanProtocol)
     .register(rkClassicProtocol)
     .register(aulaReceiverProtocol)
+    .register(rkM87ReceiverProtocol)
     .register(hmkProtocol)
     .register(yjxMouseProtocol)
     .register(lampArrayProtocol)

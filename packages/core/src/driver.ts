@@ -3,7 +3,7 @@ import type { Capabilities, FeatureId } from './model/capabilities.js';
 import type { DeviceInfo, TransportMode } from './model/device.js';
 import type { KeyActionKind, KeymapState, LayerId } from './model/keymap.js';
 import type { KeyboardLayout } from './model/layout.js';
-import type { EffectCatalog, PerKeyRgb, RgbConfig } from './model/lighting.js';
+import type { EffectCatalog, LightZone, PerKeyRgb, RgbConfig } from './model/lighting.js';
 import type { Macro, MacroLimits } from './model/macros.js';
 import type { SettingsSchema, SystemSettings } from './model/settings.js';
 import type { ProgressCallback, TftFrame, TftInfo } from './model/tft.js';
@@ -48,6 +48,8 @@ export interface KeyboardDriver {
   getKeyActionKinds(): readonly KeyActionKind[];
   /** Layers the editor offers, in order. Two-layer boards return `base` and `fn`. */
   getLayerIds(): readonly LayerId[];
+  /** The keyboard's own name for a layer, when it differs from the generic one. */
+  getLayerLabel(layer: LayerId): string | undefined;
   /**
    * Firmware-specific functions offered for assignment as `special` actions (e.g. QMK "Transparent",
    * lighting keys). Never includes functions that reboot or erase the keyboard.
@@ -70,6 +72,10 @@ export interface KeyboardDriver {
   setRgbConfig(config: RgbConfig): Promise<void>;
   getPerKeyRgb(): Promise<PerKeyRgb>;
   setPerKeyRgb(colors: PerKeyRgb): Promise<void>;
+  /** Zones lit with one colour each (knob ring, side bars …), read from the keyboard. */
+  getLightZones(): Promise<LightZone[]>;
+  /** Changes only the colour of the zones given; their other settings stay as they are. */
+  setLightZones(zones: Pick<LightZone, 'id' | 'color'>[]): Promise<void>;
 
   getTftInfo(): Promise<TftInfo>;
   uploadTftImage(
@@ -142,6 +148,9 @@ export abstract class BaseKeyboardDriver implements KeyboardDriver {
   getSpecialActions(): readonly { code: number; label: string }[] {
     return [];
   }
+  getLayerLabel(_layer: LayerId): string | undefined {
+    return undefined;
+  }
   async getKeymap(_layer?: LayerId): Promise<KeymapState> {
     return unsupported('keymap');
   }
@@ -183,6 +192,12 @@ export abstract class BaseKeyboardDriver implements KeyboardDriver {
   }
   async setPerKeyRgb(_colors: PerKeyRgb): Promise<void> {
     unsupported('perKeyRgb');
+  }
+  async getLightZones(): Promise<LightZone[]> {
+    return unsupported('lightZones');
+  }
+  async setLightZones(_zones: Pick<LightZone, 'id' | 'color'>[]): Promise<void> {
+    unsupported('lightZones');
   }
   async getTftInfo(): Promise<TftInfo> {
     return unsupported('tft');

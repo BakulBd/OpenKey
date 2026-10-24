@@ -12,6 +12,7 @@ export const FEATURES = [
   'macros',
   'rgb',
   'perKeyRgb',
+  'lightZones',
   'realtimeRgb',
   'tft',
   'tftGif',

@@ -158,4 +158,104 @@ describe('AJAZZ AJ179 mouse', () => {
     );
     expect(sim.device.traffic).toEqual([]);
   });
+
+  describe('buttons and macros (Rockeyxx PROTOCOL.md 0x09, 0x08)', () => {
+    const { buttonPacket, macroPackets, FACTORY, MAX_MACRO_EVENTS } = aj179Mouse;
+
+    it('builds the factory table exactly as the vendor sends it (length byte 0x0F)', () => {
+      const p = buttonPacket({});
+      expect([...p.subarray(0, 4)]).toEqual([0x09, 0x00, 0x01, 0x0f]);
+      expect([...p.subarray(4, 22)]).toEqual(FACTORY.flat());
+      expect(p[31]).toBe(p.subarray(4, 31).reduce((a, b) => a + b, 0) & 0xff);
+    });
+
+    it('encodes the source’s hardware checks: back → wheel up, a macro on the back button', () => {
+      const wheel = buttonPacket({ 3: { kind: 'mouse', action: 'wheel-up' } });
+      expect([...wheel.subarray(13, 16)]).toEqual([0x20, 0x01, 0x00]);
+      const macro = buttonPacket({ 3: { kind: 'macro', index: 0, mode: 'once', repeat: 1 } });
+      expect([...macro.subarray(13, 16)]).toEqual([0x90, 0x23, 0x01]);
+      const [m] = macroPackets(3, {
+        index: 0,
+        events: [
+          { type: 'key', usage: 0x04, down: true },
+          { type: 'delay', ms: 30 },
+          { type: 'key', usage: 0x04, down: false },
+          { type: 'key', usage: 0x05, down: true },
+          { type: 'key', usage: 0x05, down: false },
+        ],
+      });
+      expect([...m!.subarray(0, 5)]).toEqual([0x08, 0x00, 0x01, 17, 3]);
+      expect([...m!.subarray(5, 9)]).toEqual([0x30, 30, 0, 0x04]);
+      expect([...m!.subarray(9, 13)]).toEqual([0xb0, 1, 0, 0x04]);
+    });
+
+    it('keeps the left button a left click whatever is asked', () => {
+      const p = buttonPacket({ 0: { kind: 'keyboard', usage: 0x04, modifiers: 0 } });
+      expect([...p.subarray(4, 7)]).toEqual([0x10, 0x01, 0x00]);
+    });
+
+    it('splits long macros into 27-byte chunks and refuses longer than 15 chunks', () => {
+      const events = Array.from({ length: 10 }, (_, i) => ({
+        type: 'key' as const,
+        usage: 0x04,
+        down: i % 2 === 0,
+      }));
+      const ps = macroPackets(1, { index: 0, events });
+      expect(ps).toHaveLength(2);
+      expect(ps.map((p) => p[2])).toEqual([0x02, 0x12]);
+      expect(ps.map((p) => p[3])).toEqual([27, 14]);
+      const tooLong = Array.from({ length: (MAX_MACRO_EVENTS + 1) * 2 }, (_, i) => ({
+        type: 'key' as const,
+        usage: 0x04,
+        down: i % 2 === 0,
+      }));
+      expect(() => macroPackets(1, { index: 0, events: tooLong })).toThrow(/at most/);
+    });
+
+    it('writes the macros a button uses, then the table, and remembers both', async () => {
+      const { driver, sim } = await connect();
+      expect(driver.getCapabilities().keymap.write).toBe(true);
+      expect(driver.getLayout().keys.map((k) => k.slot)).toEqual([-1, 1, 2, 3, 4, 5]);
+      await driver.setMacros([
+        {
+          index: 0,
+          events: [
+            { type: 'key', usage: 0x04, down: true },
+            { type: 'key', usage: 0x04, down: false },
+          ],
+        },
+      ]);
+      expect(sim.writes).toEqual([]);
+      await driver.setKeymap({
+        layer: 'base',
+        slots: {
+          3: { kind: 'macro', index: 0, mode: 'while-held', repeat: 1 },
+          5: { kind: 'special', code: 0x400200 },
+        },
+        provenance: 'mirror',
+      });
+      expect(sim.writes.map((w) => w[0])).toEqual([0x08, 0x09]);
+      expect(sim.writes[0]![4]).toBe(3);
+      expect([...sim.writes[1]!.subarray(13, 16)]).toEqual([0x90, 0x13, 0x00]);
+      expect([...sim.writes[1]!.subarray(19, 22)]).toEqual([0x40, 0x02, 0x00]);
+      expect((await driver.getKeymap()).slots[5]).toEqual({ kind: 'special', code: 0x400200 });
+      // Changing the macro writes it again to the button that plays it.
+      await driver.setMacros([{ index: 0, events: [] }]);
+      expect(sim.writes.at(-1)![0]).toBe(0x08);
+      await driver.restoreDefaults('keymap');
+      expect([...sim.writes.at(-1)!.subarray(4, 22)]).toEqual(FACTORY.flat());
+    });
+
+    it('sends nothing when a button’s macro is not recorded', async () => {
+      const { driver, sim } = await connect();
+      await expect(
+        driver.setKeymap({
+          layer: 'base',
+          slots: { 2: { kind: 'macro', index: 4, mode: 'once', repeat: 1 } },
+          provenance: 'mirror',
+        }),
+      ).rejects.toThrow(/record it first/);
+      expect(sim.writes).toEqual([]);
+    });
+  });
 });

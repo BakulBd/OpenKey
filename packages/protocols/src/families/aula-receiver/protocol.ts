@@ -59,6 +59,8 @@ const isChannel = (c: HidCollection) =>
   c.inputReports.some((r) => r.reportId === REPORT_ID && r.size === REPORT_BYTES);
 export const findChannel = (g: HidDeviceGroup): HidInterfaceInfo | undefined =>
   g.interfaces.find((i) => i.collections.some(isChannel));
+/** AULA's own receiver identity, the one the version/battery read (0x0B) is documented for. */
+const isAulaIdentity = (g: HidDeviceGroup) => g.identity.vendorId === 0x3554;
 
 /** A request: payload after the report ID, checksum over the whole 20-byte report at the end. */
 export function request(cmd: number): Uint8Array {
@@ -150,7 +152,11 @@ export class AulaReceiverDriver extends BaseKeyboardDriver {
 
   async connect(): Promise<void> {
     this.session = new AulaReceiverSession(await this.open(this.iface));
-    this.version = await this.session.version().catch(() => null);
+    // 0x0B is a version read on AULA's receiver (3554) only: on RK-platform receivers the same
+    // byte sets the screen clock, so a receiver with another identity is not asked.
+    this.version = isAulaIdentity(this.group)
+      ? await this.session.version().catch(() => null)
+      : null;
   }
 
   async disconnect(): Promise<void> {
@@ -225,6 +231,7 @@ export class AulaReceiverDriver extends BaseKeyboardDriver {
   }
 
   override async getBattery(): Promise<{ level: number; charging: boolean } | null> {
+    if (!isAulaIdentity(this.group)) return null;
     const v = await this.s().version();
     return v?.battery != null ? { level: v.battery, charging: false } : null;
   }
@@ -332,6 +339,14 @@ export const aulaReceiverProtocol: ProtocolDefinition = {
         score: 0,
         reasons: [],
         rejections: ['no 19-byte report 0x13 in both directions'],
+      };
+    // RK's receivers use the same framing, but there 0x0B sets the screen clock (rk-m87-receiver).
+    if (group.identity.vendorId === 0x258a)
+      return {
+        applicable: false,
+        score: 0,
+        reasons: [],
+        rejections: ['RK receiver (258A): its 0x0B command sets the screen clock, not a read'],
       };
     const reasons = ['report 0x13 (19 B) in and out: AULA receiver command channel'];
     let score = 40;

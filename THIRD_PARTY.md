@@ -83,7 +83,7 @@ The adapters added on 2026-10-17 follow the same rule (own code, facts from the 
 - **wooting-rgb**: WootingKb/wooting-rgb-sdk (MPL-2.0, Copyright 2018 Wooting Technologies B.V.).
   No SDK file is included or modified; MPL-2.0 obligations apply only to distributed copies of those
   files.
-- **aj179-mouse**: Rockeyxx/aj179-linux (MIT, Copyright (c) 2026 Omar).
+- **aj179-mouse**: Rockeyxx/aj179-linux (MIT, Copyright (c) 2026 Omar), including button mapping and macro upload.
 - **semico-lighting** (AJAZZ AK992): J0hnBloodborne/rea-jazz (MIT, Copyright (c) 2026 J0hnBloodborne).
 - **winbond-lighting** (FL Esports MK870 and other Winbond 0416 boards): Mqlvin/keyboard-colour (MIT, Copyright (c) 2025 Mqlvin): lighting packet, effect and direction codes.
 - **hub-aa55** (AULA F87S 8K, AJAZZ AK680): Dylan-1107/aula-f87s-hid (MIT, Copyright (c) 2026
@@ -92,8 +92,13 @@ The adapters added on 2026-10-17 follow the same rule (own code, facts from the 
 - **AULA F108 Pro profile and layout**: parsiya/f108-pro (MIT, Copyright (c) 2026 Parsia Hakimian), key
   and LED indices from its published key table.
 - **AJAZZ AK35i V3 MAX profile**: dantje/ajazz-ak35i-v3-max (MIT, Copyright (c) 2026 Daniel van Gerpen).
-- **RK M87 screen clock** (BY Tech): ElXreno/rk-m87-sync (MIT, Copyright (c) 2026 ElXreno); RK M75:
+- **RK M87 screen clock** (BY Tech cable and the `rk-m87-receiver` adapter for its 2.4 GHz receiver): ElXreno/rk-m87-sync (MIT, Copyright (c) 2026 ElXreno); RK M75:
   Lightning-13/rk-m75 (MIT, Copyright (c) 2026 Ravi Sankannavar).
+- **rk-classic** key maps and per-key colours: rnayabed/rangoli and vinc3m1/kludgeknight (both GPL-3.0),
+  facts only (report layouts, firmware key codes, custom effect number). The per-model key tables
+  (`packages/protocols/src/families/rk-classic/keys.json`, built by `pnpm rk-keys`) are facts taken
+  from the KB.ini files of RK's own Windows software as kludgeknight publishes them: key rectangles,
+  Windows key codes and table indices.
 - **razer-chroma**: openrazer (GPL-2.0) and OpenRGB (GPL-2.0), facts only; the model table (USB IDs,
   command set, transaction ids, matrix sizes) is data.
 - **evision**, **bloody-b820r**, **hyperx-alloy-origins**, **ducky-rgb**, **steelseries-apex**:

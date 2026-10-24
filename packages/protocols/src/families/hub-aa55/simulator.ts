@@ -1,6 +1,6 @@
 import type { DeviceIdentity } from '@openkey/core';
 import { MockHidDevice } from '@openkey/hid';
-import { Cmd, EFFECT_BYTES, HEADER, TABLE_BYTES } from './codec.js';
+import { Cmd, HEADER, TABLE_BYTES } from './codec.js';
 
 /**
  * An AULA F87S 8K (or another listed board) as the public notes describe it: device info, the
@@ -12,6 +12,19 @@ export class HubSimulator {
   readonly writes: { cmd: number; data: Uint8Array }[] = [];
   effect = Uint8Array.from([15, 255, 255, 255, 255, 0, 0, 0, 1, 5, 3, 0, 0, 0, 0xaa, 0x55]);
   readonly table = new Uint8Array(TABLE_BYTES);
+  /** Knob ring and side bars: mode byte 1, colour, then settings the keyboard keeps. */
+  readonly zones = new Map<number, Uint8Array>([
+    [
+      Cmd.GET_RING_ZONE,
+      Uint8Array.from({ length: 24 }, (_, i) => (i === 0 ? 1 : i < 4 ? 0x40 : i)),
+    ],
+    [
+      Cmd.GET_SIDE_ZONE,
+      Uint8Array.from({ length: 24 }, (_, i) => (i === 0 ? 2 : i < 4 ? 0x80 : i)),
+    ],
+  ]);
+  /** Whether the keyboard has the zone commands (the F87S does). */
+  hasZones = true;
   body: [number, number];
   private pending = new Map<number, Uint8Array>();
 
@@ -64,16 +77,24 @@ export class HubSimulator {
               reply.set([0x55, cmd, len, d[3]!, d[4]!]);
               const source = this.readSource(cmd, lighting);
               if (source) reply.set(source.subarray(addr, addr + len), HEADER);
-              else if (cmd === Cmd.SET_LED_EFFECT || cmd === Cmd.SET_CUSTOM_LED) {
-                const buf =
-                  this.pending.get(cmd) ??
-                  new Uint8Array(cmd === Cmd.SET_LED_EFFECT ? EFFECT_BYTES : TABLE_BYTES);
+              else if (
+                cmd === Cmd.SET_LED_EFFECT ||
+                cmd === Cmd.SET_CUSTOM_LED ||
+                (this.hasZones && (cmd === Cmd.SET_RING_ZONE || cmd === Cmd.SET_SIDE_ZONE))
+              ) {
+                const target =
+                  cmd === Cmd.SET_LED_EFFECT
+                    ? this.effect
+                    : cmd === Cmd.SET_CUSTOM_LED
+                      ? this.table
+                      : this.zones.get(cmd - 0x10)!;
+                const buf = this.pending.get(cmd) ?? new Uint8Array(target.length);
                 buf.set(d.subarray(HEADER, HEADER + len), addr);
                 this.pending.set(cmd, buf);
                 if (last) {
                   this.pending.delete(cmd);
                   this.writes.push({ cmd, data: buf });
-                  (cmd === Cmd.SET_LED_EFFECT ? this.effect : this.table).set(buf);
+                  target.set(buf);
                 }
               } else return;
               ctx.emitInput(reply);
@@ -97,6 +118,7 @@ export class HubSimulator {
     if (!lighting) return null;
     if (cmd === Cmd.GET_LED_EFFECT) return this.effect;
     if (cmd === Cmd.GET_CUSTOM_LED) return this.table;
+    if (this.hasZones) return this.zones.get(cmd) ?? null;
     return null;
   }
 }

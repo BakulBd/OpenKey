@@ -57,6 +57,16 @@ export interface EffectCatalog {
 /** Per-key colours keyed by LED index. */
 export type PerKeyRgb = Record<number, Rgb>;
 
+/**
+ * A lighting zone that is not a key and takes one colour for the whole zone (a knob ring, side
+ * light bars …). The colour is the only thing OpenKey changes; the zone's other settings stay.
+ */
+export interface LightZone {
+  id: string;
+  name: string;
+  color: Rgb;
+}
+
 export function rgbToHex({ r, g, b }: Rgb): string {
   return `#${[r, g, b].map((v) => (v & 0xff).toString(16).padStart(2, '0')).join('')}`;
 }

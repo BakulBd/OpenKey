@@ -6,7 +6,7 @@ import { REPORT_BYTES, REPORT_ID, USAGE, USAGE_PAGE } from './protocol.js';
 export class WinbondSimulator {
   readonly device: MockHidDevice;
   readonly packets: Uint8Array[] = [];
-  /** Whether the simulated keyboard answers the lighting query (tests both outcomes). */
+  /** Whether the simulated keyboard answers the model query (tests both outcomes). */
   answersQueries = true;
   /** What the simulated keyboard answers to the model query. */
   modelCode = 'K223RGB';
@@ -102,12 +102,6 @@ export class WinbondSimulator {
                 Array.from(this.modelCode, (c) => c.charCodeAt(0)),
                 4,
               );
-              ctx.emitInput(r);
-            }
-            // Lighting query: answers with the lighting record, as the official driver reads it.
-            if (this.answersQueries && d[0] === 0x07 && d[1] === 0x01) {
-              const r = this.lighting.slice();
-              r[1] = 0x01;
               ctx.emitInput(r);
             }
           },

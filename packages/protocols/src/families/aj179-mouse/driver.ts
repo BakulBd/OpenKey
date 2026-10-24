@@ -15,11 +15,17 @@ import type {
   Capabilities,
   DeviceInfo,
   EffectCatalog,
+  KeyActionKind,
   KeyboardLayout,
+  KeymapState,
+  LayerId,
+  Macro,
+  MacroLimits,
   MouseDriver,
   MouseSchema,
   MouseSettings,
   RgbConfig,
+  StateStore,
   TransportMode,
 } from '@openkey/core';
 import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
@@ -49,6 +55,15 @@ import {
   ratesFor,
 } from './codec.js';
 import type { Aj179Info } from './codec.js';
+import {
+  LOCKED_BUTTON,
+  MACRO_LIMITS,
+  SPECIAL,
+  buttonEntry,
+  buttonPacket,
+  macroPackets,
+  mouseLayout,
+} from './buttons.js';
 
 /** Replies through the receiver can take 1.5 s while the mouse wakes; the source waits 3 s. */
 const REPLY_MS = { usb: 1000, wireless: 3000 } as const;
@@ -111,9 +126,16 @@ export class Aj179MouseDriver extends BaseKeyboardDriver implements MouseDriver 
     private readonly group: HidDeviceGroup,
     private readonly iface: HidInterfaceInfo,
     private readonly open: (i: HidInterfaceInfo) => Promise<HidTransport>,
+    private readonly store: StateStore,
   ) {
     super();
     this.transport = group.transportHint;
+  }
+
+  /** Mirror keys: the mouse cannot report its buttons or macros. */
+  private get key(): string {
+    const id = this.group.identity;
+    return `aj179/${id.vendorId.toString(16)}-${id.productId.toString(16)}`;
   }
 
   private s(): Aj179Session {
@@ -293,7 +315,90 @@ export class Aj179MouseDriver extends BaseKeyboardDriver implements MouseDriver 
   }
 
   getLayout(): KeyboardLayout {
-    return { id: 'mouse', name: 'Mouse', width: 1, height: 1, keys: [], source: 'mouse (no keys)' };
+    return mouseLayout();
+  }
+
+  override getLayerIds(): readonly LayerId[] {
+    return ['base'];
+  }
+
+  override getLayerLabel(layer: LayerId): string | undefined {
+    return layer === 'base' ? 'Buttons' : undefined;
+  }
+
+  override getKeyActionKinds(): readonly KeyActionKind[] {
+    return ['default', 'mouse', 'keyboard', 'consumer', 'special', 'macro'];
+  }
+
+  override getSpecialActions(): readonly { code: number; label: string }[] {
+    return SPECIAL;
+  }
+
+  override async getKeymap(layer: LayerId = 'base'): Promise<KeymapState> {
+    if (layer !== 'base') return super.getKeymap(layer);
+    return (
+      (await this.store.get<KeymapState>(`${this.key}/buttons`)) ?? {
+        layer: 'base',
+        slots: {},
+        provenance: 'assumed-default',
+      }
+    );
+  }
+
+  /**
+   * Writes the macros the buttons use (each into its button's slot, as the mouse plays them), then
+   * the button table. Every entry is encoded first, so nothing is sent if one cannot be.
+   */
+  override async setKeymap(state: KeymapState): Promise<void> {
+    if (state.layer !== 'base') throw new ProtocolError('The AJ179 has one button layer.');
+    const slots = { ...state.slots };
+    delete slots[LOCKED_BUTTON];
+    const table = buttonPacket(slots);
+    const macros = await this.getMacros();
+    const uploads: Uint8Array[] = [];
+    for (const [b, a] of Object.entries(slots)) {
+      buttonEntry(Number(b), a);
+      if (a.kind !== 'macro') continue;
+      const m = macros.find((x) => x.index === a.index);
+      if (!m) throw new ProtocolError(`Macro ${a.index + 1} is empty: record it first.`);
+      uploads.push(...macroPackets(Number(b), m));
+    }
+    for (const p of uploads) await this.s().request(p);
+    await this.s().request(table);
+    await this.store.set(`${this.key}/buttons`, {
+      layer: 'base',
+      slots,
+      provenance: 'mirror',
+      updatedAt: new Date().toISOString(),
+    } satisfies KeymapState);
+  }
+
+  override async restoreDefaults(
+    scope: 'keymap' | 'fnLayer' | 'macros' | 'lighting',
+  ): Promise<void> {
+    if (scope !== 'keymap') return super.restoreDefaults(scope);
+    await this.setKeymap({ layer: 'base', slots: {}, provenance: 'mirror' });
+  }
+
+  override getMacroLimits(): MacroLimits {
+    return MACRO_LIMITS;
+  }
+
+  override async getMacros(): Promise<Macro[]> {
+    return (await this.store.get<Macro[]>(`${this.key}/macros`)) ?? [];
+  }
+
+  /** Stores the macros and writes them again to every button that plays one. */
+  override async setMacros(macros: Macro[]): Promise<void> {
+    const { slots } = await this.getKeymap('base');
+    const uploads: Uint8Array[] = [];
+    for (const [b, a] of Object.entries(slots)) {
+      if (a.kind !== 'macro') continue;
+      const m = macros.find((x) => x.index === a.index);
+      if (m) uploads.push(...macroPackets(Number(b), m));
+    }
+    for (const p of uploads) await this.s().request(p);
+    await this.store.set(`${this.key}/macros`, macros);
   }
 
   getCapabilities(): Capabilities {
@@ -322,11 +427,27 @@ export class Aj179MouseDriver extends BaseKeyboardDriver implements MouseDriver 
       confidence: S,
       source: 'info (0x10)',
     });
-    c.macros = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-      confidence: Evidence.INFERRED,
-      note: 'Macros and button mapping are documented but cannot be read back from the mouse, so OpenKey does not write them yet.',
+    const mirror = {
+      safety: SafetyLevel.CAUTION,
+      source:
+        'Rockeyxx/aj179-linux PROTOCOL.md: button table 0x09 and macro upload 0x08 (vendor driver; checked on the mouse by the source)',
+    };
+    c.keymap = configurable('mirror', true, S, {
+      ...mirror,
+      value:
+        'right, middle, back, forward and DPI buttons: mouse buttons, wheel, DPI, keys, media keys, macros',
+      note: 'The mouse cannot report its buttons; OpenKey shows what it last wrote. The left button stays a left click, so you can always undo. Restore defaults writes the factory table.',
     });
-    for (const f of ['keymap', 'fnLayer', 'perKeyRgb', 'tft', 'tftGif'] as const)
+    c.macros = configurable('mirror', true, S, {
+      ...mirror,
+      value: `up to ${MACRO_LIMITS.slots} macros (one per button)`,
+      note: 'A macro is stored in the slot of the button that plays it; assign it to a button on the Buttons page.',
+    });
+    c.factoryDefaults = configurable('none', true, S, {
+      ...mirror,
+      note: 'Writes the vendor’s factory button table; the other settings stay as they are.',
+    });
+    for (const f of ['fnLayer', 'perKeyRgb', 'tft', 'tftGif'] as const)
       c[f] = feature(FeatureStatus.NOT_SUPPORTED, {
         confidence: S,
         note: 'A mouse; these are keyboard features.',

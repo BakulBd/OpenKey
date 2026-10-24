@@ -73,10 +73,20 @@ export interface WinbondModel {
   model: string;
   /** Effect codes confirmed for this model; all of `MODES` when absent. */
   effects?: readonly number[];
+  /** Features an owner confirmed on this model's hardware (see `fixtures/verification`). */
+  verified?: readonly ('rgb' | 'perKeyRgb' | 'keymap' | 'macros')[];
 }
 
+/** Owner test of the MK870, OpenKey issue #13 (2026-10-24). */
+export const MK870_OWNER_TEST = 'fixtures/verification/mk870-owner-test-issue13.json';
+
 export const MODELS: readonly WinbondModel[] = [
-  { vendorId: VENDOR_ID, productId: 0xc345, model: 'FL Esports MK870' },
+  {
+    vendorId: VENDOR_ID,
+    productId: 0xc345,
+    model: 'FL Esports MK870',
+    verified: ['rgb', 'perKeyRgb', 'keymap', 'macros'],
+  },
   // Listed by the official FL Esports driver (NUC121); lighting and per-key tested by
   // DanielGibson, whose effect list agrees with the MK870's only on these codes.
   {
@@ -527,29 +537,10 @@ export function lightingPacket(c: RgbConfig): Uint8Array {
 }
 
 /**
- * Lighting query (official driver, "Inquire [Keyboard Light Config]"): `07 01`. The driver's parser
- * reads the answer at the positions of the lighting write: after the `07` echo, mode at payload
- * byte 5, brightness 6, speed 7, colour 8–10, second colour 11–13, direction 14, rainbow 15.
+ * The official driver also has a lighting query (`07 01`, "Inquire [Keyboard Light Config]").
+ * OpenKey does not send it: an MK870 owner saw the lights go dark when the app connected while it
+ * sent this query, and no capture shows the keyboard answering it.
  */
-export const LIGHTING_QUERY = [0x07, 0x01] as const;
-
-const DIRECTION_BY_CODE = new Map(
-  Object.entries(DIRECTION_CODES).map(([d, c]) => [c, d as Direction]),
-);
-
-/** Parses a lighting answer (payload without the report ID); null when it is not one. */
-export function parseLightingReply(r: Uint8Array): RgbConfig | null {
-  if (r.length < 16 || r[0] !== LIGHTING_QUERY[0]) return null;
-  return {
-    effect: r[5]!,
-    brightness: Math.min(r[6]!, LEVEL_MAX),
-    speed: Math.min(r[7]!, LEVEL_MAX),
-    color: { r: r[8]!, g: r[9]!, b: r[10]! },
-    color2: { r: r[11]!, g: r[12]!, b: r[13]! },
-    direction: DIRECTION_BY_CODE.get(r[14]!) ?? 'up',
-    colorful: r[15] === 1,
-  };
-}
 
 export const DEFAULT_CONFIG: RgbConfig = {
   effect: 0x00,
@@ -562,28 +553,20 @@ export const DEFAULT_CONFIG: RgbConfig = {
 };
 
 /**
- * Read-only protocol checks, from the official FL Esports driver V1.06.16: `07 01` is its
- * "Inquire [Keyboard Light Config]" request (the lighting write is `07 00 …`).
+ * Protocol check, from the official FL Esports driver V1.06.16. Its lighting query (`07 01`) is
+ * not offered: an MK870 owner saw the lights go dark when the app connected while it sent it.
  */
 export const PROTOCOL_CHECKS: readonly ProtocolCheckInfo[] = [
-  {
-    id: 'lighting-query',
-    title: 'Lighting query',
-    command: '07 01',
-    source: 'FL Esports driver V1.06.16: “Inquire [Keyboard Light Config]”',
-    effect: 'read-only',
-  },
   {
     id: 'model-query',
     title: 'Model query',
     command: '15',
     source:
-      'FL Esports driver V1.06.16: “Inquire [Device SN 0x15]”, which it asks on connection to choose the keyboard’s tables',
+      'FL Esports driver V1.06.16: “Inquire [Device SN 0x15]”, which it asks to choose the keyboard’s tables',
     effect: 'read-only',
   },
 ];
 const CHECK_BYTES: Record<string, readonly number[]> = {
-  'lighting-query': [0x07, 0x01],
   'model-query': [0x15],
 };
 
@@ -644,6 +627,8 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     private readonly opts: {
       store: StateStore;
       open: (i: HidInterfaceInfo) => Promise<HidTransport>;
+      /** Features an owner confirmed on this model (`WinbondModel.verified`). */
+      verified?: WinbondModel['verified'];
     },
   ) {
     super();
@@ -666,30 +651,15 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     return `winbond/${id.productId.toString(16)}`;
   }
 
-  /** Set on connection when the keyboard answered the lighting query. */
-  private lightingReadable = false;
-
   async connect(): Promise<void> {
+    // Nothing is sent on connection. An MK870 owner saw the lighting go dark when the app
+    // connected while it asked for the lighting (07 01) and the model (15); the official driver's
+    // captures never show either request, so OpenKey asks neither by itself.
     this.t = await this.opts.open(this.iface);
-    // The official driver asks for the lighting when it connects; OpenKey reads it back from the
-    // keyboard only if this keyboard answers, and otherwise keeps its own record.
-    this.lightingReadable = (await this.queryLighting().catch(() => null)) !== null;
-    // The official driver asks for the model on connection to choose the keyboard's tables.
-    this.driverModel = await this.queryModel().catch(() => undefined);
   }
 
-  /** Driver model code the keyboard reported on connection (only codes the driver lists). */
+  /** Driver model code the keyboard reported in the model check (only codes the driver lists). */
   private driverModel: string | undefined;
-
-  private async queryModel(): Promise<string | undefined> {
-    if (!this.t) return undefined;
-    const q = new Uint8Array(REPORT_BYTES);
-    q[0] = 0x15;
-    this.t.drainInput();
-    await this.t.sendOutputReport(REPORT_ID, q);
-    const r = await this.t.readInputReport(CHECK_TIMEOUT_MS);
-    return r && r[0] === 0x15 ? modelCodeIn(r) : undefined;
-  }
 
   private get fnTables() {
     return this.driverModel ? FN_FACTORY_TABLES.get(this.driverModel) : undefined;
@@ -699,8 +669,8 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
   private get fnBlockedReason(): string {
     const model = this.driverModel
       ? ` It reports model ${this.driverModel}, whose table still needs confirming.`
-      : ' It has not reported its model yet.';
-    return `Writing the Fn layer replaces every key on it, and OpenKey does not have this keyboard’s factory Fn table yet, so its built-in Fn shortcuts (volume, lighting …) would be erased.${model} To help: Device Lab → Report → Run all checks, and send the package (tester guide).`;
+      : ' It has not reported its model (Device Lab → Report → Run all checks).';
+    return `This keyboard’s third (“FN”) layer is written only with its confirmed factory table, because writing it replaces every key on it.${model} To help: Device Lab → Report → Run all checks, and send the package (tester guide).`;
   }
 
   /** Waits up to `KEYMAP_ACK_MS` for an answer that repeats `command`; true when one came. */
@@ -712,21 +682,6 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
       if (r[0] === command) return true;
     }
     return false;
-  }
-
-  private async queryLighting(): Promise<RgbConfig | null> {
-    if (!this.t) throw new ProtocolError('Not connected');
-    const q = new Uint8Array(REPORT_BYTES);
-    q.set(LIGHTING_QUERY);
-    this.t.drainInput();
-    await this.t.sendOutputReport(REPORT_ID, q);
-    for (let i = 0; i < 3; i++) {
-      const r = await this.t.readInputReport(CHECK_TIMEOUT_MS);
-      if (!r) return null;
-      const parsed = parseLightingReply(r);
-      if (parsed) return parsed;
-    }
-    return null;
   }
 
   async disconnect(): Promise<void> {
@@ -741,69 +696,82 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
 
   getCapabilities(): Capabilities {
     const c = emptyCapabilities();
+    const verified = new Set(this.opts.verified ?? []);
+    const owner = 'MK870 owner test, OpenKey issue #13 (2026-10-24)';
     c.deviceInfo = feature(FeatureStatus.READ_ONLY, {
       read: 'device',
       confidence: Evidence.OBSERVED,
       source: 'USB identity and product string',
     });
-    c.rgb = configurable(this.lightingReadable ? 'device' : 'mirror', true, Evidence.OBSERVED, {
+    const level = (f: 'rgb' | 'perKeyRgb' | 'keymap' | 'macros', otherwise: Evidence) =>
+      verified.has(f) ? Evidence.VERIFIED : otherwise;
+    const cite = (f: 'rgb' | 'perKeyRgb' | 'keymap' | 'macros', source: string) =>
+      verified.has(f) ? `${owner}; ${source}` : source;
+    c.rgb = configurable('mirror', true, level('rgb', Evidence.OBSERVED), {
       safety: SafetyLevel.SAFE_PERSISTENT,
-      source:
-        '45 USB captures from an MK870 owner (OpenKey issue #13): every effect, direction, colour, brightness and speed, byte for byte the packet OpenKey sends; lighting query from the official FL Esports driver',
+      source: cite(
+        'rgb',
+        '45 USB captures from an MK870 owner (OpenKey issue #13): every effect, direction, colour, brightness and speed, byte for byte the packet OpenKey sends',
+      ),
       value: `${this.modes.length - 1} effects, two colours, rainbow, brightness and speed 0–${LEVEL_MAX}, eight directions`,
-      note: this.lightingReadable
-        ? 'Read from the keyboard and read back after each change.'
-        : 'This keyboard did not answer the lighting query, so OpenKey shows what it last wrote.',
+      note: 'The keyboard cannot report its lighting, so OpenKey shows what it last wrote. Changes made with the Fn shortcuts are not shown here.',
     });
-    c.perKeyRgb = configurable('mirror', true, Evidence.INFERRED, {
+    c.perKeyRgb = configurable('mirror', true, level('perKeyRgb', Evidence.INFERRED), {
       safety: SafetyLevel.SAFE_PERSISTENT,
-      source:
+      source: cite(
+        'perKeyRgb',
         'DanielGibson’s Pulsar PCMK TKL notes (0416:B23C, same command family): command 09, 132-LED grid',
+      ),
       value: `${this.layout.keys.filter((k) => k.light !== null).length} keys`,
-      note: 'LED order from the official driver’s matrix, confirmed LED by LED on a sibling board (Pulsar PCMK). The keyboard cannot report its colours.',
+      note: verified.has('perKeyRgb')
+        ? 'LED order from the official driver’s matrix. The keyboard cannot report its colours; OpenKey shows what it last wrote.'
+        : 'LED order from the official driver’s matrix, confirmed LED by LED on a sibling board (Pulsar PCMK). The keyboard cannot report its colours.',
     });
-    c.keymap = configurable('mirror', true, Evidence.INFERRED, {
+    c.keymap = configurable('mirror', true, level('keymap', Evidence.INFERRED), {
       safety: SafetyLevel.CAUTION,
-      source:
+      source: cite(
+        'keymap',
         'Official FL Esports driver V1.06.16: key-map packet 18 and its default QWERTY profile, decoded from the driver',
+      ),
       value:
         'default layer: keys, keys with up to two modifiers, nine media keys, macros, disabled, factory default',
       note: 'The keyboard cannot report its key map; OpenKey shows what it last wrote. The Fn key stays fixed. Restore the defaults to undo.',
     });
-    c.fnLayer = this.fnTables
-      ? configurable('mirror', true, Evidence.INFERRED, {
-          safety: SafetyLevel.CAUTION,
-          source: `Official FL Esports driver: key-map packet 18 (layer 1) with the factory Fn table of model ${this.driverModel}`,
-          note: 'Keys you do not change keep their factory Fn function. The keyboard cannot report this layer; OpenKey shows what it last wrote.',
-        })
-      : feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-          read: 'mirror',
-          confidence: Evidence.INFERRED,
-          source: 'Official FL Esports driver: key-map packet 18, layers 1 (FN1) and 2 (FN)',
-          note: 'You can plan Fn-layer changes; they are sent once this keyboard’s factory Fn table is confirmed.',
-          blockedReason: this.fnBlockedReason,
-        });
-    c.profiles = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
+    // FN1 is the keyboard's second full layout (owner's manual: hold Fn+Tab for 3 s to switch);
+    // the Fn shortcuts are built into the firmware, not stored in this layer. The official driver
+    // writes "Default & FN1" (packet 18, layers 0 and 1) on two-layer boards.
+    c.fnLayer = configurable('mirror', true, Evidence.INFERRED, {
+      safety: SafetyLevel.CAUTION,
+      source:
+        'MK870 manual (Fn+Tab, hold 3 s: FN1 layer; Fn+Esc, hold 3 s: factory defaults) and the official FL Esports driver (key-map packet 18, layer 1)',
+      value: 'FN1 layer: keys, combinations, media keys, macros, disabled',
+      note: 'FN1 is the keyboard’s second layout: hold Fn+Tab for 3 seconds to switch to it and back. The Fn shortcuts (volume, lighting …) are built into the keyboard and stay as they are. Undo: Restore layer defaults, or hold Fn+Esc for 3 seconds for factory defaults.',
+    });
+    c.profiles = feature(FeatureStatus.FIRMWARE_LIMITED, {
       confidence: Evidence.INFERRED,
-      source: 'Official FL Esports driver: profile commands (14) not yet decoded',
-      note: 'OpenKey profiles (Profiles page) save and restore this keyboard’s lighting, key map, macros and sleep time from this browser.',
+      source: 'MK870 manual: the default layer and the FN1 layer, switched with Fn+Tab',
+      value: 'Two layouts on the keyboard: default and FN1 (hold Fn+Tab for 3 s to switch)',
+      note: 'Edit both layouts on the Keymap page. OpenKey profiles (Profiles page) also save and restore the lighting, key map, macros and sleep time from this browser.',
       blockedReason:
-        'Switching the keyboard’s own onboard profiles is not available yet: the official driver’s profile command is not fully decoded, and a wrong write could overwrite a stored profile. Use OpenKey profiles meanwhile.',
+        'The MK870 keeps two layouts on the keyboard: the default layer and FN1. Edit both on the Keymap page and switch between them on the keyboard (hold Fn+Tab for 3 seconds). Switching from the computer is not part of the documented protocol, so OpenKey does not send it.',
     });
     c.sleep = configurable('mirror', true, Evidence.INFERRED, {
       safety: SafetyLevel.SAFE_PERSISTENT,
       source: 'Official FL Esports driver V1.06.16: “[Sleep time]” packet, decoded from the driver',
-      note: 'The keyboard cannot report it; OpenKey shows what it last wrote. The lighting turns off when the keyboard sleeps.',
+      value: 'Lights off and keyboard asleep after 5 min to 1 h without typing',
+      note: 'The official FL Esports app has the same setting. After this much time without a key press the keyboard turns its lights off and sleeps; any key press wakes it. The keyboard cannot report it; OpenKey shows what it last wrote.',
     });
     c.factoryDefaults = configurable('none', true, Evidence.INFERRED, {
       safety: SafetyLevel.CAUTION,
       source: 'Official FL Esports driver V1.06.16: default QWERTY profile',
       note: 'Restores the key map by writing the driver’s default table; the lighting and sleep stay as they are.',
     });
-    c.macros = configurable('mirror', true, Evidence.INFERRED, {
+    c.macros = configurable('mirror', true, level('macros', Evidence.INFERRED), {
       safety: SafetyLevel.CAUTION,
-      source:
+      source: cite(
+        'macros',
         'Official FL Esports driver V1.06.16: macro uploader (command 19), decoded from the driver',
+      ),
       value: `${MACRO_SLOTS} macros of up to ${MACRO_MAX_EVENTS} presses and releases; play once, several times, toggle or while held`,
       note: 'Stored on the keyboard: a macro plays once it is assigned to a key in the key map. The keyboard cannot report its macros; OpenKey shows what it last wrote.',
     });
@@ -833,7 +801,8 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
               label: 'Driver model',
               value: this.driverModel,
               confidence: Evidence.OBSERVED,
-              source: 'Reported by the keyboard (model query 15, as the official driver asks)',
+              source:
+                'Reported by the keyboard in the model check (query 15 of the official driver)',
             },
           ]
         : [],
@@ -861,11 +830,6 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
   }
 
   override async getRgbConfig(): Promise<RgbConfig> {
-    if (this.lightingReadable) {
-      const live = await this.queryLighting();
-      if (!live) throw new ProtocolError('The keyboard did not answer the lighting query.');
-      return live;
-    }
     return (await this.opts.store.get<RgbConfig>(this.key)) ?? DEFAULT_CONFIG;
   }
 
@@ -911,6 +875,7 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
         };
       const reply = replyShape(REPORT_ID, r, bytes[0]!);
       const model = id === 'model-query' && reply.echo ? modelCodeIn(r) : undefined;
+      if (model) this.driverModel = model;
       return {
         ...base,
         at,
@@ -954,17 +919,16 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
         throw new ProtocolError(
           `Macro ${m.index + 1} is outside the keyboard’s ${MACRO_SLOTS} slots.`,
         );
-    const keymap = await this.getKeymap('base');
     // Encode everything first: nothing is sent if one macro does not fit.
-    const records = this.macroRecords(macros, keymap.slots);
+    const records = this.macroRecords(macros, await this.layerBindings());
     await this.writeMacroSlots(records);
     await this.opts.store.set(`${this.key}/macros`, macros);
   }
 
   /** How each slot is played, from the keys bound to it; two keys must agree. */
-  private macroPlays(slots: Record<number, KeyAction>): Map<number, MacroPlay> {
+  private macroPlays(layers: Record<number, KeyAction>[]): Map<number, MacroPlay> {
     const plays = new Map<number, MacroPlay>();
-    for (const a of Object.values(slots)) {
+    for (const a of layers.flatMap((slots) => Object.values(slots))) {
       if (a.kind !== 'macro') continue;
       const play = { mode: a.mode, repeat: a.mode === 'repeat' ? a.repeat : 1 };
       const had = plays.get(a.index);
@@ -977,8 +941,8 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     return plays;
   }
 
-  private macroRecords(macros: Macro[], slots: Record<number, KeyAction>): Uint8Array[] {
-    const plays = this.macroPlays(slots);
+  private macroRecords(macros: Macro[], layers: Record<number, KeyAction>[]): Uint8Array[] {
+    const plays = this.macroPlays(layers);
     return Array.from({ length: MACRO_SLOTS }, (_, i) => {
       const play = plays.get(i);
       return play
@@ -1012,14 +976,6 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     return MEDIA_KEYS;
   }
 
-  /** The key map goes back to the driver's own default table (nothing else is reset). */
-  override async restoreDefaults(
-    scope: 'keymap' | 'fnLayer' | 'macros' | 'lighting',
-  ): Promise<void> {
-    if (scope !== 'keymap') return super.restoreDefaults(scope);
-    await this.setKeymap({ layer: 'base', slots: {}, provenance: 'mirror' });
-  }
-
   override getSettingsSchema(): SettingsSchema {
     return { sleepTime: [...SLEEP_OPTIONS] };
   }
@@ -1039,29 +995,38 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
     await this.opts.store.set(`${this.key}/settings`, { sleepTime: merged.sleepTime });
   }
 
+  override getLayerLabel(layer: LayerId): string | undefined {
+    return layer === 'fn' ? 'FN1 layer (Fn+Tab)' : layer === 'layer2' ? 'FN layer' : undefined;
+  }
+
   override getLayerIds(): readonly LayerId[] {
     return this.fnTables?.fn2 ? ['base', 'fn', 'layer2'] : ['base', 'fn'];
   }
 
   override async getKeymap(layer: LayerId = 'base'): Promise<KeymapState> {
-    const store = layer === 'base' ? `${this.key}/keymap` : `${this.key}/keymap-${layer}`;
     if (layer !== 'base' && layer !== 'fn' && layer !== 'layer2') return super.getKeymap(layer);
-    const saved = await this.opts.store.get<KeymapState>(store);
+    const saved = await this.opts.store.get<KeymapState>(this.keymapKey(layer));
     return saved ?? { layer, slots: {}, provenance: 'assumed-default' };
   }
 
   override async setKeymap(state: KeymapState): Promise<void> {
     if (!this.t) throw new ProtocolError('Not connected');
-    if (state.layer !== 'base') return this.setFnLayerKeymap(state);
-    const packets = keymapPackets(0, state.slots);
-    // Macros used by the new map are written first (as the official driver does), so no key
-    // points at a slot that is not there yet; slots the map no longer uses are cleared.
-    const records = this.macroRecords(await this.getMacros(), state.slots);
-    const usesMacros = Object.values(state.slots).some((a) => a.kind === 'macro');
-    const hadMacros = Object.values((await this.getKeymap('base')).slots).some(
-      (a) => a.kind === 'macro',
-    );
-    if (usesMacros || hadMacros) await this.writeMacroSlots(records);
+    const layer =
+      state.layer === 'base' ? 0 : state.layer === 'fn' ? 1 : state.layer === 'layer2' ? 2 : -1;
+    if (layer < 0) throw new ProtocolError(`Layer ${state.layer} does not exist on this keyboard.`);
+    // Layers 0 and 1 start from the official default table; a third ("FN") layer exists only on
+    // three-layer models and is written only with its confirmed factory table.
+    const factory = layer === 1 ? this.fnTables?.fn1 : layer === 2 ? this.fnTables?.fn2 : undefined;
+    if (layer === 2 && !factory) throw new SafetyBlockedError(this.fnBlockedReason);
+    const packets = keymapPackets(layer, state.slots, factory);
+    // Macros used by either layer are written first (as the official driver does), so no key
+    // points at a slot that is not there yet; slots no layer uses any more are cleared.
+    const before = await this.layerBindings();
+    const after = await this.layerBindings(state.layer, state.slots);
+    const records = this.macroRecords(await this.getMacros(), after);
+    const anyMacro = (list: Record<number, KeyAction>[]) =>
+      list.some((slots) => Object.values(slots).some((a) => a.kind === 'macro'));
+    if (anyMacro(before) || anyMacro(after)) await this.writeMacroSlots(records);
     this.t.drainInput();
     // The keyboard answers each key-map packet with an `18` echo (handled by the official driver);
     // waiting briefly for it paces the writes to the keyboard's memory. An echo is not a read-back.
@@ -1069,39 +1034,37 @@ export class WinbondDriver extends BaseKeyboardDriver implements DiagnosticsDriv
       await this.t.sendOutputReport(REPORT_ID, p);
       await this.waitForEcho(KEYMAP_CMD);
     }
-    await this.opts.store.set(`${this.key}/keymap`, {
-      layer: 'base',
+    await this.opts.store.set(this.keymapKey(state.layer), {
+      layer: state.layer,
       slots: state.slots,
       provenance: 'mirror',
       updatedAt: new Date().toISOString(),
     } satisfies KeymapState);
   }
 
-  /**
-   * Fn layers: written only with the confirmed factory table of the reported model, so keys the
-   * user leaves alone keep their factory Fn function. Without it nothing is sent.
-   */
-  private async setFnLayerKeymap(state: KeymapState): Promise<void> {
-    if (!this.t) throw new ProtocolError('Not connected');
-    const tables = this.fnTables;
-    const table =
-      state.layer === 'fn' ? tables?.fn1 : state.layer === 'layer2' ? tables?.fn2 : undefined;
-    if (!table) throw new SafetyBlockedError(this.fnBlockedReason);
-    if (Object.values(state.slots).some((a) => a.kind === 'macro'))
-      throw new ProtocolError('Macros can be assigned on the default layer.');
-    const layer = state.layer === 'fn' ? 1 : 2;
-    const packets = keymapPackets(layer, state.slots, table);
-    this.t.drainInput();
-    for (const p of packets) {
-      await this.t.sendOutputReport(REPORT_ID, p);
-      await this.waitForEcho(KEYMAP_CMD);
-    }
-    await this.opts.store.set(`${this.key}/keymap-${state.layer}`, {
-      layer: state.layer,
-      slots: state.slots,
-      provenance: 'mirror',
-      updatedAt: new Date().toISOString(),
-    } satisfies KeymapState);
+  private keymapKey(layer: LayerId): string {
+    return layer === 'base' ? `${this.key}/keymap` : `${this.key}/keymap-${layer}`;
+  }
+
+  /** Key maps of both written layers, with `layer` replaced by `slots` when given. */
+  private async layerBindings(
+    layer?: LayerId,
+    slots?: Record<number, KeyAction>,
+  ): Promise<Record<number, KeyAction>[]> {
+    const of = async (id: LayerId) =>
+      id === layer && slots ? slots : (await this.getKeymap(id)).slots;
+    return [await of('base'), await of('fn')];
+  }
+
+  /** Writes the official default table back to the base or FN1 layer. */
+  override async restoreDefaults(
+    scope: 'keymap' | 'fnLayer' | 'macros' | 'lighting',
+  ): Promise<void> {
+    if (scope === 'keymap')
+      return this.setKeymap({ layer: 'base', slots: {}, provenance: 'mirror' });
+    if (scope === 'fnLayer')
+      return this.setKeymap({ layer: 'fn', slots: {}, provenance: 'mirror' });
+    return super.restoreDefaults(scope);
   }
 
   override async getPerKeyRgb(): Promise<PerKeyRgb> {
@@ -1127,9 +1090,9 @@ export const winbondProtocol: ProtocolDefinition = {
     status: 'community',
     transports: { input: ['usb'], configuration: ['usb'] },
     verification:
-      'Lighting packet captured from the vendor software by Mqlvin/keyboard-colour, which an MK870 owner ran on 0416:C345; per-key, key map, media keys and sleep decoded from the official FL Esports driver. Not yet run by OpenKey on hardware.',
+      'MK870 (0416:C345): lighting, per-key colours, base-layer key map and macros verified by an owner from OpenKey (issue #13); lighting packets match 45 captures of the official app byte for byte. FN1 layer and sleep decoded from the official FL Esports driver, not yet owner-tested.',
     safety:
-      'Nothing is sent while detecting: the keyboard is identified from its USB identity, product string and exact report layout. Only the lighting, per-key, key-map and sleep packets of the official driver are sent, behind the experimental opt-in; the read-only lighting query runs only when the user starts a protocol check. The firmware-update (0B), serial-number (16) and LCD-firmware (22) commands are never sent.',
+      'Nothing is sent while detecting: the keyboard is identified from its USB identity, product string and exact report layout. Nothing is sent on connection. Only the lighting, per-key, key-map, macro and sleep packets of the official driver are sent; features not yet owner-tested stay behind the experimental opt-in. The read-only model query runs only when the user starts a protocol check. The firmware-update (0B), serial-number (16) and LCD-firmware (22) commands are never sent.',
     provenance: [
       {
         source: 'public-reverse-engineering',
@@ -1158,16 +1121,24 @@ export const winbondProtocol: ProtocolDefinition = {
     ],
     license: 'MIT',
     limitations: [
-      'Per-key LED order is the official driver’s matrix, confirmed on a sibling board (Pulsar PCMK TKL), not yet on an MK870.',
-      'The key map, per-key colours and sleep time cannot be read from the keyboard; OpenKey shows what it last wrote.',
-      'Key map: the default layer (keys, two-modifier combinations, nine media keys, macros). The Fn layer is written only with the confirmed factory table of the reported model; none is confirmed yet, so it is not sent.',
-      'Onboard profiles: the profile command is not fully decoded; not written.',
+      'Verified by an MK870 owner: lighting (every effect), per-key colours, base-layer key map and all 10 macro slots. The FN1 layer and sleep time are not yet owner-tested; on the Pulsar PCMK only lighting and per-key are tested (by DanielGibson).',
+      'The lighting, key map, per-key colours, macros and sleep time cannot be read from the keyboard; OpenKey shows what it last wrote.',
+      'Key map: the default and FN1 layers (keys, two-modifier combinations, nine media keys, macros); the Fn shortcuts are built into the firmware and are not changed. A third “FN” layer (three-layer models) is written only with its confirmed factory table.',
+      'Onboard layouts are switched on the keyboard (Fn+Tab, hold 3 s); OpenKey does not switch them from the computer.',
       'Macros: 10 slots of up to 62 presses and releases; the byte before the slot in a macro key’s entry is the 1 every key carries in the driver’s profiles (confirmed only for play once).',
-      'Lighting is read back only when the keyboard answers the lighting query; otherwise OpenKey shows what it last wrote.',
       'Music response follows audio the vendor app streams (command 20); OpenKey does not stream audio.',
     ],
-    fixtures: ['fixtures/rgb/mk870-lighting-captures-issue13.json'],
-    verifiedIdentities: [],
+    fixtures: ['fixtures/rgb/mk870-lighting-captures-issue13.json', MK870_OWNER_TEST],
+    verifiedIdentities: [
+      {
+        vendorId: VENDOR_ID,
+        productId: 0xc345,
+        productName: PRODUCT_NAME,
+        transport: 'usb',
+        scope: 'lighting (every effect), per-key colours, base-layer key map, 10 macro slots',
+        evidence: MK870_OWNER_TEST,
+      },
+    ],
   },
   name: 'Winbond OEM keyboard protocol (FL Esports MK870, Pulsar PCMK …)',
   family: WINBOND_PROTOCOL_ID,
@@ -1248,6 +1219,7 @@ export const winbondProtocol: ProtocolDefinition = {
     return new WinbondDriver(group, ch, model?.model ?? 'Winbond gaming keyboard', modes, {
       store: opts.store,
       open: async (i) => new LoggingTransport(await group.openInterface(i), opts.log),
+      verified: model?.verified,
     });
   },
 };

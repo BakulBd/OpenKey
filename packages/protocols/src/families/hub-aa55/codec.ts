@@ -28,7 +28,16 @@ export const Cmd = {
   GET_CUSTOM_LED: 0x14,
   SET_LED_EFFECT: 0x23,
   SET_CUSTOM_LED: 0x24,
+  /** Knob-ring and side-bar zones: 24-byte blocks, read (0x1B, 0x1D) and written (0x2B, 0x2D). */
+  GET_RING_ZONE: 0x1b,
+  GET_SIDE_ZONE: 0x1d,
+  SET_RING_ZONE: 0x2b,
+  SET_SIDE_ZONE: 0x2d,
 } as const;
+
+/** A zone block: byte 0 kept, bytes 1–3 the colour, 4–23 kept (Dylan-1107/aula-f87s-hid §5.5). */
+export const ZONE_BYTES = 24;
+export const ZONE_COLOR_OFFSET = 1;
 
 /** Commands OpenKey never sends: firmware download, factory reset, calibration, screen writes. */
 export const FORBIDDEN: readonly number[] = [0x4f, 0x0f, 0x50, 0x51];

@@ -4,3 +4,4 @@ pnpm-lock.yaml
 re
 fixtures
 packages/profiles/src/layouts
+packages/protocols/src/families/rk-classic/keys.json

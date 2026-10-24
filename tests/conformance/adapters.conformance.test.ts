@@ -49,6 +49,7 @@ const SAMPLES: Record<string, () => MockHidDevice> = {
   'by-tech': () => new byTech.ByTechSimulator().device,
   royuan: () => new royuan.RoyuanSimulator().device,
   'aula-receiver': () => new aulaReceiver.AulaReceiverSimulator().device,
+  'rk-m87-receiver': () => new aulaReceiver.RkM87ReceiverSimulator().device,
   hmk: () => new hmk.HmkSimulator().device,
   'yjx-mouse': () => new yjxMouse.YjxMouseSimulator().device,
   'hid-lamparray': () => new lampArray.LampArraySimulator().device,

@@ -591,10 +591,11 @@ export const CATALOG: readonly CatalogEntry[] = [
     model: 'M87 2.4 GHz receiver',
     link: '2.4ghz',
     mcu: 'SinoWealth SH68F90A',
-    family: 'unknown',
-    status: 'research',
-    hardware: {},
-    evidence: 'ElXreno/rk-m87-sync (MIT): CDev3632 20-byte reports with checksum; not implemented',
+    family: 'rk-m87-receiver',
+    status: 'community',
+    hardware: { tft: true },
+    evidence:
+      'ElXreno/rk-m87-sync (MIT): CDev3632 report 0x13 with checksum; screen clock (SetScreenParam 0x0B) and link state (GetDongleStatus 0x07), run on an M87 receiver by the source',
   },
   {
     brand: 'RK',
@@ -646,10 +647,10 @@ export const CATALOG: readonly CatalogEntry[] = [
     link: 'usb',
     mcu: 'Winbond / Nuvoton',
     family: 'winbond-lighting',
-    status: 'community',
+    status: 'verified',
     hardware: { rgb: true, perKeyRgb: true },
     evidence:
-      'Official FL Esports driver V1.06.16 lists 0416:C345 (Nuvoton M252); its command table, key-map and sleep packets decoded from the driver. Lighting packet from Mqlvin/keyboard-colour (MIT), which an MK870 owner ran on the keyboard; descriptor FF1B:0091, report 1, 63 B',
+      'Owner-verified from OpenKey (issue #13): lighting (every effect), per-key colours, base-layer key map and all 10 macro slots; the FN1 layer and sleep time are still experimental. Commands from the official FL Esports driver V1.06.16 (0416:C345, Nuvoton M252); lighting matches 45 captures of the official app; descriptor FF1B:0091, report 1, 63 B',
   },
   {
     brand: 'Pulsar',

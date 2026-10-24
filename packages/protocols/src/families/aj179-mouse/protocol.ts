@@ -28,7 +28,7 @@ export const aj179MouseProtocol: ProtocolDefinition = {
     verification:
       'Implemented from a public protocol reference reverse-engineered from the vendor driver and checked by its author on an AJ179 (cable and receiver); tested against a simulator, not yet run by OpenKey on the mouse.',
     safety:
-      'Every setting is read first, written, and read back. Button mapping, macros, the resets and the firmware updater are never sent.',
+      'Every setting is read first, written, and read back. Button mapping and macros cannot be read back: they are written behind the experimental opt-in, and the left button always stays a left click. The resets and the firmware updater are never sent.',
     provenance: [
       {
         source: 'public-reverse-engineering',
@@ -38,7 +38,7 @@ export const aj179MouseProtocol: ProtocolDefinition = {
     ],
     license: 'MIT',
     limitations: [
-      'Button mapping and macros are not written: the mouse cannot report them back.',
+      'Button mapping and macros cannot be read from the mouse: OpenKey shows what it last wrote. Long macros (more than six presses and releases) are sent in chunks as the vendor app does; only short ones were checked on the mouse by the source.',
       'Through the receiver, settings need the mouse awake (move it).',
       'Only the tested AJ179 rates (125–1000 Hz) are offered unless the mouse reports faster ones.',
     ],
@@ -137,6 +137,7 @@ export const aj179MouseProtocol: ProtocolDefinition = {
       group,
       iface,
       async (i) => new LoggingTransport(await group.openInterface(i), opts.log),
+      opts.store,
     );
   },
 };

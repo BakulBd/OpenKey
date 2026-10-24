@@ -109,4 +109,41 @@ describe('AULA/AJAZZ web-driver protocol (AA/55)', () => {
     expect(driver.getCapabilities().perKeyRgb.write).toBe(false);
     expect(driver.getRgbEffects().customEffect).toBeUndefined();
   });
+
+  describe('knob ring and side bars (F87S)', () => {
+    it('reads each zone’s colour from the keyboard', async () => {
+      const { driver } = await connect();
+      const c = driver.getCapabilities().lightZones;
+      expect([c.read, c.write, c.value]).toEqual(['device', true, 'Knob ring, Side light bars']);
+      expect(await driver.getLightZones()).toEqual([
+        { id: 'ring', name: 'Knob ring', color: { r: 0x40, g: 0x40, b: 0x40 } },
+        { id: 'side', name: 'Side light bars', color: { r: 0x80, g: 0x80, b: 0x80 } },
+      ]);
+    });
+
+    it('changes only the colour bytes of the block it read, then reads it again', async () => {
+      const { driver, sim } = await connect();
+      const before = sim.zones.get(0x1b)!.slice();
+      await driver.setLightZones([{ id: 'ring', color: { r: 1, g: 2, b: 3 } }]);
+      const w = sim.writes.find((x) => x.cmd === 0x2b)!;
+      expect([...w.data]).toEqual([before[0], 1, 2, 3, ...before.subarray(4)]);
+      expect(sim.writes.some((x) => x.cmd === 0x2d)).toBe(false);
+      expect((await driver.getLightZones())[0]!.color).toEqual({ r: 1, g: 2, b: 3 });
+    });
+
+    it('offers no zones on a keyboard without them, or through a receiver paired elsewhere', async () => {
+      const sim = new HubSimulator();
+      sim.hasZones = false;
+      const { driver } = await connect(sim);
+      expect(driver.getCapabilities().lightZones.write).toBe(false);
+      await expect(
+        driver.setLightZones([{ id: 'ring', color: { r: 0, g: 0, b: 0 } }]),
+      ).rejects.toThrow(/not available/);
+      const other = new HubSimulator(
+        { vendorId: 0x0c45, productId: 0xfef9, productName: '2.4G Receiver' },
+        { body: [0x1234, 0x5678] },
+      );
+      expect((await connect(other)).driver.getCapabilities().lightZones.write).toBe(false);
+    });
+  });
 });

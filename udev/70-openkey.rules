@@ -57,6 +57,8 @@ SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="80b2", MODE="06
 
 # RK M87 and M75 (BY Tech platform)
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="258a", ATTRS{idProduct}=="01a2", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+# RK M87 2.4 GHz receiver (screen clock)
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="258a", ATTRS{idProduct}=="0150", MODE="0660", GROUP="plugdev", TAG+="uaccess"
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="258a", ATTRS{idProduct}=="0163", MODE="0660", GROUP="plugdev", TAG+="uaccess"
 
 # EVision firmware boards (Redragon, Glorious, AJAZZ …)

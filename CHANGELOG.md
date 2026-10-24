@@ -25,7 +25,12 @@ behind the experimental opt-in. Sources and what was taken from each: docs/SOURC
 - **A4Tech Bloody B820R, HyperX Alloy Origins, Ducky One 2 RGB**: direct per-key and solid colours.
   Where no command gives the lighting back, OpenKey says to unplug instead of inventing one.
 - **FL Esports MK870** (and the Pulsar PCMK TKL), from the official FL Esports driver, keyboard-colour
-  (MIT) and the PCMK notes:
+  (MIT) and the PCMK notes. **Verified by an MK870 owner** (issue #13): every lighting effect,
+  per-key colours, the base layer's key map and all 10 macro slots, so these no longer need the
+  experimental switch on the MK870. The FN1 layer and sleep time stay experimental until tested.
+  - **Fixed:** the lights went dark when the app connected. OpenKey asked the keyboard for its
+    lighting (`07 01`) and model (`15`) on connection; it now sends nothing until you change
+    something. The lighting query is gone, and the model query runs only from Device Lab;
   - lighting with two colours, rainbow and eight directions;
   - per-key colours on the driver's own LED matrix;
   - the default layer's key map: keys, keys with up to two modifiers, nine media keys, disabled
@@ -33,18 +38,33 @@ behind the experimental opt-in. Sources and what was taken from each: docs/SOURC
   - sleep time.
   - macros stored on the keyboard (10 slots; play once, several times, toggle or while held),
     decoded from the official driver's macro uploader;
-  - the Fn layer is editable, and is written only with the keyboard's confirmed factory Fn table
-    (the model code is read on connection); until then Apply explains why nothing is sent;
+  - the FN1 layer (the second layout, Fn+Tab) is written like the base layer: the keyboard's manual
+    shows the Fn shortcuts are built into the firmware, so writing FN1 cannot erase them; a third
+    "FN" layer (three-layer models) waits for its confirmed factory table;
+  - drivers can name their layers ("FN1 layer (Fn+Tab)") and give a reason wherever a write is
+    blocked;
   - a clearer notice wherever a write is blocked, with the reason and what to do;
-  - two read-only protocol checks (lighting query, model query) with a "Run all checks" button
-    and a link to the tester guide;
+  - a read-only model check with a "Run all checks" button and a link to the tester guide;
   - lighting matched byte for byte against 45 USB captures from an MK870 owner (issue #13), with
     the Music response effect added;
-  - lighting read back from the keyboard when it answers the official lighting query, and checked
-    after every change.
+  - the sleep setting explains what it does (lights off and keyboard asleep after the idle time).
 
   Lighting now supports rotating and radial directions and a second colour.
 
+- **RK keyboards (classic protocol, 78 models):** key maps and per-key colours, each on the model's
+  own layout generated from RK's key table (positions, key codes and table indices from RK's own
+  software). Every write sends RK's factory table with your changes, Fn stays as it is, and restore
+  defaults writes the factory table. A demo RK61 shows it.
+- **RK M87 2.4 GHz receiver:** sets the screen clock through the receiver, and shows whether the
+  keyboard is awake. **Fixed:** the AULA receiver adapter no longer claims RK receivers, where its
+  `0x0B` read would have reset the screen clock, and it reads version and battery only from AULA's
+  own receiver.
+- **AULA F87S 8K:** colours of the knob ring and the side light bars (Lighting → Light zones), each
+  read, changed alone and read back.
+- **AJAZZ AJ179 mouse:** button mapping (mouse buttons, wheel, scroll tilt, DPI, keys with modifiers,
+  media keys) and macros played once, N times, while held or until the next click. The left button
+  stays a left click.
+- The per-key page no longer says "Read from the keyboard" on boards that cannot report colours.
 - **Diagnostics:** packages now carry a descriptor fingerprint, a vendor-channel map, protocol-family
   hints, why each adapter matched or not, evidence per feature, and the answer shapes of read-only
   protocol checks. They still carry no payloads or serial numbers. Device Lab → Report runs the

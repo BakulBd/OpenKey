@@ -16,6 +16,7 @@ export const WRITE_METHODS: Readonly<Record<string, readonly FeatureId[]>> = {
   setMacros: ['macros'],
   setRgbConfig: ['rgb'],
   setPerKeyRgb: ['perKeyRgb'],
+  setLightZones: ['lightZones'],
   streamRealtime: ['realtimeRgb'],
   uploadTftImage: ['tft'],
   uploadTftGif: ['tftGif'],

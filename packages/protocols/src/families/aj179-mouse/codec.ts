@@ -44,8 +44,8 @@ export const Cmd = {
 } as const;
 
 /**
- * Commands OpenKey never sends: macro upload and button mapping (no read-back), the resets
- * (0x0D–0x0F, 0x0F is a factory reset) and anything else not listed above.
+ * Commands `frame` builds. Button mapping (0x09) and macro upload (0x08) are built in buttons.ts;
+ * the resets (0x0D–0x0F, 0x0F is a factory reset) and anything else are never sent.
  */
 const ALLOWED = new Set<number>(Object.values(Cmd));
 

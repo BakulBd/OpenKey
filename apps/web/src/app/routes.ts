@@ -43,7 +43,7 @@ export const ROUTES: RouteDef[] = [
     section: 'device',
     label: 'nav.rgb',
     icon: 'rgb',
-    features: ['rgb', 'perKeyRgb'],
+    features: ['rgb', 'perKeyRgb', 'lightZones'],
     needsDevice: true,
     component: lazy(() => import('../features/rgb/Lighting.js')),
   },

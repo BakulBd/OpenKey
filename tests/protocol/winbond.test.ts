@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  Evidence,
   MemoryStateStore,
   PacketLog,
   isDiagnosticsDriver,
@@ -72,11 +73,8 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       identification: 'identified',
     });
     expect(detectionTraffic).toBe(0);
-    // The two read-only questions the official driver asks on connection: lighting and model.
-    expect(onConnect).toEqual([
-      [0x07, 0x01],
-      [0x15, 0x00],
-    ]);
+    // Nothing on connection: the lighting query blanked an owner's lights (issue #13).
+    expect(onConnect).toEqual([]);
     expect((await driver.getDeviceInfo()).model).toBe('FL Esports MK870');
     expect(driver.getLayout().keys).toHaveLength(87);
     const caps = driver.getCapabilities();
@@ -86,7 +84,7 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       caps.perKeyRgb.write,
       caps.macros.write,
       caps.fnLayer.write,
-    ]).toEqual([true, true, true, false]);
+    ]).toEqual([true, true, true, true]);
     expect(driver.getLayerIds()).toEqual(['base', 'fn']);
   });
 
@@ -264,32 +262,69 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       }),
     ).rejects.toSatisfy((e) => isOpenKeyError(e));
     await expect(
-      driver.setKeymap({ layer: 'fn', slots: {}, provenance: 'mirror' }),
+      driver.setKeymap({ layer: 'layer2', slots: {}, provenance: 'mirror' }),
     ).rejects.toSatisfy((e) => isOpenKeyError(e));
     expect(sim.packets).toEqual([]);
   });
 
-  it('runs the official read-only lighting query and keeps only the answer’s shape', async () => {
+  it('offers only the model query as a check, and never the lighting query', async () => {
     const { driver, sim } = await connect();
     expect(isDiagnosticsDriver(driver)).toBe(true);
     if (!isDiagnosticsDriver(driver)) return;
     expect(driver.listProtocolChecks().map((c) => [c.id, c.command, c.effect])).toEqual([
-      ['lighting-query', '07 01', 'read-only'],
       ['model-query', '15', 'read-only'],
     ]);
-    const r = await driver.runProtocolCheck('lighting-query');
-    expect(sim.packets).toHaveLength(1);
-    expect([...sim.packets[0]!.subarray(0, 3)]).toEqual([0x07, 0x01, 0x00]);
-    expect(sim.packets[0]!.subarray(2).every((b) => b === 0)).toBe(true);
-    expect(r).toMatchObject({
-      status: 'answered',
-      reply: { reportId: 1, length: 63, echo: true, firstByte: '0x07' },
-    });
-    expect(JSON.stringify(r)).not.toMatch(/"bytes"|\[7,1/);
-
-    sim.answersQueries = false;
-    expect((await driver.runProtocolCheck('lighting-query')).status).toBe('no-answer');
+    await expect(driver.runProtocolCheck('lighting-query')).rejects.toThrow(
+      /Unknown protocol check/,
+    );
     await expect(driver.runProtocolCheck('bootloader')).rejects.toThrow(/Unknown protocol check/);
+    expect(sim.packets).toEqual([]);
+    sim.answersQueries = false;
+    expect((await driver.runProtocolCheck('model-query')).status).toBe('no-answer');
+  });
+
+  it('marks the MK870 features its owner tested as verified, and only on the MK870', async () => {
+    const { driver } = await connect();
+    const caps = driver.getCapabilities();
+    for (const f of ['rgb', 'perKeyRgb', 'keymap', 'macros'] as const) {
+      expect(caps[f].confidence).toBe(Evidence.VERIFIED);
+      expect(caps[f].source).toMatch(/owner test, OpenKey issue #13/);
+      expect(writeDecision(caps[f], { simulated: false, experimentalEnabled: false })).toEqual({
+        kind: 'allowed',
+      });
+    }
+    // Not yet owner-tested: stays behind the experimental opt-in.
+    for (const f of ['fnLayer', 'sleep'] as const) {
+      expect(caps[f].confidence).toBe(Evidence.INFERRED);
+      expect(writeDecision(caps[f], { simulated: false, experimentalEnabled: false }).kind).toBe(
+        'experimental',
+      );
+    }
+    expect(caps.rgb.read).toBe('mirror');
+    const pulsar = (
+      await connect(
+        new WinbondSimulator({
+          vendorId: 0x0416,
+          productId: 0xb23c,
+          productName: 'Gaming Keyboard',
+        }),
+      )
+    ).driver.getCapabilities();
+    expect(pulsar.keymap.confidence).toBe(Evidence.INFERRED);
+    expect(pulsar.rgb.confidence).toBe(Evidence.OBSERVED);
+  });
+
+  it('declares the MK870 identity verified on hardware, with its evidence file', () => {
+    const [v] = winbond.winbondProtocol.manifest.verifiedIdentities;
+    expect(v).toMatchObject({ vendorId: 0x0416, productId: 0xc345, transport: 'usb' });
+    const file = JSON.parse(
+      readFileSync(path.resolve(import.meta.dirname, '../..', v!.evidence), 'utf8'),
+    ) as {
+      confidence: string;
+      verified: { feature: string }[];
+    };
+    expect(file.confidence).toBe('VERIFIED');
+    expect(file.verified.map((x) => x.feature)).toEqual(['rgb', 'perKeyRgb', 'keymap', 'macros']);
   });
 
   it('offers the Pulsar PCMK only the effects both sources agree on', async () => {
@@ -303,9 +338,9 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
     ).rejects.toSatisfy((e) => isOpenKeyError(e));
   });
 
-  it('reads the lighting back from the keyboard when it answers the query', async () => {
+  it('shows the lighting OpenKey last wrote (the keyboard cannot report it)', async () => {
     const { driver } = await connect();
-    expect(driver.getCapabilities().rgb.read).toBe('device');
+    expect(await driver.getRgbConfig()).toEqual(winbond.DEFAULT_CONFIG);
     const config = {
       effect: 0x02,
       color: { r: 10, g: 20, b: 30 },
@@ -317,30 +352,6 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
     };
     await driver.setRgbConfig(config);
     expect(await driver.getRgbConfig()).toEqual(config);
-  });
-
-  it('keeps its own record when the keyboard does not answer the query', async () => {
-    const sim = new WinbondSimulator();
-    sim.answersQueries = false;
-    const { driver } = await connect(sim);
-    expect(driver.getCapabilities().rgb.read).toBe('mirror');
-    expect(await driver.getRgbConfig()).toEqual(winbond.DEFAULT_CONFIG);
-  });
-
-  it('parses only answers that echo the lighting command', () => {
-    const r = new Uint8Array(63);
-    r.set([0x07, 0x01, 0, 0, 0x0e, 0x0f, 9, 2, 1, 2, 3, 4, 5, 6, 0x07, 1]);
-    expect(winbond.parseLightingReply(r)).toEqual({
-      effect: 0x0f,
-      brightness: 4,
-      speed: 2,
-      color: { r: 1, g: 2, b: 3 },
-      color2: { r: 4, g: 5, b: 6 },
-      direction: 'anticlockwise',
-      colorful: true,
-    });
-    r[0] = 0x09;
-    expect(winbond.parseLightingReply(r)).toBeNull();
   });
 
   describe('the 45 lighting captures from an MK870 (issue #13)', () => {
@@ -515,36 +526,94 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
   });
 
   describe('Fn layers and onboard profiles', () => {
-    it('lets you edit the Fn layer but sends nothing without a confirmed factory table', async () => {
+    it('writes the FN1 layer from the official default table, keeping the Fn key', async () => {
       const { driver, sim } = await connect();
       expect(driver.getLayerIds()).toEqual(['base', 'fn']);
       const fn = driver.getCapabilities().fnLayer;
-      expect(fn.write).toBe(false);
-      expect(fn.read).toBe('mirror');
-      // The reason names what is missing and how to help, and the write gate shows it.
-      expect(fn.blockedReason).toMatch(/factory Fn table/);
-      expect(fn.blockedReason).toMatch(/model K223RGB/);
-      expect(fn.blockedReason).toMatch(/Run all checks/);
-      const gate = writeDecision(fn, { experimentalEnabled: true, simulated: false });
-      expect(gate).toEqual({ kind: 'blocked', reason: fn.blockedReason });
+      expect([fn.write, fn.blockedReason]).toEqual([true, undefined]);
+      expect(fn.note).toMatch(/Fn\+Tab/);
+      expect(fn.note).toMatch(/Fn\+Esc/);
+      await driver.setKeymap({
+        layer: 'fn',
+        slots: {
+          2: { kind: 'special', code: 0x10, label: 'Volume up' },
+          45: { kind: 'keyboard', usage: 0x2b, modifiers: 0x08 },
+        },
+        provenance: 'mirror',
+      });
+      const maps = sim.packets.filter((p) => p[0] === winbond.KEYMAP_CMD);
+      expect(maps).toHaveLength(10);
+      expect(maps.every((p) => p[1] === 1)).toBe(true);
+      const entry = (slot: number) => {
+        const p = maps[Math.floor(slot / 14)]!;
+        const at = 5 + (slot % 14) * 4;
+        return [...p.subarray(at, at + 4)];
+      };
+      expect(entry(0)).toEqual([0x00, 0x29, 0x00, 0x00]); // Esc, default
+      expect(entry(2)).toEqual([0x07, 0x10, 0x00, 0x00]); // F1 → volume up
+      expect(entry(45)).toEqual([0x13, 0xe3, 0x2b, 0x00]); // Q → Win+Tab
+      expect(entry(winbond.FN_SLOT)).toEqual([0x01, 0x00, 0x00, 0x00]); // Fn stays Fn
+      expect((await driver.getKeymap('fn')).slots[2]).toMatchObject({ kind: 'special' });
+      // The base layer is untouched.
+      expect((await driver.getKeymap('base')).slots).toEqual({});
+    });
+
+    it('restores the FN1 layer to the default table', async () => {
+      const { driver, sim } = await connect();
+      await driver.restoreDefaults('fnLayer');
+      const maps = sim.packets.filter((p) => p[0] === winbond.KEYMAP_CMD);
+      expect(maps).toHaveLength(10);
+      expect(maps.every((p) => p[1] === 1)).toBe(true);
+      expect([...maps[0]!.subarray(13, 17)]).toEqual([0x00, 0x3a, 0x00, 0x00]); // F1
+    });
+
+    it('stores macros used on FN1, and needs one play mode per macro across layers', async () => {
+      const { driver, sim } = await connect();
+      await driver.setMacros([
+        {
+          index: 2,
+          events: [
+            { type: 'key', usage: 0x04, down: true },
+            { type: 'key', usage: 0x04, down: false },
+          ],
+        },
+      ]);
+      await driver.setKeymap({
+        layer: 'fn',
+        slots: { 7: { kind: 'macro', index: 2, mode: 'repeat', repeat: 4 } },
+        provenance: 'mirror',
+      });
+      expect([...sim.macroRecords.get(2)!.subarray(0, 8)]).toEqual([0, 1, 0, 8, 0, 4, 0, 0]);
       await expect(
         driver.setKeymap({
-          layer: 'fn',
-          slots: { 2: { kind: 'special', code: 0x10 } },
+          layer: 'base',
+          slots: { 8: { kind: 'macro', index: 2, mode: 'once', repeat: 1 } },
           provenance: 'mirror',
         }),
-      ).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED');
+      ).rejects.toThrow(/different play modes/);
+    });
+
+    it('keeps a third layer blocked without its confirmed factory table', async () => {
+      const { driver, sim } = await connect();
+      await expect(
+        driver.setKeymap({ layer: 'layer2', slots: {}, provenance: 'mirror' }),
+      ).rejects.toSatisfy(
+        (e) => isOpenKeyError(e) && e.code === 'SAFETY_BLOCKED' && /third/.test(e.message),
+      );
       expect(sim.packets).toEqual([]);
+      // The model is known only after the user runs the model check.
+      expect((await driver.getDeviceInfo()).fields).toEqual([]);
+      if (isDiagnosticsDriver(driver)) await driver.runProtocolCheck('model-query');
       expect((await driver.getDeviceInfo()).fields).toContainEqual(
         expect.objectContaining({ key: 'driverModel', value: 'K223RGB' }),
       );
     });
 
-    it('says the model is unknown when the keyboard does not report one', async () => {
+    it('shows no driver model when the keyboard reports none', async () => {
       const sim = new WinbondSimulator();
       sim.modelCode = 'NOT_A_MODEL';
       const { driver } = await connect(sim);
-      expect(driver.getCapabilities().fnLayer.blockedReason).toMatch(/not reported its model/);
+      if (isDiagnosticsDriver(driver)) await driver.runProtocolCheck('model-query');
       expect((await driver.getDeviceInfo()).fields).toEqual([]);
     });
 
@@ -556,6 +625,8 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       winbond.FN_FACTORY_TABLES.set('K223RGB', { fn1: factory });
       try {
         const { driver, sim } = await connect();
+        if (isDiagnosticsDriver(driver)) await driver.runProtocolCheck('model-query');
+        sim.packets.length = 0;
         const fn = driver.getCapabilities().fnLayer;
         expect([fn.write, fn.blockedReason]).toEqual([true, undefined]);
         await driver.setKeymap({
@@ -579,12 +650,14 @@ describe('Winbond keyboards (FL Esports MK870)', () => {
       }
     });
 
-    it('explains why onboard profiles are not written, and points to OpenKey profiles', async () => {
+    it('explains the two onboard layouts and how to switch them', async () => {
       const { driver } = await connect();
       const p = driver.getCapabilities().profiles;
       expect(p.write).toBe(false);
-      expect(p.blockedReason).toMatch(/onboard profiles/);
-      expect(p.blockedReason).toMatch(/OpenKey profiles/);
+      expect(p.blockedReason).toMatch(/default layer and FN1/);
+      expect(p.blockedReason).toMatch(/Fn\+Tab/);
+      const gate = writeDecision(p, { experimentalEnabled: true, simulated: false });
+      expect(gate).toEqual({ kind: 'blocked', reason: p.blockedReason });
     });
   });
 });

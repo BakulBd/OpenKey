@@ -12,7 +12,11 @@ import type {
   Capabilities,
   DeviceInfo,
   EffectCatalog,
+  KeyActionKind,
   KeyboardLayout,
+  KeymapState,
+  LayerId,
+  PerKeyRgb,
   RgbConfig,
   SettingsSchema,
   StateStore,
@@ -30,6 +34,21 @@ import type {
 } from '../../registry.js';
 import { ADAPTER_API_VERSION } from '../../registry.js';
 import { rkClassicModel } from './models.js';
+import {
+  CUSTOM_EFFECT,
+  colorReports,
+  keymapReports,
+  keymapWritable,
+  rkLayout,
+} from './keytable.js';
+import type { RkModelKeys } from './keytable.js';
+
+/** RK's key table of a model (tools/rk-keys), loaded only when a classic RK board connects. */
+export async function rkModelKeys(productId: number): Promise<RkModelKeys | null> {
+  const mod: { default: unknown } = await import('./keys.json', { with: { type: 'json' } });
+  const table = mod.default as Record<string, RkModelKeys>;
+  return table[productId.toString(16).padStart(4, '0')] ?? null;
+}
 
 /**
  * The classic RK (Royal Kludge) protocol: one 65-byte feature report, ID 0x0A, on the board's
@@ -39,7 +58,7 @@ import { rkClassicModel } from './models.js';
  *
  * The protocol has no read command: the keyboard cannot report its settings, so OpenKey mirrors
  * what it last wrote, and identification is the model list of RK's own software plus the exact report
- * layout. Only the lighting/sleep packet is sent; key maps need a per-model key table and are not.
+ * layout. Key maps and per-key colours use the model's key table from RK's own software (keytable.ts).
  */
 export const RK_CLASSIC_PROTOCOL_ID = 'rk-classic';
 export const RK_VID = 0x258a;
@@ -139,10 +158,26 @@ export class RkClassicDriver extends BaseKeyboardDriver {
     private readonly opts: {
       store: StateStore;
       open: (i: HidInterfaceInfo) => Promise<HidTransport>;
+      /** RK's key table for this model, when known. */
+      keys?: RkModelKeys | null;
     },
   ) {
     super();
     this.transport = group.transportHint;
+    const k = opts.keys;
+    this.layout = k ? rkLayout(this.key.replace('/', '-'), `RK ${model.name}`, k) : null;
+  }
+
+  private readonly layout: KeyboardLayout | null;
+
+  /** Key maps: a known key table whose every key has a known code, over the cable. */
+  private get keymapOk(): boolean {
+    return !!this.opts.keys && keymapWritable(this.opts.keys) && this.transport === 'usb';
+  }
+
+  /** Per-key colours: RGB boards with a key table, over the cable. */
+  private get perKeyOk(): boolean {
+    return !!this.opts.keys?.rgb && this.model.rgb && this.transport === 'usb';
   }
 
   private get key(): string {
@@ -160,11 +195,14 @@ export class RkClassicDriver extends BaseKeyboardDriver {
   }
 
   getLayout(): KeyboardLayout {
-    return getLayout('ak820-pro');
+    return this.layout ?? getLayout('ak820-pro');
   }
 
   private effects(): readonly [number, string][] {
-    return this.model.rgb ? RGB_EFFECTS : SINGLE_EFFECTS;
+    if (!this.model.rgb) return SINGLE_EFFECTS;
+    return this.perKeyOk
+      ? [...RGB_EFFECTS, [CUSTOM_EFFECT, 'Custom (per-key colours)']]
+      : RGB_EFFECTS;
   }
 
   getCapabilities(): Capabilities {
@@ -192,14 +230,40 @@ export class RkClassicDriver extends BaseKeyboardDriver {
           note: 'Sent with the lighting packet.',
         })
       : feature(FeatureStatus.TRANSPORT_LIMITED, { confidence: Evidence.INFERRED });
-    c.keymap = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-      confidence: Evidence.INFERRED,
-      note: 'RK key maps are written as a whole table that needs the model’s key list; not included yet.',
-    });
-    c.perKeyRgb = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-      confidence: Evidence.INFERRED,
-      note: 'Needs the model’s LED index list.',
-    });
+    const table = 'RK’s own key table for this model (KB.ini of RK’s Windows software)';
+    c.keymap = this.keymapOk
+      ? configurable('mirror', true, Evidence.INFERRED, {
+          safety: SafetyLevel.CAUTION,
+          source: `rangoli / kludgeknight key-map reports (tested by kludgeknight’s author on an RK F68 and S79); ${table}`,
+          value: 'any key, keys with modifiers, media keys, factory default',
+          note: 'The keyboard cannot report its key map; OpenKey shows what it last wrote, and every write sends the whole table. Fn stays as it is. Restore defaults writes RK’s factory table.',
+        })
+      : feature(this.opts.keys ? FeatureStatus.NOT_YET_REVERSE_ENGINEERED : FeatureStatus.UNKNOWN, {
+          confidence: Evidence.INFERRED,
+          note: !this.opts.keys
+            ? 'RK’s key table for this model is not known.'
+            : this.transport !== 'usb'
+              ? 'Connect the keyboard by USB cable to change its keys.'
+              : 'This model has keys of a type OpenKey cannot encode; its key map is not written.',
+        });
+    c.perKeyRgb = this.perKeyOk
+      ? configurable('mirror', true, Evidence.INFERRED, {
+          safety: SafetyLevel.SAFE_PERSISTENT,
+          source: `rangoli custom-light reports (RGB effect 14); ${table}`,
+          value: `${this.opts.keys!.keys.length} keys`,
+          note: 'Applying switches the lighting to the Custom effect. The keyboard cannot report its colours; OpenKey shows what it last wrote.',
+        })
+      : feature(FeatureStatus.NOT_SUPPORTED, {
+          confidence: Evidence.INFERRED,
+          note: this.model.rgb
+            ? 'Connect the keyboard by USB cable to set per-key colours.'
+            : 'A single-colour board.',
+        });
+    if (this.keymapOk)
+      c.factoryDefaults = configurable('none', true, Evidence.INFERRED, {
+        safety: SafetyLevel.CAUTION,
+        note: 'Writes RK’s factory key table; the lighting stays as it is.',
+      });
     c.macros = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
       confidence: Evidence.UNKNOWN,
       note: 'The RK macro protocol is not documented by any open project.',
@@ -247,6 +311,7 @@ export class RkClassicDriver extends BaseKeyboardDriver {
       })),
       brightness: { min: 1, max: 5 },
       speed: { min: 1, max: 5 },
+      ...(this.perKeyOk ? { customEffect: CUSTOM_EFFECT } : {}),
     };
   }
 
@@ -291,6 +356,63 @@ export class RkClassicDriver extends BaseKeyboardDriver {
     await this.send({ ...(await this.mirror()), rgb: config });
   }
 
+  override getLayerIds(): readonly LayerId[] {
+    return ['base'];
+  }
+
+  override getKeyActionKinds(): readonly KeyActionKind[] {
+    return ['default', 'keyboard', 'consumer'];
+  }
+
+  override async getKeymap(layer: LayerId = 'base'): Promise<KeymapState> {
+    if (layer !== 'base') return super.getKeymap(layer);
+    return (
+      (await this.opts.store.get<KeymapState>(`${this.key}/keymap`)) ?? {
+        layer: 'base',
+        slots: {},
+        provenance: 'assumed-default',
+      }
+    );
+  }
+
+  /** Sends the whole key table (9 reports): RK's factory codes with the changed keys. */
+  override async setKeymap(state: KeymapState): Promise<void> {
+    if (!this.t) throw new ProtocolError('Not connected');
+    if (!this.keymapOk || !this.opts.keys)
+      throw new ProtocolError('Key maps are not available for this keyboard.');
+    if (state.layer !== 'base') throw new ProtocolError('Classic RK boards have one key layer.');
+    const reports = keymapReports(this.opts.keys, state.slots);
+    for (const r of reports) await this.t.sendFeatureReport(REPORT_ID, r);
+    await this.opts.store.set(`${this.key}/keymap`, {
+      layer: 'base',
+      slots: state.slots,
+      provenance: 'mirror',
+      updatedAt: new Date().toISOString(),
+    } satisfies KeymapState);
+  }
+
+  override async restoreDefaults(
+    scope: 'keymap' | 'fnLayer' | 'macros' | 'lighting',
+  ): Promise<void> {
+    if (scope !== 'keymap') return super.restoreDefaults(scope);
+    await this.setKeymap({ layer: 'base', slots: {}, provenance: 'mirror' });
+  }
+
+  override async getPerKeyRgb(): Promise<PerKeyRgb> {
+    return (await this.opts.store.get<PerKeyRgb>(`${this.key}/perkey`)) ?? {};
+  }
+
+  /** Selects the Custom effect with the current levels, then sends the 7 colour reports. */
+  override async setPerKeyRgb(colors: PerKeyRgb): Promise<void> {
+    if (!this.t) throw new ProtocolError('Not connected');
+    if (!this.perKeyOk) throw new ProtocolError('Per-key colours are not available here.');
+    const reports = colorReports(colors);
+    const m = await this.mirror();
+    await this.send({ ...m, rgb: { ...m.rgb, effect: CUSTOM_EFFECT } });
+    for (const r of reports) await this.t.sendFeatureReport(REPORT_ID, r);
+    await this.opts.store.set(`${this.key}/perkey`, colors);
+  }
+
   override getSettingsSchema(): SettingsSchema {
     return { sleepTime: SLEEP };
   }
@@ -317,7 +439,7 @@ export const rkClassicProtocol: ProtocolDefinition = {
     verification:
       'Lighting and sleep packet from rangoli and kludgeknight, reported working by their users on the listed models. Not yet run by OpenKey.',
     safety:
-      'Write-only protocol with no read command: identification is RK’s own model list plus the exact report layout, nothing is sent while detecting, and every write is an experimental, confirmed lighting/sleep packet. Key maps are not written.',
+      'Write-only protocol with no read command: identification is RK’s own model list plus the exact report layout, nothing is sent while detecting, and every write is experimental and confirmed. Key maps are built from RK’s own factory table for the model, so every key the user did not change keeps its factory code; Fn is never changed.',
     provenance: [
       {
         source: 'public-reverse-engineering',
@@ -334,7 +456,7 @@ export const rkClassicProtocol: ProtocolDefinition = {
     ],
     license: 'MIT',
     limitations: [
-      'Lighting effect, colour, brightness, speed and sleep only; key maps and per-key colours need per-model key tables.',
+      'Key maps (one layer: keys, keys with modifiers, media keys) and per-key colours use RK’s own key table of each model; tested by the sources on a few models only (kludgeknight: F68, S79).',
       'The keyboard cannot report its settings; OpenKey shows what it last wrote.',
       'Only models on RK’s list are recognised; newer RK boards that use RK’s web software (and the R75 RGB, BY Tech) are other protocols.',
     ],
@@ -415,6 +537,7 @@ export const rkClassicProtocol: ProtocolDefinition = {
     return new RkClassicDriver(group, ch, model, {
       store: opts.store,
       open: async (i) => new LoggingTransport(await group.openInterface(i), opts.log),
+      keys: await rkModelKeys(group.identity.productId),
     });
   },
 };

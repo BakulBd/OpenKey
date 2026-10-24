@@ -198,6 +198,7 @@ export const en = {
   'demo.razer': 'Razer BlackWidow V3',
   'demo.aula-f87s': 'AULA F87S 8K',
   'demo.mk870': 'FL Esports MK870',
+  'demo.rk61': 'RK61 RGB',
   'demo.lamparray': 'Dynamic Lighting (LampArray)',
   'guide.revisions': '{n} hardware revisions',
   'guide.rev.name': 'Revision',
@@ -496,6 +497,7 @@ export const en = {
   'feature.analog': 'Analog key travel',
   'feature.firmware': 'Firmware',
   'feature.factoryDefaults': 'Restore defaults',
+  'feature.lightZones': 'Light zones',
 
   'status.SUPPORTED': 'Supported',
   'status.CONFIGURABLE': 'Configurable',
@@ -618,6 +620,10 @@ export const en = {
   'rgb.lead':
     'Effects that run on the keyboard’s own controller. Adjust freely; Apply writes once.',
   'rgb.read': 'Read lighting',
+  'zones.read': 'Read light zones',
+  'zones.apply': 'Write light zones',
+  'zones.lead':
+    'Lights that are not keys, such as a knob ring or side bars. Each zone takes one colour; its other settings stay as they are.',
   'rgb.apply': 'Write lighting',
   'rgb.effects': 'Hardware effects',
   'rgb.hardwareNative':

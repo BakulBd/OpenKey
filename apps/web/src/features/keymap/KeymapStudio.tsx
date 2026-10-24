@@ -135,11 +135,12 @@ export default function KeymapStudio() {
   const kinds = device.driver.getKeyActionKinds();
   const layers = device.driver.getLayerIds();
   const layerName = (l: LayerId) =>
-    l === 'base'
+    device.driver.getLayerLabel(l) ??
+    (l === 'base'
       ? t('keymap.layerBase')
       : l === 'fn' && layers.length <= 2
         ? t('keymap.layerFn')
-        : t('keymap.layerN', { n: layerIndex(l) });
+        : t('keymap.layerN', { n: layerIndex(l) }));
   const key = selected !== null ? keyBySlot(layout, selected) : undefined;
   const current = selected !== null ? (h.present[selected] ?? DEFAULT) : DEFAULT;
   const appliedAction = selected !== null ? (h.applied[selected] ?? DEFAULT) : DEFAULT;

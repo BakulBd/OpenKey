@@ -84,7 +84,15 @@ export function PerKeyStudio() {
   return (
     <>
       <div className="row wrap between">
-        <SourceNote source={readable ? 'device' : 'local'} />
+        <SourceNote
+          source={
+            device.caps.perKeyRgb.read === 'device'
+              ? 'device'
+              : device.caps.perKeyRgb.read === 'mirror'
+                ? 'mirror'
+                : 'local'
+          }
+        />
         <WriteGateNote gate={g} />
       </div>
       <Card>
