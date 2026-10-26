@@ -152,11 +152,10 @@ export class AulaReceiverDriver extends BaseKeyboardDriver {
 
   async connect(): Promise<void> {
     this.session = new AulaReceiverSession(await this.open(this.iface));
-    // 0x0B is a version read on AULA's receiver (3554) only: on RK-platform receivers the same
-    // byte sets the screen clock, so a receiver with another identity is not asked.
-    this.version = isAulaIdentity(this.group)
-      ? await this.session.version().catch(() => null)
-      : null;
+    // 0x0B is a version read on AULA keyboards only: RK's L-series receivers share 3554:FA09, and
+    // on RK's platform the same byte sets the screen clock. It is sent only when the keyboard's
+    // model code (0x05, a read) is a known AULA model.
+    this.version = this.versionReadable ? await this.session.version().catch(() => null) : null;
   }
 
   async disconnect(): Promise<void> {
@@ -230,8 +229,13 @@ export class AulaReceiverDriver extends BaseKeyboardDriver {
     };
   }
 
+  /** AULA's receiver identity and a model code from AULA's own table (see connect). */
+  private get versionReadable(): boolean {
+    return isAulaIdentity(this.group) && this.model?.brand === 'AULA';
+  }
+
   override async getBattery(): Promise<{ level: number; charging: boolean } | null> {
-    if (!isAulaIdentity(this.group)) return null;
+    if (!this.versionReadable) return null;
     const v = await this.s().version();
     return v?.battery != null ? { level: v.battery, charging: false } : null;
   }

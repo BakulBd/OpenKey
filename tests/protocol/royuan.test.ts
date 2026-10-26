@@ -143,21 +143,63 @@ describe('ROYUAN key maps (simulator)', () => {
     ).rejects.toThrow(/did not keep 1 key/);
   });
 
-  it('reads gen2 key maps but does not write them', async () => {
-    const { driver } = await connect(new RoyuanSimulator('gen2'));
+  it('writes a gen2 layer as RK’s web driver does: nine packets, the last flagged, then a read-back', async () => {
+    const sim = new RoyuanSimulator('gen2');
+    const { driver } = await connect(sim);
+    expect(driver.getCapabilities().keymap.write).toBe(true);
+    expect(driver.getLayerIds()).toEqual(['base']);
+    await driver.setKeymap({
+      layer: 'base',
+      slots: {
+        0: { kind: 'keyboard', usage: 0x1d, modifiers: 0x01 },
+        1: { kind: 'consumer', usage: 0xe9 },
+      },
+      provenance: 'device',
+    });
+    expect(sim.gen2Writes).toHaveLength(9);
+    const first = sim.gen2Writes[0]!;
+    expect([...first.subarray(0, 7)]).toEqual([0x0a, 1, 0xff, 0, 56, 0, 0]);
+    expect(first[7]).toBe(0xff - (first.subarray(0, 7).reduce((x, y) => x + y, 0) & 0xff));
+    expect([...first.subarray(8, 16)]).toEqual([0, 0, 0xe0, 0x1d, 0x03, 0, 0xe9, 0]);
+    const last = sim.gen2Writes[8]!;
+    expect([last[3], last[4], last[5]]).toEqual([8, 504 - 8 * 56, 1]);
+    // Unchanged slots are written back as read.
+    expect([...last.subarray(8, 12)]).toEqual([...sim.base.subarray(448, 452)]);
     expect((await driver.getKeymap('base')).slots[0]).toEqual({
       kind: 'keyboard',
-      usage: 0x04,
-      modifiers: 0,
+      usage: 0x1d,
+      modifiers: 0x01,
     });
-    expect(driver.getCapabilities().keymap.write).toBe(false);
-    expect(driver.getLayerIds()).toEqual(['base']);
-    await expect(driver.setKeymap(await driver.getKeymap('base'))).rejects.toThrow(/yc500/);
+  });
+
+  it('reports a gen2 keyboard that did not keep the layer', async () => {
+    const sim = new RoyuanSimulator('gen2');
+    sim.dropSlotWrites = true;
+    const { driver } = await connect(sim);
+    await expect(
+      driver.setKeymap({
+        layer: 'base',
+        slots: { 2: { kind: 'keyboard', usage: 0x05, modifiers: 0 } },
+        provenance: 'device',
+      }),
+    ).rejects.toSatisfy((e) => e instanceof Error && /did not keep/.test(e.message));
   });
 
   it('keeps unknown slot encodings byte-for-byte', () => {
     expect(royuan.decodeSlot([0x09, 0, 2, 0], false)).toEqual({ kind: 'raw', bytes: [9, 0, 2, 0] });
     expect(royuan.encodeSlot({ kind: 'raw', bytes: [9, 0, 2, 0] }, false)).toEqual([9, 0, 2, 0]);
     expect(() => royuan.encodeSlot({ kind: 'keyboard', usage: 4, modifiers: 1 }, false)).toThrow();
+    // gen2: one modifier with one key, as RK's web driver encodes Ctrl + Z.
+    expect(royuan.encodeSlot({ kind: 'keyboard', usage: 0x1d, modifiers: 1 }, false, true)).toEqual(
+      [0, 0, 0xe0, 0x1d],
+    );
+    expect(royuan.decodeSlot([0, 0, 0xe3, 0x2e], false, true)).toEqual({
+      kind: 'keyboard',
+      usage: 0x2e,
+      modifiers: 0x08,
+    });
+    expect(() =>
+      royuan.encodeSlot({ kind: 'keyboard', usage: 4, modifiers: 3 }, false, true),
+    ).toThrow(/one modifier/);
   });
 });

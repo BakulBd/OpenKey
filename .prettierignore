@@ -5,3 +5,7 @@ re
 fixtures
 packages/profiles/src/layouts
 packages/protocols/src/families/rk-classic/keys.json
+packages/protocols/src/families/by-tech/rk-keys.json
+packages/protocols/src/families/by-tech/rk-web.json
+packages/protocols/src/families/hub-aa55/web-boards.json
+packages/protocols/src/families/hub-aa55/web-index.json

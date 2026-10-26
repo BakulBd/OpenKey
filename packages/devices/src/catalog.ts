@@ -157,6 +157,110 @@ const LOGITECH: readonly [number, string, 'usb' | '2.4ghz'][] = [
   [0xc33f, 'G815', 'usb'],
 ];
 
+/**
+ * RK boards RK's own web driver (drive.rkgaming.com) drives with the BY Tech protocol over USB, with
+ * a protocol module confirming the matrix and colour table OpenKey writes (`pnpm rk-web`).
+ */
+const RK_WEB_BOARDS: readonly [number, string][] = [
+  [0x0187, 'N80'],
+  [0x0193, 'S85'],
+  [0x01af, 'S98'],
+  [0x01b8, 'N99'],
+  [0x01cb, 'R87PRO RF'],
+  [0x01e5, 'L75'],
+  [0x01f5, 'M87 JP'],
+  [0x01f7, 'R65 JP'],
+  [0x01fc, 'R75 JP'],
+  [0x01fd, 'M65'],
+  [0x0207, 'X87'],
+  [0x020c, 'R98PRO'],
+  [0x020f, 'A70'],
+  [0x0211, 'M100'],
+  [0x0216, 'A72'],
+  [0x021e, 'S98 POR'],
+  [0x022c, 'M65 FR'],
+  [0x022f, 'S98 JP'],
+  [0x0240, 'S98 KR'],
+  [0x0249, 'L75 RU'],
+  [0x025a, 'S104'],
+  [0x0265, 'S85 ES'],
+  [0x0266, 'M100 FR'],
+  [0x0276, 'M87 DE'],
+  [0x027c, 'R98PRO ES'],
+  [0x0298, 'R108PRO'],
+  [0x02b0, 'R98PRO RU'],
+  [0x02b8, 'R98PRO V2'],
+  [0x02ba, 'N99 ES'],
+  [0x02c3, 'M75 PT'],
+  [0x02d1, 'S104 US1'],
+];
+
+/**
+ * Further AJAZZ boards AJAZZ's own web driver (ajazz.driveall.cn) configures over USB, keyed like the
+ * web driver by USB ID and product name (`pnpm ajazz-web`): [product ID, product name, lighting,
+ * magnetic-switch pages].
+ */
+const AJAZZ_WEB_BOARDS: readonly [number, string, boolean, boolean][] = [
+  [0x2729, 'AJAZZ KEYBOARD', true, true],
+  [0x8006, 'AK870MC', true, false],
+  [0x8006, 'Gaming Keyboard', true, false],
+  [0x8006, 'USB Keyboard', true, false],
+  [0x800c, 'AJAZZ KEYBOARD', true, true],
+  [0x800f, 'AJAZZ SK98', true, true],
+  [0x8016, 'AJAZZ KEYBOARD', true, true],
+  [0x8019, 'AJAZZ KEYBOARD', true, true],
+  [0x801f, 'AJAZZ Keyboard', true, true],
+  [0x8029, 'AK980 PRO', true, false],
+  [0x8033, 'AK820MAX', true, true],
+  [0x8039, 'AK980 PRO', true, false],
+  [0x8043, 'AK980 MAX', true, true],
+  [0x8044, 'AJAZZ AK029', true, true],
+  [0x8044, 'AK820MAX', true, true],
+  [0x8044, 'QS87', true, true],
+  [0x8045, 'AJAZZ AK029', true, true],
+  [0x8046, 'AJAZZ AK029', true, true],
+  [0x8047, 'AJAZZ KEYBOARD', true, false],
+  [0x8049, '820PRO', true, false],
+  [0x8050, 'AK980 MAX', true, true],
+  [0x8051, 'AK980 MAX', true, true],
+  [0x8052, 'AK980 MAX', true, true],
+  [0x8053, 'AK980 MAX', true, true],
+  [0x8054, 'AK980 MAX', true, true],
+  [0x8070, 'AK820MAX', true, true],
+  [0x8099, 'AJAZZ KEYBOARD', true, true],
+  [0x8099, 'AK820', true, false],
+  [0x809b, 'AK820MAX', false, true],
+  [0x80a0, 'AK820MAX', true, true],
+  [0x80b0, 'AJAZZ Keyboard', true, true],
+  [0x80b0, 'AK820MAX', true, true],
+  [0x80b4, 'AJAZZ AK680 MAX', true, true],
+  [0x80b7, 'AJAZZ ALUX75 PRO', true, true],
+  [0x80b7, 'Gaming Keyboard', false, true],
+  [0x80b9, 'AK820 MAX Lightles', false, true],
+  [0x80d5, 'AJAZZ AK039', true, true],
+  [0x80d6, 'AJAZZ AK039', true, true],
+  [0x80d7, 'AJAZZ KEYBOARD', true, true],
+  [0x80f7, 'AJAZZ Keyboard', true, true],
+  [0x810d, 'Gaming Keyboard', true, true],
+  [0x8801, 'AJAZZ KEYBOARD', true, true],
+  [0x8802, 'AJAZZ AK980 V2 PRO', true, true],
+  [0x8802, 'AJAZZ KEYBOARD', true, true],
+  [0x8802, 'AK980 PRO', true, true],
+  [0x8802, 'CSOL Keyboard', true, true],
+  [0x8802, 'MJ84+', true, true],
+  [0x8802, 'gW997mgkb', true, true],
+  [0x8803, 'AJAZZ AK980 V2 PRO', true, true],
+  [0x8803, 'AJAZZ KEYBOARD', true, true],
+  [0x8804, 'gW997mgkb', true, true],
+  [0x880d, 'AJAZZ KEYBOARD', true, true],
+  [0x880d, 'AK820', true, true],
+  [0x880e, 'AK820', true, true],
+  [0x880f, 'AK820', true, true],
+  [0x8810, 'AK820', true, true],
+  [0x8811, 'AK820', true, true],
+  [0x8812, 'AK820', true, true],
+];
+
 export const CATALOG: readonly CatalogEntry[] = [
   {
     brand: 'AJAZZ',
@@ -539,6 +643,22 @@ export const CATALOG: readonly CatalogEntry[] = [
     hardware: { hallEffect: true },
     evidence: 'somenever/not-ajazz-ak680-max-webhid (GPL-3.0, facts only): framing and device info',
   },
+  ...AJAZZ_WEB_BOARDS.map(([productId, productName, rgb, hallEffect]): CatalogEntry => ({
+    brand: 'AJAZZ',
+    vendorId: 0x0c45,
+    productId,
+    productName,
+    model: /keyboard|gw997/i.test(productName)
+      ? `Web-driver board 0C45:${productId.toString(16).toUpperCase()} (“${productName}”)`
+      : productName.replace(/^AJAZZ /, ''),
+    link: 'usb',
+    mcu: 'AJAZZ web-driver firmware',
+    family: 'sonix-aa55',
+    status: 'community',
+    hardware: { rgb, perKeyRgb: rgb, ...(hallEffect ? { hallEffect } : {}) },
+    evidence:
+      'AJAZZ’s own web driver (ajazz.driveall.cn): board configuration, key rows and key numbers; matched by USB ID and product name',
+  })),
   // ---- AULA F108 Pro (parsiya/f108-pro, MIT): the AJAZZ Windows-driver protocol
   {
     brand: 'AULA',
@@ -580,9 +700,9 @@ export const CATALOG: readonly CatalogEntry[] = [
     mcu: 'BY Tech (SinoWealth SH68F90A)',
     family: 'by-tech',
     status: 'community',
-    hardware: { rgb: true, tft: true, encoder: true },
+    hardware: { rgb: true, perKeyRgb: true, tft: true, encoder: true },
     evidence:
-      'ElXreno/rk-m87-sync (MIT): CDevG5KB feature reports, screen clock tested on the keyboard',
+      'ElXreno/rk-m87-sync (MIT): CDevG5KB feature reports, screen clock tested on the keyboard; key layers, per-key colours and effects from RK’s own web driver (drive.rkgaming.com)',
   },
   {
     brand: 'RK',
@@ -608,8 +728,21 @@ export const CATALOG: readonly CatalogEntry[] = [
     status: 'community',
     hardware: { rgb: true, perKeyRgb: true, encoder: true },
     evidence:
-      'Lightning-13/rk-m75 (MIT): feature report 9 × 520 B (CDevG5KB); model code not published, settings layout taught on the keyboard',
+      'Lightning-13/rk-m75 (MIT): feature report 9 × 520 B (CDevG5KB); key layers, per-key colours, effects and settings layout from RK’s own web driver (drive.rkgaming.com)',
   },
+  ...RK_WEB_BOARDS.map(([productId, model]): CatalogEntry => ({
+    brand: 'RK',
+    vendorId: 0x258a,
+    productId,
+    model: `${model} (wired)`,
+    link: 'usb',
+    mcu: 'BY Tech (SinoWealth)',
+    family: 'by-tech',
+    status: 'community',
+    hardware: { rgb: true, perKeyRgb: true },
+    evidence:
+      'RK’s own web driver (drive.rkgaming.com, protocol BeiYing): board entry, factory key layers, per-key colour table and effects; matched by USB ID',
+  })),
   // ---- Razer (openrazer / OpenRGB, facts only)
   ...RAZER.map(([productId, model, link]): CatalogEntry => ({
     brand: 'Razer',

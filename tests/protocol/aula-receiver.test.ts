@@ -95,4 +95,13 @@ describe('AULA receiver driver (simulator)', () => {
     await driver.getBattery();
     expect(sim.sent.every((c) => [0x05, 0x0b, 0x44].includes(c))).toBe(true);
   });
+
+  it('never sends the 0x0B read to an RK board behind the shared 3554:FA09 receiver', async () => {
+    // RK's L-series receivers use the same USB ID; on RK's platform 0x0B sets the screen clock.
+    const sim = new AulaReceiverSimulator(Uint8Array.of(0x0a, 0, 0, 0, 0, 0));
+    const { driver } = await connect(sim);
+    expect(sim.sent).not.toContain(0x0b);
+    expect(await driver.getBattery()).toBeNull();
+    expect(sim.sent).not.toContain(0x0b);
+  });
 });

@@ -23,20 +23,38 @@ export class HubSimulator {
       Uint8Array.from({ length: 24 }, (_, i) => (i === 0 ? 2 : i < 4 ? 0x80 : i)),
     ],
   ]);
+  /** Key tables (128 × 4 bytes): normal layer and Fn layer. */
+  readonly keyTables = new Map<number, Uint8Array>([
+    [Cmd.GET_KEY, new Uint8Array(512)],
+    [Cmd.GET_FN_KEY, new Uint8Array(512)],
+  ]);
+  /** False models a keyboard that ignores key-table writes. */
+  keepsKeys = true;
   /** Whether the keyboard has the zone commands (the F87S does). */
   hasZones = true;
   body: [number, number];
   private pending = new Map<number, Uint8Array>();
+  /** Macro storage (index, then blocks), written packet by packet at its address. */
+  readonly macros: Uint8Array;
 
   constructor(
     identity: DeviceIdentity = { vendorId: 0x38a6, productId: 0x2908, productName: 'AULA F87S 8K' },
-    opts: { reportSize?: number; lighting?: boolean; body?: [number, number] } = {},
+    opts: {
+      reportSize?: number;
+      lighting?: boolean;
+      body?: [number, number];
+      /** Usage page of the command channel (default FF68; FF60 on the receiver). */
+      page?: number;
+      /** Bytes of macro storage the device info reports (default 3072; 0 for none). */
+      macroSpace?: number;
+    } = {},
   ) {
     const size = opts.reportSize ?? 64;
     const lighting = opts.lighting ?? true;
     this.body = opts.body ?? [0x38a6, 0x2908];
+    this.macros = new Uint8Array(opts.macroSpace ?? 3072);
     for (let s = 0; s < 128; s++) this.table.set([s, 0x10, 0x20, s === 127 ? 0x7f : 0x30], s * 4);
-    const page = identity.productId === 0xfef9 ? 0xff60 : 0xff68;
+    const page = opts.page ?? (identity.productId === 0xfef9 ? 0xff60 : 0xff68);
     this.device = new MockHidDevice(
       identity,
       [
@@ -77,7 +95,20 @@ export class HubSimulator {
               reply.set([0x55, cmd, len, d[3]!, d[4]!]);
               const source = this.readSource(cmd, lighting);
               if (source) reply.set(source.subarray(addr, addr + len), HEADER);
-              else if (
+              else if (cmd === Cmd.SET_MACRO && this.macros.length) {
+                this.macros.set(d.subarray(HEADER, HEADER + len), addr);
+                this.writes.push({ cmd, data: d.slice(HEADER, HEADER + len) });
+              } else if (cmd === Cmd.SET_KEY || cmd === Cmd.SET_FN_KEY) {
+                const target = this.keyTables.get(cmd - 0x10)!;
+                const buf = this.pending.get(cmd) ?? new Uint8Array(target.length);
+                buf.set(d.subarray(HEADER, HEADER + len), addr);
+                this.pending.set(cmd, buf);
+                if (last) {
+                  this.pending.delete(cmd);
+                  this.writes.push({ cmd, data: buf });
+                  if (this.keepsKeys) target.set(buf);
+                }
+              } else if (
                 cmd === Cmd.SET_LED_EFFECT ||
                 cmd === Cmd.SET_CUSTOM_LED ||
                 (this.hasZones && (cmd === Cmd.SET_RING_ZONE || cmd === Cmd.SET_SIDE_ZONE))
@@ -112,9 +143,12 @@ export class HubSimulator {
       d.set([this.body[0] & 0xff, this.body[0] >> 8, this.body[1] & 0xff, this.body[1] >> 8], 4);
       d.set([0x23, 0x01], 8);
       d[17] = 100;
+      d.set([this.macros.length & 0xff, this.macros.length >> 8], 2);
       d[31] = 1;
       return d;
     }
+    if (cmd === Cmd.GET_KEY || cmd === Cmd.GET_FN_KEY) return this.keyTables.get(cmd)!;
+    if (cmd === Cmd.GET_MACRO && this.macros.length) return this.macros;
     if (!lighting) return null;
     if (cmd === Cmd.GET_LED_EFFECT) return this.effect;
     if (cmd === Cmd.GET_CUSTOM_LED) return this.table;

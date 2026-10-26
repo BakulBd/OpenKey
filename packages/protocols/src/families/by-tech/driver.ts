@@ -15,7 +15,12 @@ import type {
   Capabilities,
   DeviceInfo,
   EffectCatalog,
+  KeyAction,
+  KeyActionKind,
   KeyboardLayout,
+  KeymapState,
+  LayerId,
+  PerKeyRgb,
   RgbConfig,
   SettingsSchema,
   StateStore,
@@ -25,7 +30,23 @@ import type {
 import { getLayout } from '@openkey/devices';
 import type { HidDeviceGroup, HidInterfaceInfo, HidTransport } from '@openkey/hid';
 import { BY_TECH_PROTOCOL_ID, Cmd, screenParams } from './constants.js';
-import { AULA_SLEEP, effectCatalog, identityHex } from './models.js';
+import { AULA_SLEEP, SELF_DEFINE, effectCatalog, identityHex } from './models.js';
+import {
+  COLOR_BYTES,
+  MATRIX_BYTES,
+  MATRIX_LAYERS,
+  MatrixCmd,
+  SPECIAL_ACTIONS,
+  decodeAction,
+  encodeAction,
+  factoryCodes,
+  isFnCode,
+  matrixParameter,
+  patchColors,
+  readColors,
+  readMatrix,
+  writeMatrix,
+} from './matrix.js';
 import type { ByTechModel } from './models.js';
 import {
   COLOR_CYCLE,
@@ -37,9 +58,14 @@ import {
   patchPage,
   readSlot,
 } from './page.js';
+import { BY_TECH_LAYOUT } from './page.js';
 import type { PageLayout } from './page.js';
 import { ByTechSession } from './session.js';
 import type { ByTechSessionOptions } from './session.js';
+import { rkByTechLayout, rkFactory } from './rkkeys.js';
+import type { RkByTechKeys } from './rkkeys.js';
+import { rkWebFactory, rkWebLayout } from './rkweb.js';
+import type { RkWebBoard } from './rkweb.js';
 
 /** Where a settings-page layout confirmed by the owner's own key presses is kept (per model code). */
 export const learnedLayoutKey = (identity: Uint8Array): string =>
@@ -51,6 +77,10 @@ export interface LearnedLayout extends PageLayout {
 }
 
 export interface ByTechDriverOptions extends ByTechSessionOptions {
+  /** RK's key table for the model, when it has one (`ByTechModel.rkKeys`). */
+  rkKeys?: RkByTechKeys | null;
+  /** The board's entry in RK's web driver, when it has one (factory tables of every layer). */
+  rkWeb?: RkWebBoard | null;
   store: StateStore;
   open: (iface: HidInterfaceInfo) => Promise<HidTransport>;
 }
@@ -114,8 +144,150 @@ export class ByTechDriver extends BaseKeyboardDriver {
       : this.group.identity.productName || 'BY Tech keyboard';
   }
 
+  private cachedLayout: KeyboardLayout | null = null;
+
   getLayout(): KeyboardLayout {
-    return getLayout(this.model?.layoutId ?? 'ak820-pro');
+    this.cachedLayout ??= this.buildLayout();
+    return this.cachedLayout;
+  }
+
+  private buildLayout(): KeyboardLayout {
+    const id = `by-tech-${this.group.identity.productId.toString(16).padStart(4, '0')}`;
+    if (this.model?.layoutId === 'rk-web' && this.opts.rkWeb)
+      return rkWebLayout(id, this.displayName, this.opts.rkWeb);
+    if (this.model?.layoutId === 'rk-keys' && this.opts.rkKeys)
+      return rkByTechLayout(id, this.displayName, this.opts.rkKeys);
+    const fixed = this.model?.layoutId;
+    return getLayout(fixed && fixed !== 'rk-web' && fixed !== 'rk-keys' ? fixed : 'ak820-pro');
+  }
+
+  /** Key maps and per-key colours: a matrix-indexed layout, over the cable. */
+  private get matrix(): boolean {
+    if (this.model?.layoutId === 'rk-web' && !this.opts.rkWeb) return false;
+    if (this.model?.layoutId === 'rk-keys' && !this.opts.rkKeys) return false;
+    return !!this.model?.matrix && this.transport === 'usb';
+  }
+
+  /** Factory codes of a layer: RK's own tables when known, else the layout's base-layer usages. */
+  private factory(layer: number): Map<number, number> {
+    if (this.opts.rkWeb) return rkWebFactory(this.opts.rkWeb, layer);
+    if (this.opts.rkKeys) return rkFactory(this.opts.rkKeys, layer);
+    return layer === 0 ? factoryCodes(this.getLayout()) : new Map();
+  }
+
+  private requireMatrix(): void {
+    if (!this.matrix)
+      throw new ProtocolError('Key maps and per-key colours are not available for this keyboard.');
+  }
+
+  private layerIndex(layer: LayerId): number {
+    const i = (MATRIX_LAYERS as Record<string, number>)[layer];
+    if (i === undefined) throw new ProtocolError(`Layer ${layer} does not exist on this keyboard.`);
+    return i;
+  }
+
+  private async readCodes(layer: number): Promise<number[]> {
+    return readMatrix(
+      await this.s().read(MatrixCmd.GET_KEY_MATRIX, matrixParameter(layer), MATRIX_BYTES),
+    );
+  }
+
+  override getLayerIds(): readonly LayerId[] {
+    return this.matrix ? ['base', 'fn', 'layer2'] : ['base'];
+  }
+
+  override getLayerLabel(layer: LayerId): string | undefined {
+    return layer === 'fn' ? 'FN1 layer' : layer === 'layer2' ? 'FN2 layer' : undefined;
+  }
+
+  override getKeyActionKinds(): readonly KeyActionKind[] {
+    return this.matrix
+      ? ['default', 'disabled', 'keyboard', 'consumer', 'mouse', 'special']
+      : super.getKeyActionKinds();
+  }
+
+  override getSpecialActions(): readonly { code: number; label: string }[] {
+    return this.matrix ? SPECIAL_ACTIONS : [];
+  }
+
+  /** The layer as the keyboard holds it, every key decoded. */
+  override async getKeymap(layer: LayerId = 'base'): Promise<KeymapState> {
+    this.requireMatrix();
+    const codes = await this.readCodes(this.layerIndex(layer));
+    const slots: Record<number, KeyAction> = {};
+    for (const k of this.getLayout().keys)
+      if (k.slot >= 0) slots[k.slot] = decodeAction(codes[k.slot]!);
+    return { layer, slots, provenance: 'device' };
+  }
+
+  override async getFnLayer(): Promise<KeymapState> {
+    return this.getKeymap('fn');
+  }
+
+  override async setFnLayer(state: KeymapState): Promise<void> {
+    await this.setKeymap({ ...state, layer: 'fn' });
+  }
+
+  /**
+   * Reads the layer, changes the given keys, writes the whole layer and reads it again. Fn keys
+   * are never changed; "default" is the key's factory function as RK's own table lists it.
+   */
+  override async setKeymap(state: KeymapState): Promise<void> {
+    this.requireMatrix();
+    const layer = this.layerIndex(state.layer);
+    const current = await this.readCodes(layer);
+    const factory = this.factory(layer);
+    const next = current.slice();
+    for (const [k, action] of Object.entries(state.slots)) {
+      const slot = Number(k);
+      if (!Number.isInteger(slot) || slot < 0 || slot >= current.length)
+        throw new ProtocolError(`Key ${k} is outside the keyboard’s matrix.`);
+      let code: number;
+      if (action.kind === 'default') {
+        const f = factory.get(slot);
+        if (f === undefined)
+          throw new ProtocolError(
+            layer === 0
+              ? 'This key’s factory function is not known; choose a function for it.'
+              : 'The factory function of this key on this FN layer is not known; choose a function for it.',
+          );
+        code = f;
+      } else code = encodeAction(action, current[slot]!);
+      if (code === current[slot]) continue;
+      if (isFnCode(current[slot]!))
+        throw new ProtocolError('Fn keys are not changed: they open the keyboard’s other layers.');
+      next[slot] = code;
+    }
+    if (next.every((c, i) => c === current[i])) return;
+    const param = matrixParameter(layer);
+    await this.s().write(MatrixCmd.SET_KEY_MATRIX, param, writeMatrix(next));
+    const back = await this.readCodes(layer);
+    const off = next.flatMap((c, i) => (back[i] === c ? [] : [i]));
+    if (off.length)
+      throw new ReadbackMismatchError(`The keyboard did not keep ${off.length} key(s).`, {
+        keys: off,
+      });
+  }
+
+  override async getPerKeyRgb(): Promise<PerKeyRgb> {
+    this.requireMatrix();
+    const colors = readColors(await this.s().read(MatrixCmd.GET_LED_COLORS, 0, COLOR_BYTES));
+    const out: PerKeyRgb = {};
+    for (const k of this.getLayout().keys) if (k.light !== null) out[k.light] = colors[k.light]!;
+    return out;
+  }
+
+  /** Reads the colour table, patches it, writes it, reads it again, then selects the Custom effect. */
+  override async setPerKeyRgb(colors: PerKeyRgb): Promise<void> {
+    this.requireMatrix();
+    this.requireLayout();
+    const current = await this.s().read(MatrixCmd.GET_LED_COLORS, 0, COLOR_BYTES);
+    const next = patchColors(current, colors);
+    await this.s().write(MatrixCmd.SET_LED_COLORS, 0, next);
+    const back = await this.s().read(MatrixCmd.GET_LED_COLORS, 0, COLOR_BYTES);
+    if (back.some((v, i) => v !== next[i]))
+      throw new ReadbackMismatchError('The keyboard did not keep the per-key colours.');
+    await this.patch({ effect: SELF_DEFINE });
   }
 
   getCapabilities(): Capabilities {
@@ -143,7 +315,9 @@ export class ByTechDriver extends BaseKeyboardDriver {
         safety: SafetyLevel.SAFE_PERSISTENT,
         source: this.layoutLearned
           ? 'settings page; layout confirmed by your key presses'
-          : 'settings page (leisiji/AulaSofwareLinux, verified on an AULA F75)',
+          : this.model?.brand === 'RK'
+            ? 'settings page: field layout from RK’s own web driver (BeiYing profile), the same as the page verified on an AULA F75'
+            : 'settings page (leisiji/AulaSofwareLinux, verified on an AULA F75)',
         note: 'Read from the keyboard, patched, written back and read again to confirm.',
       });
       c.sleep =
@@ -160,10 +334,20 @@ export class ByTechDriver extends BaseKeyboardDriver {
         note: 'The settings page is readable, but its layout is not confirmed for this model. Confirm it with your keyboard’s lighting shortcut (Lighting → Teach OpenKey).',
       });
     }
-    c.perKeyRgb = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-      confidence: Evidence.INFERRED,
-      note: 'Per-key colours need the model’s LED map; not implemented.',
-    });
+    const web =
+      'RK’s own web driver (drive.rkgaming.com, protocol BeiYing): key matrix 0x83/0x03 and colour table 0x86/0x06';
+    c.perKeyRgb =
+      this.matrix && layout
+        ? configurable('device', true, Evidence.INFERRED, {
+            safety: SafetyLevel.SAFE_PERSISTENT,
+            source: web,
+            value: `${this.getLayout().keys.filter((k) => k.light !== null).length} keys`,
+            note: 'Read from the keyboard, changed, written back and read again. Applying switches the lighting to the Custom effect (18).',
+          })
+        : feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
+            confidence: Evidence.INFERRED,
+            note: 'Per-key colours need this model’s LED map; not known yet.',
+          });
     if (this.model?.screenClock) {
       c.tftClock = configurable('none', true, Evidence.INFERRED, {
         safety: SafetyLevel.SAFE_VOLATILE,
@@ -175,10 +359,25 @@ export class ByTechDriver extends BaseKeyboardDriver {
         note: 'Picture upload goes through a separate screen controller with its own checksums; documented from the vendor app but not tested, so not sent.',
       });
     }
-    c.keymap = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-      confidence: Evidence.INFERRED,
-      note: 'Third-party sources disagree on the key encoding.',
-    });
+    if (this.matrix) {
+      const keys = {
+        safety: SafetyLevel.CAUTION,
+        source: web,
+        note: 'Read from the keyboard; the whole layer is written back with your changes and read again. Fn keys stay as they are.',
+      };
+      c.keymap = configurable('device', true, Evidence.INFERRED, {
+        ...keys,
+        value: 'keys, keys with modifiers, media keys, mouse buttons, lighting keys, Win lock',
+      });
+      c.fnLayer = configurable('device', true, Evidence.INFERRED, {
+        ...keys,
+        value: 'FN1 and FN2 layers',
+      });
+    } else
+      c.keymap = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
+        confidence: Evidence.INFERRED,
+        note: 'The key encoding is known (RK web driver), but this model’s key matrix positions are not.',
+      });
     c.macros = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, { confidence: Evidence.INFERRED });
     c.factoryDefaults = feature(FeatureStatus.NOT_SUPPORTED, {
       confidence: Evidence.INFERRED,
@@ -268,7 +467,10 @@ export class ByTechDriver extends BaseKeyboardDriver {
   }
 
   override getRgbEffects(): EffectCatalog {
-    if (this.model?.effects) return effectCatalog(this.model);
+    if (this.model?.effects) {
+      const cat = effectCatalog(this.model);
+      return this.matrix ? { ...cat, customEffect: SELF_DEFINE } : cat;
+    }
     // Learned layout on an unknown effect list: offer the effect positions without names.
     const n = 20;
     return {
@@ -313,6 +515,12 @@ export class ByTechDriver extends BaseKeyboardDriver {
     const layout = this.requireLayout();
     const before = await this.readSettingsPage();
     const next = patchPage(before, layout, change);
+    // RK web driver: when `LedParameterType` (0x05) is not 0, the keyboard uses the global
+    // brightness (0x06) and speed (0x07) instead of the effect's own slot; both are kept in step.
+    if (change.slot && layout === BY_TECH_LAYOUT && before[0x05] !== 0) {
+      if (change.slot.brightness !== undefined) next[0x06] = change.slot.brightness & 0xff;
+      if (change.slot.speed !== undefined) next[0x07] = change.slot.speed & 0xff;
+    }
     if (diffPages(before, next).length === 0) return;
     await this.s().writeSettingsPage(next);
     const after = await this.readSettingsPage();
@@ -327,6 +535,8 @@ export class ByTechDriver extends BaseKeyboardDriver {
   }
 
   override async setRgbConfig(config: RgbConfig): Promise<void> {
+    // Off (RK effect 0) has no settings slot: only the effect byte changes.
+    if (config.effect === 0 && this.model?.effects === 'rk-web') return this.patch({ effect: 0 });
     const color = config.colorful
       ? COLOR_CYCLE
       : nearestFirmwareColor(config.color.r, config.color.g, config.color.b);

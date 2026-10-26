@@ -441,7 +441,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'adapter',
     adapters: ['by-tech'],
-    note: 'R75 RGB wired (258A:015E): BY Tech protocol with its own 80-key picture and knob, and the effect list and controls from RK’s configuration for it. Teach OpenKey its lighting layout with two key presses (nothing is written), then effect, colour, brightness and speed are configurable and read back. Key maps, macros and per-key colours are not documented for this protocol. Newer R75 revisions using RK’s web software are not supported yet.',
+    note: 'R75 RGB wired (258A:015E): BY Tech protocol with its own 80-key picture and knob, and the effect list and controls from RK’s configuration for it. Lighting (named effects, colour, brightness, speed), key maps on the normal, FN1 and FN2 layers with RK’s factory functions, and per-key colours, all read from the keyboard and read back after each write (layout from RK’s own web driver). Macros are not supported yet.',
     revisions: [
       {
         name: 'RGB wired',
@@ -1188,7 +1188,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'depends',
     adapters: ['hub-aa55', 'royuan'],
-    note: 'The AK680 V2 and the RGB AK680 MAX speak AJAZZ’s web-driver protocol: OpenKey reads their firmware and battery and, where the keyboard answers the lighting read, sets effect, colour, brightness and speed. Actuation and Rapid Trigger stay in the AJAZZ web driver for now. The lightless AK680 MAX (3151:502C) is a ROYUAN board.',
+    note: 'The AK680 V2 and the RGB AK680 MAX speak AJAZZ’s web-driver protocol: OpenKey reads their firmware and battery and, where the keyboard answers the lighting read, sets effect, colour, brightness and speed. Key maps and the Fn layer (keys, media keys, mouse buttons) on its own 65 % layout, read from the keyboard and read back. Actuation and Rapid Trigger stay in the AJAZZ web driver for now. The lightless AK680 MAX (3151:502C) is a ROYUAN board.',
     revisions: [
       {
         name: 'AK680 V2',
@@ -1286,7 +1286,7 @@ export const MODEL_GUIDE: readonly GuideEntry[] = [
     group: 'bangladesh',
     level: 'adapter',
     adapters: ['hub-aa55'],
-    note: 'AULA’s web-driver protocol (38A6:2908; receiver 0C45:FEF9): effect, colour, brightness, speed and per-key colours on all 87 keys and the knob-ring and side-light colours, read from the keyboard and read back after each change. Through the receiver, OpenKey first checks that it relays an F87S.',
+    note: 'AULA’s web-driver protocol (38A6:2908; receiver 0C45:FEF9): effect, colour, brightness, speed and per-key colours on all 87 keys, the knob-ring and side-light colours, and key maps on the normal and Fn layers, all read from the keyboard and read back after each change. Through the receiver, OpenKey first checks that it relays an F87S.',
     revisions: [
       {
         name: 'wired',

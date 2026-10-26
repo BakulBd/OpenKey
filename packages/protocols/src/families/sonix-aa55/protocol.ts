@@ -12,8 +12,33 @@ import { ADAPTER_API_VERSION } from '../../registry.js';
 import { Cmd, DEVICE_INFO_BYTES, TFT_USAGE_PAGE } from './constants.js';
 import { decodeDeviceInfo } from './codecs.js';
 import { SONIX_AA55_PROTOCOL_ID, SonixAa55Driver } from './driver.js';
+import type { Aa55WebBoard } from './driver.js';
 import { MAX_COMMAND_PACKET, configInterface } from './match.js';
 import { Aa55Link } from './transfer.js';
+import { loadWebBoard, webIdentity, webLayout } from '../hub-aa55/webboards.js';
+
+/** Units of the AK820 Pro this adapter was built for keep the curated layout. */
+const CURATED = { vendorId: 0x0c45, productId: 0x8009, productName: 'AK820' };
+
+/** The web driver's own board for this identity: its name and key rows. */
+async function webBoardFor(group: HidDeviceGroup): Promise<Aa55WebBoard | null> {
+  const { vendorId, productId, productName } = group.identity;
+  if (
+    vendorId === CURATED.vendorId &&
+    productId === CURATED.productId &&
+    productName.trim() === CURATED.productName
+  )
+    return null;
+  const id = webIdentity(vendorId, productId, productName);
+  const board = id ? await loadWebBoard(id) : null;
+  if (!board) return null;
+  const name = /^(AJAZZ|AULA)\b/i.test(board.name) ? board.name : `AJAZZ ${board.name}`;
+  const hex = (n: number) => n.toString(16).padStart(4, '0');
+  return {
+    name,
+    layout: webLayout(`ajazz-web-${hex(vendorId)}-${hex(productId)}`, name, board),
+  };
+}
 
 function match(group: HidDeviceGroup): CandidateMatch {
   const reasons: string[] = [];
@@ -44,19 +69,13 @@ function match(group: HidDeviceGroup): CandidateMatch {
 
 /**
  * Identities with a configuration in the official online driver (`vid-pid-productName`, e.g.
- * `3141-32777-AK820`). The command-pipe signature (a small output report on FF00/FF01/FF68 …) is
- * shared by countless unrelated devices, so GET_DEVICE_INFO is never sent to anything else
- * without the user's consent.
+ * `3141-32777-AK820`; the full list is web-index.json, built by `pnpm ajazz-web`). The
+ * command-pipe signature (a small output report on FF00/FF01/FF68 …) is shared by countless
+ * unrelated devices, so GET_DEVICE_INFO is never sent to anything else without the user's consent.
+ * The product name must match exactly here: the probe is sent before anything is known.
  */
-const ONLINE_DRIVER_IDENTITIES: readonly {
-  vendorId: number;
-  productId: number;
-  productName: string;
-}[] = [
-  { vendorId: 0x0c45, productId: 0x8009, productName: 'AK820' },
-  { vendorId: 0x0c45, productId: 0x8009, productName: 'AK980 PRO' },
-  { vendorId: 0x0c45, productId: 0x8009, productName: 'AJAZZ KEYBOARD' },
-];
+const onlineDriverListed = (id: { vendorId: number; productId: number; productName: string }) =>
+  webIdentity(id.vendorId, id.productId, id.productName)?.[2] === id.productName.trim();
 
 const probePlan: ProbePlan = {
   operations: [
@@ -83,12 +102,7 @@ const probePlan: ProbePlan = {
   ],
   autoConsent(group) {
     const id = group.identity;
-    const listed = ONLINE_DRIVER_IDENTITIES.some(
-      (o) =>
-        o.vendorId === id.vendorId &&
-        o.productId === id.productId &&
-        o.productName === id.productName.trim(),
-    );
+    const listed = onlineDriverListed(id);
     return listed
       ? {
           auto: true,
@@ -182,6 +196,6 @@ export const sonixAa55Protocol: ProtocolDefinition = {
   probePlan,
   probe,
   async createDriver(group, opts) {
-    return new SonixAa55Driver(group, opts);
+    return new SonixAa55Driver(group, opts, await webBoardFor(group));
   },
 };

@@ -7,3 +7,6 @@ export * from './driver.js';
 export * from './learn.js';
 export * from './protocol.js';
 export * from './simulator.js';
+export * from './rkkeys.js';
+export * from './matrix.js';
+export * from './rkweb.js';

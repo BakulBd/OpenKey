@@ -89,7 +89,18 @@ for (let i = 1; i <= 9; i++) VK[0x30 + i] = [0x1d + i, String(i)];
 VK[0x30] = [0x27, '0'];
 for (let i = 0; i < 12; i++) VK[0x70 + i] = [0x3a + i, `F${i + 1}`];
 for (let i = 1; i <= 9; i++) VK[0x60 + i] = [0x58 + i, `Num ${i}`];
-const FN_VK = 0xfa;
+export const FN_VK = 0xfa;
+
+/**
+ * A Windows virtual-key code from RK's tables as a HID usage: keyboard page, or consumer page for
+ * media keys. Undefined for codes RK's tables do not use (and for Fn).
+ */
+export function vkUsage(
+  vk: number,
+): { usage: number; consumer: boolean; label: string } | undefined {
+  const e = VK[vk];
+  return e ? { usage: e[0], consumer: e[2] === 'consumer', label: e[1] } : undefined;
+}
 
 /** One key of RK's table: rectangle on RK's picture, virtual-key code, table index, key type. */
 export type RkKey = [number, number, number, number, number, number, number?];

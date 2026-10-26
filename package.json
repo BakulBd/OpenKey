@@ -26,6 +26,8 @@
     "via-index": "tsx tools/via-index/src/main.ts && prettier --write packages/devices/src/via-index.json",
     "contributors": "tsx tools/contributors/src/main.ts && prettier --write apps/web/src/app/contributors.json",
     "rk-keys": "tsx tools/rk-keys/src/main.ts",
+    "rk-web": "tsx tools/rk-web/src/main.ts",
+    "ajazz-web": "tsx tools/ajazz-web/src/main.ts",
     "docs:guide": "tsx tools/guide-docs/src/main.ts && prettier --write docs/MODEL_GUIDE.md docs/RESEARCH_INVENTORY.md",
     "dev": "pnpm --filter @openkey/web dev",
     "build": "pnpm build:cli && pnpm build:web",

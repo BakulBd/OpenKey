@@ -844,6 +844,21 @@ export function KeyboardProvider({
               },
               modelCode: byTech.R75_IDENTITY,
             });
+      if (kind !== 'aula-f75') {
+        // The R75's factory key layers from RK's own table; FN-layer keys RK does not list keep
+        // their normal-layer key, as a plausible picture for the demo.
+        const keys = await byTech.rkByTechKeys('015e');
+        if (keys) {
+          const base = new Array<number>(byTech.MATRIX_KEYS).fill(0);
+          for (const [i, c] of byTech.rkFactory(keys, 0)) base[i] = c;
+          sim.matrices.set(0, byTech.writeMatrix(base));
+          for (const layer of [1, 2]) {
+            const codes = base.slice();
+            for (const [i, c] of byTech.rkFactory(keys, layer)) codes[i] = c;
+            sim.matrices.set(layer, byTech.writeMatrix(codes));
+          }
+        }
+      }
       // A simulator cannot be harmed, so its identification read needs no consent.
       await attach(sim.device.group(), true, { consent: ['by-tech'] });
     },

@@ -8,6 +8,7 @@ import {
   REPORT_BYTES,
   SETTINGS_PAGE_BYTES,
 } from './constants.js';
+import { COLOR_BYTES, MATRIX_BYTES, MatrixCmd } from './matrix.js';
 import { AULA_LAYOUT, slotOffset } from './page.js';
 import type { PageLayout } from './page.js';
 
@@ -106,6 +107,14 @@ export class ByTechSimulator {
   readonly writes: Uint8Array[] = [];
   /** Every SetScreenParam payload (screen boards). */
   readonly screenParams: Uint8Array[] = [];
+  /** Key matrices by parameter (`layer | table << 2`), 504 bytes each. */
+  readonly matrices = new Map<number, Uint8Array>();
+  readonly matrixWrites: { parameter: number; data: Uint8Array }[] = [];
+  /** The per-key colour table (three planes of 126). */
+  colors = new Uint8Array(COLOR_BYTES);
+  readonly colorWrites: Uint8Array[] = [];
+  /** False models a keyboard that ignores matrix and colour writes (read-back must catch it). */
+  keepsWrites = true;
 
   constructor(opts: ByTechSimulatorOptions = {}) {
     this.page = (opts.page ?? F75_PAGE).slice();
@@ -163,6 +172,24 @@ export class ByTechSimulator {
     }
     if (cmd === Cmd.SET_SCREEN_PARAM) {
       this.screenParams.push(data.slice(HEADER_BYTES, HEADER_BYTES + len));
+      return;
+    }
+    if (cmd === MatrixCmd.GET_KEY_MATRIX)
+      return this.answer(
+        cmd,
+        (this.matrices.get(param) ?? new Uint8Array(MATRIX_BYTES)).slice(0, len),
+      );
+    if (cmd === MatrixCmd.SET_KEY_MATRIX) {
+      const m = data.slice(HEADER_BYTES, HEADER_BYTES + len);
+      this.matrixWrites.push({ parameter: param, data: m });
+      if (this.keepsWrites) this.matrices.set(param, m);
+      return;
+    }
+    if (cmd === MatrixCmd.GET_LED_COLORS) return this.answer(cmd, this.colors.slice(0, len));
+    if (cmd === MatrixCmd.SET_LED_COLORS) {
+      const c = data.slice(HEADER_BYTES, HEADER_BYTES + len);
+      this.colorWrites.push(c);
+      if (this.keepsWrites && c.length === COLOR_BYTES) this.colors = c;
       return;
     }
     // Anything else is not a command OpenKey sends; the firmware ignores it.

@@ -32,7 +32,15 @@ export const Cmd = {
   /** yc500 single-slot writes: `[profile, slot]`, value at bytes 8..11. */
   SET_KEY_YC500: 0x13,
   SET_FN_KEY_YC500: 0x15,
+  /**
+   * gen2 key-map write (RK's own web driver, ROYUAN `SET_KEYMATRIX`): `[profile, FF, page, length,
+   * last, layer]`, checksum at byte 7, 56 data bytes from byte 8; a whole layer is 126 × 4 bytes in
+   * nine packets, the last flagged.
+   */
+  SET_KEYMAP_GEN2: 0x0a,
 } as const;
+/** Data bytes per gen2 key-map write packet (64 − 8 header bytes). */
+export const GEN2_WRITE_CHUNK = 56;
 
 /** Never sent: factory reset (yc500 / gen2), flash and display erase, USB and display boot entry. */
 export const FORBIDDEN = [0x01, 0x02, 0xac, 0x2c, 0x7f, 0x30] as const;

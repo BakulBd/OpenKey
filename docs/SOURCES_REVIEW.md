@@ -422,3 +422,47 @@ sources (openrazer, OpenRGB, Solaar, somenever, thanks4opensource) are used for 
 - **Not closed:** the AK992 key map (rea-jazz documents the upload framing but not the key encoding,
   untested), the BY Tech key map and per-key colours (sources disagree), the AK820 single-colour
   (`1A2C:9605`, no packet source), Corsair (no research yet).
+
+### RK's web driver (drive.rkgaming.com), October 2026
+
+RK's own web driver is a WebHID app; its bundle (`assets/index-*.js`) was read as text for facts.
+It drives RK boards with 11 protocol families; `BeiYing` is the BY Tech protocol of OpenKey's
+`by-tech` adapter.
+
+- **Commands** (519-byte feature reports, report 6 or 9): profile page read `84` / write `04`, key
+  matrix read `83` / write `03` (parameter `layer | table << 2`; layers normal, FN1, FN2, tap; tables
+  Windows, Mac), colour table read `86` / write `06`, effect table `8A`/`0A`, macros `85`/`05`, version
+  `82`, factory reset `11` (never sent by OpenKey).
+- **Key matrix:** 6 × 21, 4 bytes per key, `type << 24 | parameter << 16 | code`: keyboard (modifier
+  mask, HID usage), mouse, media (consumer usage), macro, special, lighting, report rate, Fn layer.
+  The FN-layer codes in RK's KB.ini files (`[FN1]`, `[FN2]`) use the same encoding.
+- **Colours:** 126 LEDs, three planes (all reds, greens, blues); effect 18 (`SelfDefine`) shows them.
+- **Profile page:** the same field offsets as the page verified on an AULA F75 (effect `0x0A`, sleep
+  `0x18` in 30-second units, per-effect table from `0x38` + 2 × effect); `0x05` selects global
+  brightness (`0x06`) and speed (`0x07`) instead.
+- **Boards:** 63 BeiYing USB entries; 33 have complete factory tables and a protocol module confirming
+  the 6 × 21 matrix, 3 × 126 colours and 519-byte reports (`pnpm rk-web`). Nine variants use a code
+  outside the known enums and are left out.
+- **Corrections:** `258A:01AF` is the RK S98 (OpenKey had it as an M87); the M87's matrix is the web
+  driver's, not that of config folder `01AF`; RK's L-series receivers share `3554:FA09` with AULA's.
+
+### AJAZZ web driver (ajazz.driveall.cn) and MonsGeek web driver (web.monsgeek.com), October 2026
+
+Both are WebHID apps; their bundles were read as text for facts.
+
+- **AJAZZ (protocol of OpenKey's `hub-aa55` adapter):** the full command table (device info `10`,
+  lighting `13`/`23`, per-key `14`/`24`, zones `1B`/`2B` and `1D`/`2D`, key tables `12`/`22`, Fn
+  `16`/`26`, factory key tables `1F` and `1C`, macros `15`/`25`, settings `11`/`21`); reset `0F`,
+  firmware `4F`, calibration `64`–`6A` and OTA / serial number `80`–`86` are never sent. Key entries
+  are `type p1 p2 p3` (0 factory function, 1 mouse, 2 keyboard, 3 media, 6 macro, 13 function). Its
+  per-board key numbers for the AK680 V2 / MAX are the same numbering as the F87S LED map verified on
+  hardware. About 440 board entries (AULA `38A6`, AJAZZ `0C45` web-driver firmware).
+- **MonsGeek (ROYUAN):** four command-table generations. The yc500 table matches OpenKey's (profile
+  `85`, key map `89`, single-key `13`, Fn `90`/`15`) and adds debounce `11`/`91` (value at byte 2)
+  and wireless sleep `12`/`92`; the gen2 table ("keyboard3123") matches RK's (profile `84`, key map
+  `8A`, Fn `90`/`10`, debounce `06`/`86` at byte 1, sleep `11`/`91`) and corrects RK's: profile write
+  is `04`, report rate `03`. Debounce limits are per board (`deBounce` 10 or 20 ms; boards with
+  `deBounceMin: 0` store ms − 1), in a 3,023-entry device table keyed by a record number. OpenKey
+  could not confirm that number is the one its identify read returns, so debounce is not written yet.
+- **RK web driver, ROYUAN module:** the gen2 key-map write `0A` (`profile FF page length last
+layer`, 56 data bytes per packet, nine packets) and modifier combinations `00 00 mod key`.

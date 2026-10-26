@@ -47,8 +47,23 @@ export class ByTechSession {
     throw last;
   }
 
+  /**
+   * Transfers run one after another: a read is a request and a reply on the same report, so two
+   * at once (two editors loading together) would take each other's replies.
+   */
+  private queue: Promise<unknown> = Promise.resolve();
+  private serial<T>(run: () => Promise<T>): Promise<T> {
+    const p = this.queue.then(run, run);
+    this.queue = p.catch(() => undefined);
+    return p;
+  }
+
   /** Requests `len` bytes with a read command (bit 7 set) and returns them. */
-  async read(command: number, parameter: number, len: number): Promise<Uint8Array> {
+  read(command: number, parameter: number, len: number): Promise<Uint8Array> {
+    return this.serial(() => this.readNow(command, parameter, len));
+  }
+
+  private async readNow(command: number, parameter: number, len: number): Promise<Uint8Array> {
     const n = packageCount(len);
     const out = new Uint8Array(len);
     for (let index = 0, got = 0; index < n; index++) {
@@ -64,11 +79,13 @@ export class ByTechSession {
   }
 
   /** Sends `data` with a write command, split into numbered packages. */
-  async write(command: number, parameter: number, data: Uint8Array): Promise<void> {
-    for (const report of writeFrames(command, parameter, data)) {
-      await this.sleep(this.delay);
-      await this.setFeature(report);
-    }
+  write(command: number, parameter: number, data: Uint8Array): Promise<void> {
+    return this.serial(async () => {
+      for (const report of writeFrames(command, parameter, data)) {
+        await this.sleep(this.delay);
+        await this.setFeature(report);
+      }
+    });
   }
 
   /** The six-byte model code the vendor driver matches against `Psd=`. */

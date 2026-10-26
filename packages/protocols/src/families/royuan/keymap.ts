@@ -4,6 +4,8 @@ import type { KeyAction } from '@openkey/core';
  * ROYUAN key slots: 128 slots × 4 bytes per layer (sharkfin docs/PROTOCOL.md "Keymap", "Slot values").
  *
  *   00 00 uu 00   HID keyboard usage uu
+ *   00 00 mm uu   gen2: modifier key mm (E0–E7) held with key uu (RK's own web driver, e.g. its
+ *                 "Zoom in" 00 00 E3 2E = Win + =, "M1" 00 00 E0 1D = Ctrl + Z)
  *   03 00 lo hi   HID consumer usage
  *   00 00 00 00   base layer: key disabled; Fn layer: falls through to the base layer
  *
@@ -16,10 +18,19 @@ export const SLOT_BYTES = 4;
 /** Slots 126 and 127 are never written (not transmitted by the vendor's bulk upload). */
 export const WRITABLE_SLOTS = 126;
 
-export function decodeSlot(b: Uint8Array | readonly number[], fnLayer: boolean): KeyAction {
+const isModifier = (u: number) => u >= 0xe0 && u <= 0xe7;
+
+export function decodeSlot(
+  b: Uint8Array | readonly number[],
+  fnLayer: boolean,
+  /** gen2 boards: `00 00 mm uu` is a key with one modifier. */
+  combos = false,
+): KeyAction {
   const [t, b1, b2, b3] = [b[0] ?? 0, b[1] ?? 0, b[2] ?? 0, b[3] ?? 0];
   if (t === 0 && b1 === 0 && b2 === 0 && b3 === 0)
     return fnLayer ? { kind: 'default' } : { kind: 'disabled' };
+  if (combos && t === 0 && b1 === 0 && isModifier(b2) && b3 && !isModifier(b3))
+    return { kind: 'keyboard', usage: b3, modifiers: 1 << (b2 - 0xe0) };
   if (t === 0x00 && b1 === 0 && b3 === 0) return { kind: 'keyboard', usage: b2, modifiers: 0 };
   if (t === 0x03 && b1 === 0) return { kind: 'consumer', usage: b2 | (b3 << 8) };
   return { kind: 'raw', bytes: [t, b1, b2, b3] };
@@ -27,11 +38,23 @@ export function decodeSlot(b: Uint8Array | readonly number[], fnLayer: boolean):
 
 export class UnencodableSlotError extends Error {}
 
-export function encodeSlot(a: KeyAction, fnLayer: boolean): [number, number, number, number] {
+export function encodeSlot(
+  a: KeyAction,
+  fnLayer: boolean,
+  combos = false,
+): [number, number, number, number] {
   switch (a.kind) {
     case 'keyboard':
-      if (a.modifiers)
-        throw new UnencodableSlotError('Key combinations are not written on ROYUAN boards yet.');
+      if (a.modifiers) {
+        const bit = a.modifiers & -a.modifiers;
+        if (!combos)
+          throw new UnencodableSlotError(
+            'Key combinations are written on gen2 ROYUAN boards only.',
+          );
+        if (a.modifiers !== bit || isModifier(a.usage) || !a.usage)
+          throw new UnencodableSlotError('A ROYUAN key holds one modifier with one other key.');
+        return [0x00, 0x00, 0xe0 + Math.log2(bit), a.usage & 0xff];
+      }
       return [0x00, 0x00, a.usage & 0xff, 0x00];
     case 'consumer':
       return [0x03, 0x00, a.usage & 0xff, (a.usage >> 8) & 0xff];

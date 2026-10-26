@@ -16,6 +16,8 @@ export class RoyuanSimulator {
   readonly fn = new Uint8Array(512);
   /** Some yc500 firmware drops single-slot writes; set to emulate it. */
   dropSlotWrites = false;
+  /** gen2 key-map write packets, in order. */
+  readonly gen2Writes: Uint8Array[] = [];
 
   constructor(
     readonly family: RoyuanFamily = 'yc500',
@@ -73,6 +75,13 @@ export class RoyuanSimulator {
               break;
             }
             r.set(this.base.subarray(d[3]! * 64, d[3]! * 64 + 64));
+            break;
+          case Cmd.SET_KEYMAP_GEN2:
+            // [0A, profile, FF, page, length, last, layer, ck] + data from byte 8
+            if (family === 'gen2' && d[6] === 0 && !this.dropSlotWrites) {
+              this.gen2Writes.push(d.slice());
+              this.base.set(d.subarray(8, 8 + d[4]!), d[3]! * 56);
+            }
             break;
           case Cmd.SET_KEY_YC500:
           case Cmd.SET_FN_KEY_YC500:

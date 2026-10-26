@@ -14,8 +14,13 @@ import type {
   Capabilities,
   DeviceInfo,
   EffectCatalog,
+  KeyActionKind,
   KeyboardLayout,
+  KeymapState,
+  LayerId,
   LightZone,
+  Macro,
+  MacroLimits,
   PerKeyRgb,
   RgbConfig,
   TransportMode,
@@ -27,8 +32,11 @@ import {
   Cmd,
   EFFECT_BYTES,
   HUB_PROTOCOL_ID,
+  KEY_TABLE_BYTES,
   TABLE_BYTES,
   ZONE_BYTES,
+  decodeKey,
+  encodeKey,
   ZONE_COLOR_OFFSET,
   decodeEffect,
   decodeInfo,
@@ -39,7 +47,9 @@ import {
   parseReply,
   requests,
 } from './codec.js';
-import type { HubEffect, HubInfo } from './codec.js';
+import type { HubEffect, HubInfo, TransferOptions } from './codec.js';
+import { MACRO_INDEX_BYTES, MACRO_SLOTS } from '../sonix-aa55/constants.js';
+import { decodeMacroBlock, encodeMacrosAa55 } from '../sonix-aa55/codecs.js';
 import { hubLayout } from './models.js';
 import type { HubModel, HubZone } from './models.js';
 
@@ -52,10 +62,11 @@ export class HubSession {
     private readonly replyMs: number,
   ) {}
 
-  transfer(cmd: number, data: Uint8Array): Promise<Uint8Array> {
+  transfer(cmd: number, data: Uint8Array, opts: TransferOptions = {}): Promise<Uint8Array> {
+    const offset = opts.offset ?? 0;
     const run = async () => {
       const out = new Uint8Array(data.length);
-      for (const req of requests(cmd, data, this.reportSize)) {
+      for (const req of requests(cmd, data, this.reportSize, opts)) {
         this.transport.drainInput();
         await this.transport.sendOutputReport(0, req);
         const addr = req[3]! | (req[4]! << 8);
@@ -68,7 +79,8 @@ export class HubSession {
             );
           const reply = parseReply(r);
           if (reply && reply.cmd === cmd && reply.addr === addr) {
-            out.set(reply.data.subarray(0, Math.min(reply.data.length, data.length - addr)), addr);
+            const at = addr - offset;
+            out.set(reply.data.subarray(0, Math.min(reply.data.length, data.length - at)), at);
             break;
           }
           if (Date.now() >= deadline) throw new TimeoutError('The keyboard did not answer.');
@@ -81,8 +93,8 @@ export class HubSession {
     return p;
   }
 
-  read(cmd: number, bytes: number): Promise<Uint8Array> {
-    return this.transfer(cmd, new Uint8Array(bytes));
+  read(cmd: number, bytes: number, offset = 0): Promise<Uint8Array> {
+    return this.transfer(cmd, new Uint8Array(bytes), { offset });
   }
 }
 
@@ -204,7 +216,9 @@ export class HubDriver extends BaseKeyboardDriver {
           safety: SafetyLevel.SAFE_PERSISTENT,
           source: src,
           value: `${Object.keys(this.model.ledMap!).length} keys`,
-          note: 'The whole 128-slot table is read, changed and written back, then read again.',
+          note: this.model.ledAssumed
+            ? 'LEDs are numbered like the keys, as on the AULA F87S, but not confirmed on this board: if colours land on the wrong keys, report it. The whole table is read, changed, written back and read again.'
+            : 'The whole 128-slot table is read, changed and written back, then read again.',
         })
       : feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
           confidence: Evidence.INFERRED,
@@ -222,10 +236,35 @@ export class HubDriver extends BaseKeyboardDriver {
           note: 'One colour per zone. OpenKey reads each zone, changes only its colour, writes it back and reads it again; the zone’s other settings stay as they are.',
         },
       );
-    c.keymap = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
-      confidence: Evidence.INFERRED,
-      note: 'The key-map commands are documented for some models but not with read-back; not written yet.',
-    });
+    if (this.keymapOk) {
+      const keys = {
+        safety: SafetyLevel.CAUTION,
+        source:
+          'AJAZZ’s own web driver (ajazz.driveall.cn): key tables 0x12/0x22 and Fn layer 0x16/0x26, 128 keys × 4 bytes',
+        note: 'Read from the keyboard; the whole table is written back with your changes and read again. Fn keeps its function. Restore defaults returns every key to its factory function.',
+      };
+      c.keymap = configurable('device', true, Evidence.INFERRED, {
+        ...keys,
+        value: 'keys, media keys, mouse buttons and wheel',
+      });
+      c.fnLayer = configurable('device', true, Evidence.INFERRED, { ...keys, value: 'Fn layer' });
+      c.factoryDefaults = configurable('none', true, Evidence.INFERRED, {
+        safety: SafetyLevel.CAUTION,
+        note: 'Writes the "factory function" entry to every key of the layer (the keyboard keeps its own defaults); lighting stays as it is.',
+      });
+      if (this.macrosOk)
+        c.macros = configurable('device', true, Evidence.INFERRED, {
+          safety: SafetyLevel.CAUTION,
+          source:
+            'AJAZZ’s own web driver (ajazz.driveall.cn): macro storage 0x15/0x25 (400-byte index, then blocks of 4-byte steps)',
+          value: `${MACRO_SLOTS} slots, ${this.info!.macroSpace} bytes`,
+          note: 'Not yet run on a keyboard by OpenKey: macros are written whole and read back. Assign a macro to a key on the Keys page.',
+        });
+    } else
+      c.keymap = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
+        confidence: Evidence.INFERRED,
+        note: other ?? 'The key numbers of this model are not known yet.',
+      });
     if (this.model.name.includes('AK680'))
       c.actuation = feature(FeatureStatus.NOT_YET_REVERSE_ENGINEERED, {
         confidence: Evidence.INFERRED,
@@ -291,8 +330,11 @@ export class HubDriver extends BaseKeyboardDriver {
       });
     return {
       effects,
-      brightness: { min: 0, max: BRIGHTNESS_MAX },
-      speed: { min: 0, max: 5 },
+      brightness: {
+        min: this.model.web?.brightness?.[0] ?? 0,
+        max: this.model.web?.brightness?.[1] ?? BRIGHTNESS_MAX,
+      },
+      speed: { min: this.model.web?.speed?.[0] ?? 0, max: this.model.web?.speed?.[1] ?? 5 },
       ...(this.perKey ? { customEffect: CUSTOM_MODE } : {}),
     };
   }
@@ -399,5 +441,172 @@ export class HubDriver extends BaseKeyboardDriver {
       if (back.some((v, i) => v !== block[i]))
         throw new ReadbackMismatchError(`The keyboard did not keep the colour of the ${z.name}.`);
     }
+  }
+
+  /** Key maps: a model whose key numbers are known, and the keyboard the receiver relays is it. */
+  private get keymapOk(): boolean {
+    return !!this.model.keys && this.bodyMatches;
+  }
+
+  private requireKeymap(): void {
+    if (!this.keymapOk) throw new ProtocolError('Key maps are not available for this keyboard.');
+  }
+
+  override getLayerIds(): readonly LayerId[] {
+    return this.keymapOk ? ['base', 'fn'] : ['base'];
+  }
+
+  override getKeyActionKinds(): readonly KeyActionKind[] {
+    if (!this.keymapOk) return super.getKeyActionKinds();
+    const kinds: KeyActionKind[] = ['default', 'keyboard', 'consumer', 'mouse'];
+    return this.macrosOk ? [...kinds, 'macro'] : kinds;
+  }
+
+  /** Macro storage: key maps work, the keyboard reports macro space and the web driver offers it. */
+  private get macrosOk(): boolean {
+    return (
+      this.keymapOk &&
+      (this.info?.macroSpace ?? 0) > MACRO_INDEX_BYTES &&
+      (!this.model.web || this.model.web.routes.includes('macro'))
+    );
+  }
+
+  override getMacroLimits(): MacroLimits {
+    return {
+      slots: MACRO_SLOTS,
+      storageBytes: this.info?.macroSpace ?? 0,
+      minDelayMs: 0,
+      maxDelayMs: 0xffff,
+    };
+  }
+
+  private async readMacroStorage(): Promise<{ index: Uint8Array; blocks: Map<number, Uint8Array> }> {
+    const s = this.s();
+    const index = await s.read(Cmd.GET_MACRO, MACRO_INDEX_BYTES);
+    const view = new DataView(index.buffer, index.byteOffset, index.byteLength);
+    const space = this.info!.macroSpace;
+    const blocks = new Map<number, Uint8Array>();
+    for (let i = 0; i < MACRO_SLOTS; i++) {
+      const addr = view.getUint32(i * 4, true);
+      if (!addr) continue;
+      if (addr < MACRO_INDEX_BYTES || addr + 4 > space)
+        throw new ProtocolError(`Macro ${i + 1} points outside the macro storage.`);
+      const head = await s.read(Cmd.GET_MACRO, 4, addr);
+      const steps = Math.floor((head[0]! | (head[1]! << 8)) / 2);
+      if (addr + 4 + steps * 4 > space)
+        throw new ProtocolError(`Macro ${i + 1} runs past the macro storage.`);
+      const body = steps ? await s.read(Cmd.GET_MACRO, steps * 4, addr + 4) : new Uint8Array();
+      const block = new Uint8Array(4 + body.length);
+      block.set(head);
+      block.set(body, 4);
+      blocks.set(i, block);
+    }
+    return { index, blocks };
+  }
+
+  override async getMacros(): Promise<Macro[]> {
+    if (!this.macrosOk) throw new ProtocolError('Macros are not available for this keyboard.');
+    const { blocks } = await this.readMacroStorage();
+    return [...blocks].map(([index, b]) => ({
+      index,
+      events: decodeMacroBlock(b.subarray(4), Math.floor((b[0]! | (b[1]! << 8)) / 2)),
+    }));
+  }
+
+  /** Writes the whole macro storage (index without the last flag, then the blocks) and reads it back. */
+  override async setMacros(macros: Macro[]): Promise<void> {
+    if (!this.macrosOk) throw new ProtocolError('Macros are not available for this keyboard.');
+    const { index, data } = encodeMacrosAa55(macros);
+    if (index.length + data.length > this.info!.macroSpace)
+      throw new ProtocolError(
+        `The macros need ${index.length + data.length} bytes; the keyboard has ${this.info!.macroSpace}.`,
+      );
+    const s = this.s();
+    await s.transfer(Cmd.SET_MACRO, index, { lastFlag: false });
+    if (data.length) await s.transfer(Cmd.SET_MACRO, data, { offset: MACRO_INDEX_BYTES });
+    const back = await this.readMacroStorage();
+    const view = new DataView(index.buffer);
+    const missed: number[] = [];
+    for (let i = 0; i < MACRO_SLOTS; i++) {
+      const addr = view.getUint32(i * 4, true);
+      const got = back.blocks.get(i);
+      if (!addr) {
+        if (got) missed.push(i);
+        continue;
+      }
+      const at = addr - MACRO_INDEX_BYTES;
+      const want = data.subarray(at, at + (got?.length ?? 0));
+      if (!got || got.length < 4 || want.length !== got.length || want.some((b, j) => b !== got[j]))
+        missed.push(i);
+    }
+    if (missed.length)
+      throw new ReadbackMismatchError(`The keyboard did not keep ${missed.length} macro(s).`, {
+        macros: missed.map((i) => i + 1),
+      });
+  }
+
+  private tableCmd(layer: LayerId, write: boolean): number {
+    if (layer === 'base') return write ? Cmd.SET_KEY : Cmd.GET_KEY;
+    if (layer === 'fn') return write ? Cmd.SET_FN_KEY : Cmd.GET_FN_KEY;
+    throw new ProtocolError(`Layer ${layer} does not exist on this keyboard.`);
+  }
+
+  override async getKeymap(layer: LayerId = 'base'): Promise<KeymapState> {
+    this.requireKeymap();
+    const t = await this.s().read(this.tableCmd(layer, false), KEY_TABLE_BYTES);
+    const slots: Record<number, ReturnType<typeof decodeKey>> = {};
+    for (const k of this.getLayout().keys)
+      if (k.slot >= 0) slots[k.slot] = decodeKey(t.subarray(k.slot * 4, k.slot * 4 + 4));
+    return { layer, slots, provenance: 'device' };
+  }
+
+  override async getFnLayer(): Promise<KeymapState> {
+    return this.getKeymap('fn');
+  }
+
+  override async setFnLayer(state: KeymapState): Promise<void> {
+    await this.setKeymap({ ...state, layer: 'fn' });
+  }
+
+  /** Reads the layer's table, changes the given keys, writes it whole and reads it again. */
+  override async setKeymap(state: KeymapState): Promise<void> {
+    this.requireKeymap();
+    const fnSlot = this.model.keys!['Fn'];
+    const before = await this.s().read(this.tableCmd(state.layer, false), KEY_TABLE_BYTES);
+    const next = before.slice();
+    const changed: number[] = [];
+    for (const [k, action] of Object.entries(state.slots)) {
+      const slot = Number(k);
+      if (!Number.isInteger(slot) || slot < 0 || slot * 4 + 4 > next.length)
+        throw new ProtocolError(`Key ${k} is outside the key table.`);
+      const value = encodeKey(action);
+      if (value.every((b, i) => b === before[slot * 4 + i])) continue;
+      if (slot === fnSlot) throw new ProtocolError('The Fn key keeps its function.');
+      next.set(value, slot * 4);
+      changed.push(slot);
+    }
+    if (!changed.length) return;
+    await this.s().transfer(this.tableCmd(state.layer, true), next);
+    const back = await this.s().read(this.tableCmd(state.layer, false), KEY_TABLE_BYTES);
+    const missed = changed.filter((slot) =>
+      back.subarray(slot * 4, slot * 4 + 4).some((b, i) => b !== next[slot * 4 + i]),
+    );
+    if (missed.length)
+      throw new ReadbackMismatchError(`The keyboard did not keep ${missed.length} key(s).`, {
+        keys: missed,
+      });
+  }
+
+  /** Every key of the layer back to its factory function (entry 0); the keyboard keeps its own defaults. */
+  override async restoreDefaults(
+    scope: 'keymap' | 'fnLayer' | 'macros' | 'lighting',
+  ): Promise<void> {
+    if (scope === 'macros' && this.macrosOk) return this.setMacros([]);
+    if (scope !== 'keymap' && scope !== 'fnLayer') return super.restoreDefaults(scope);
+    this.requireKeymap();
+    const layer: LayerId = scope === 'keymap' ? 'base' : 'fn';
+    const slots: Record<number, { kind: 'default' }> = {};
+    for (const k of this.getLayout().keys) if (k.slot >= 0) slots[k.slot] = { kind: 'default' };
+    await this.setKeymap({ layer, slots, provenance: 'mirror' });
   }
 }

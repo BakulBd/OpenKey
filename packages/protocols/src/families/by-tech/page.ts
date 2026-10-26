@@ -19,6 +19,13 @@ export interface PageLayout {
 }
 
 export const AULA_LAYOUT: PageLayout = { effect: 0x0a, sleep: 0x18, effectTable: 0x3a };
+/**
+ * The same layout, as RK's own web driver (drive.rkgaming.com, protocol `BeiYing`) names the profile
+ * fields for its BY Tech boards (`Fw=1`, e.g. the M87): `LedMode` 0x0A, `SleepTime` 0x18, and two bytes
+ * per effect from 0x38 + 2 × effect (effect 1 at 0x3A). Its default profile has the same `FF FF` at
+ * 0x38 as the page an AULA F75 returned on hardware.
+ */
+export const BY_TECH_LAYOUT: PageLayout = AULA_LAYOUT;
 export const EFFECT_STRIDE = 2;
 
 /** The fixed colours the firmware stores, in firmware order; 7 asks the firmware to cycle colours. */

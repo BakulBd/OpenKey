@@ -1,4 +1,7 @@
 import { ProtocolError } from '@openkey/core';
+import type { KeyAction, MouseAction } from '@openkey/core';
+import { decodeCommonSlot, encodeCommonSlot } from '../common/key-slot.js';
+import { MACRO_SLOTS } from '../sonix-aa55/constants.js';
 
 /**
  * The web-driver protocol of newer AULA and AJAZZ boards (AULA F87S 8K, AJAZZ AK680 V2 / AK680 MAX
@@ -29,6 +32,22 @@ export const Cmd = {
   SET_LED_EFFECT: 0x23,
   SET_CUSTOM_LED: 0x24,
   /** Knob-ring and side-bar zones: 24-byte blocks, read (0x1B, 0x1D) and written (0x2B, 0x2D). */
+  /**
+   * Key maps (AJAZZ's own web driver ajazz.driveall.cn, facts only): 128 keys × 4 bytes, read and
+   * written whole; GET_DEFAULT_* return the keyboard's own factory tables.
+   */
+  GET_KEY: 0x12,
+  SET_KEY: 0x22,
+  GET_FN_KEY: 0x16,
+  SET_FN_KEY: 0x26,
+  /**
+   * Macro storage (AJAZZ web driver): a 400-byte index of offsets, then the macro blocks; read and
+   * written at a byte address, the index without the last-packet flag.
+   */
+  GET_MACRO: 0x15,
+  SET_MACRO: 0x25,
+  GET_DEFAULT_KEY_MATRIX: 0x1f,
+  GET_DEFAULT_FN_KEY_MATRIX: 0x1c,
   GET_RING_ZONE: 0x1b,
   GET_SIDE_ZONE: 0x1d,
   SET_RING_ZONE: 0x2b,
@@ -40,22 +59,45 @@ export const ZONE_BYTES = 24;
 export const ZONE_COLOR_OFFSET = 1;
 
 /** Commands OpenKey never sends: firmware download, factory reset, calibration, screen writes. */
-export const FORBIDDEN: readonly number[] = [0x4f, 0x0f, 0x50, 0x51];
+/**
+ * Never sent: firmware download, factory reset, screen writes, calibration and simulation, and the
+ * OTA / serial-number range (AJAZZ web driver: 0x80–0x86).
+ */
+export const FORBIDDEN: readonly number[] = [
+  0x4f, 0x0f, 0x50, 0x51, 0x64, 0x65, 0x66, 0x67, 0x69, 0x6a, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85,
+  0x86,
+];
 const ALLOWED = new Set<number>(Object.values(Cmd));
 
+export interface TransferOptions {
+  /** Byte address of the first packet (macro storage); default 0. */
+  offset?: number;
+  /** Flag the last packet (default true; the macro index is written without it). */
+  lastFlag?: boolean;
+}
+
 /** Splits a transfer of `data` into request reports for `reportSize`-byte reports. */
-export function requests(cmd: number, data: Uint8Array, reportSize: number): Uint8Array[] {
+export function requests(
+  cmd: number,
+  data: Uint8Array,
+  reportSize: number,
+  opts: TransferOptions = {},
+): Uint8Array[] {
   if (FORBIDDEN.includes(cmd) || !ALLOWED.has(cmd))
     throw new ProtocolError(`Command 0x${cmd.toString(16)} is not sent by OpenKey.`);
   const w = reportSize - HEADER;
   if (w < 1) throw new ProtocolError(`Report size ${reportSize} is too small.`);
   const n = Math.max(1, Math.ceil(data.length / w));
   const out: Uint8Array[] = [];
+  const offset = opts.offset ?? 0;
+  if (offset < 0 || offset + data.length > 0xffff)
+    throw new ProtocolError('Transfer address out of range.');
   for (let i = 0; i < n; i++) {
-    const addr = i * w;
-    const chunk = data.subarray(addr, addr + w);
+    const chunk = data.subarray(i * w, i * w + w);
+    const addr = offset + i * w;
+    const last = (opts.lastFlag ?? true) && i === n - 1 ? 1 : 0;
     const r = new Uint8Array(reportSize);
-    r.set([REQUEST, cmd, chunk.length, addr & 0xff, addr >> 8, 0, i === n - 1 ? 1 : 0, 0]);
+    r.set([REQUEST, cmd, chunk.length, addr & 0xff, addr >> 8, 0, last, 0]);
     r.set(chunk, HEADER);
     out.push(r);
   }
@@ -82,6 +124,8 @@ export interface HubInfo {
   firmware: string;
   battery: number | null;
   charging: number;
+  /** Bytes of macro storage (bytes 2–3; 0 when the board has none). */
+  macroSpace: number;
 }
 
 /** Device-info data (cmd 0x10): body VID/PID at 4–7, version at 8–9, battery at 17. */
@@ -95,6 +139,7 @@ export function decodeInfo(d: Uint8Array): HubInfo {
     firmware: version.toFixed(2),
     battery: d[17]! <= 100 ? d[17]! : null,
     charging: d[18]!,
+    macroSpace: d[2]! | (d[3]! << 8),
   };
 }
 
@@ -166,4 +211,65 @@ export function encodeTable(colors: readonly { r: number; g: number; b: number }
     out.set([s, c.r, c.g, c.b], s * 4);
   }
   return out;
+}
+
+/**
+ * Key entries (AJAZZ web driver): `type p1 p2 p3`. 0 = the key's own factory function, 1 mouse
+ * (`1 mask` buttons 1 left, 2 right, 4 middle, 8 back, 16 forward; `3 1` / `3 FF` wheel), 2 keyboard
+ * (`0 usage`), 3 media (`lo hi` consumer usage), 6 macro (`index mode repeat`). Others
+ * (magnetic-switch functions, keyboard functions) are kept byte for byte.
+ */
+export const KEY_TABLE_BYTES = 512;
+const MOUSE_BUTTONS: Record<string, number> = {
+  left: 1,
+  right: 2,
+  middle: 4,
+  back: 8,
+  forward: 16,
+};
+
+export function decodeKey(b: Uint8Array | readonly number[]): KeyAction {
+  const [t, p1, p2, p3] = [b[0] ?? 0, b[1] ?? 0, b[2] ?? 0, b[3] ?? 0];
+  if (t === 0 && !p1 && !p2 && !p3) return { kind: 'default' };
+  if (t === 2 && p1 === 0 && p3 === 0 && p2) return { kind: 'keyboard', usage: p2, modifiers: 0 };
+  if (t === 3 && p3 === 0) return { kind: 'consumer', usage: p1 | (p2 << 8) };
+  if (t === 1 && p1 === 1 && p3 === 0) {
+    const action = Object.entries(MOUSE_BUTTONS).find(([, m]) => m === p2)?.[0];
+    if (action) return { kind: 'mouse', action: action as MouseAction };
+  }
+  if (t === 1 && p1 === 3 && p3 === 0 && (p2 === 1 || p2 === 0xff))
+    return { kind: 'mouse', action: p2 === 1 ? 'wheel-up' : 'wheel-down' };
+  if (t === 6) {
+    const a = decodeCommonSlot([t, p1, p2, p3]);
+    if (a?.kind === 'macro') return a;
+  }
+  return { kind: 'raw', bytes: [t, p1, p2, p3] };
+}
+
+export function encodeKey(a: KeyAction): [number, number, number, number] {
+  switch (a.kind) {
+    case 'default':
+      return [0, 0, 0, 0];
+    case 'keyboard':
+      if (a.modifiers) throw new ProtocolError('Key combinations are not written on these boards.');
+      if (a.usage < 1 || a.usage > 0xff) throw new ProtocolError('Key usage out of range.');
+      return [2, 0, a.usage, 0];
+    case 'consumer':
+      if (a.usage < 1 || a.usage > 0xffff) throw new ProtocolError('Media usage out of range.');
+      return [3, a.usage & 0xff, a.usage >> 8, 0];
+    case 'mouse': {
+      if (a.action === 'wheel-up') return [1, 3, 1, 0];
+      if (a.action === 'wheel-down') return [1, 3, 0xff, 0];
+      const m = MOUSE_BUTTONS[a.action];
+      if (!m) throw new ProtocolError(`This keyboard has no “${a.action}” mouse function.`);
+      return [1, 1, m, 0];
+    }
+    case 'macro':
+      if (a.index < 0 || a.index >= MACRO_SLOTS) throw new ProtocolError('Macro slot out of range.');
+      return encodeCommonSlot(a)!;
+    case 'raw':
+      return [a.bytes[0] ?? 0, a.bytes[1] ?? 0, a.bytes[2] ?? 0, a.bytes[3] ?? 0];
+    default:
+      throw new ProtocolError(`These keyboards cannot map a key to “${a.kind}”.`);
+  }
 }

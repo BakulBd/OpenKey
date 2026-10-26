@@ -50,6 +50,26 @@ describe('online-driver protocol (sonix-aa55)', () => {
     });
   });
 
+  it('draws a web-driver board with its own rows and name', async () => {
+    const sim = new sonixAa55.SonixAa55Simulator({
+      vendorId: 0x0c45,
+      productId: 0x8043,
+      productName: 'AK980 MAX',
+    });
+    const kb = await connectKeyboard(sim.device.group(), {
+      registry: createDefaultRegistry(),
+      level: 'handshake',
+      store: new MemoryStateStore(),
+      sleep: noSleep,
+    });
+    expect(kb.detection.selected?.protocolId).toBe('sonix-aa55');
+    const layout = kb.driver.getLayout();
+    expect(layout.id).toBe('ajazz-web-0c45-8043');
+    expect(layout.keys.length).toBeGreaterThan(90);
+    expect((await kb.driver.getDeviceInfo()).model).toBe('AJAZZ AK980 MAX');
+    expect(kb.driver.getCapabilities().perKeyRgb.note).toMatch(/not confirmed/);
+  });
+
   it('is selected for an online-protocol AK820 Pro and confirmed by GET_DEVICE_INFO', async () => {
     const { detection, driver } = await setup();
     expect(detection.selected).toMatchObject({

@@ -69,6 +69,12 @@ import { configInterface } from './match.js';
 
 export const SONIX_AA55_PROTOCOL_ID = 'sonix-aa55';
 
+/** A board AJAZZ's web driver configures: its own name and key rows (key numbers = table slots). */
+export interface Aa55WebBoard {
+  name: string;
+  layout: KeyboardLayout;
+}
+
 export class SonixAa55Driver extends BaseKeyboardDriver {
   readonly protocolId = SONIX_AA55_PROTOCOL_ID;
   readonly transport: TransportMode;
@@ -83,6 +89,8 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
   constructor(
     private readonly group: HidDeviceGroup,
     private readonly opts: DriverOptions,
+    /** The web driver's own board, when it is not the AK820 Pro this adapter was built for. */
+    private readonly web: Aa55WebBoard | null = null,
   ) {
     super();
     this.transport = group.transportHint;
@@ -131,7 +139,7 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
   }
 
   getLayout(): KeyboardLayout {
-    return getLayout(this.profile.layout);
+    return this.web?.layout ?? getLayout(this.profile.layout);
   }
 
   getCapabilities(): Capabilities {
@@ -146,7 +154,14 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
     c.fnLayer = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
     c.macros = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
     c.rgb = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
-    c.perKeyRgb = configurable('device', true, S, { safety: SafetyLevel.SAFE_PERSISTENT });
+    c.perKeyRgb = configurable('device', true, S, {
+      safety: SafetyLevel.SAFE_PERSISTENT,
+      ...(this.web
+        ? {
+            note: 'LEDs are taken to be numbered like the keys, as the web driver does; not confirmed on this board.',
+          }
+        : {}),
+    });
     c.battery = feature(FeatureStatus.READ_ONLY, {
       read: 'device',
       confidence: S,
@@ -193,8 +208,8 @@ export class SonixAa55Driver extends BaseKeyboardDriver {
       this.info ?? decodeDeviceInfo(await this.l().read(Cmd.GET_DEVICE_INFO, DEVICE_INFO_BYTES));
     const S = Evidence.OBSERVED;
     return {
-      model: this.profile.model,
-      profileId: this.profile.id,
+      model: this.web?.name ?? this.profile.model,
+      profileId: this.web ? this.web.layout.id : this.profile.id,
       identity: this.group.identity,
       firmware: { version: i.version, source: 'GET_DEVICE_INFO', confidence: S },
       transport: this.transport,

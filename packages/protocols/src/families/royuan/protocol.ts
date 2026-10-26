@@ -30,7 +30,7 @@ export const royuanProtocol: ProtocolDefinition = {
     verification:
       'Identification and lighting implemented from sharkfin’s hardware-tested protocol notes; not yet run by OpenKey on a ROYUAN board.',
     safety:
-      'Identification is two reads (asked first). Only the lighting register is written — the one write whose opcode and payload are the same in both command sets — and it is read back. Reset, erase and boot opcodes are refused by the packet builder.',
+      'Identification is two reads (asked first). Lighting is written in both command sets; key maps on yc500 (single-slot writes) and gen2 (whole layer, as RK’s own web driver writes it); every write is read back. Reset, erase and boot opcodes are refused by the packet builder.',
     provenance: [
       {
         source: 'public-reverse-engineering',
@@ -38,10 +38,16 @@ export const royuanProtocol: ProtocolDefinition = {
           'github.com/dniminenn/sharkfin docs/PROTOCOL.md (GPL-3.0; facts only, [HW]-marked sections)',
         status: Evidence.INFERRED,
       },
+      {
+        source: 'official-driver',
+        reference:
+          'RK web driver drive.rkgaming.com, ROYUAN (RongYuan) module (facts only): gen2 opcodes, key-map write 0x0A, checksum, key-code encoding with modifier combinations',
+        status: Evidence.INFERRED,
+      },
     ],
     license: 'MIT',
     limitations: [
-      'Lighting only: keymap, macros, sleep, debounce and the screen use opcodes that differ between the yc500 and gen2 command sets.',
+      'Lighting and the base key map (plus the Fn layer on yc500). Macros, sleep, debounce and the screen are not written: their opcodes differ between the command sets, and RK’s web driver gives gen2 report-rate and profile writes the same opcode.',
       'Some boards swap “fixed colour” and “rainbow”, and a few have wider brightness or speed ranges.',
       'USB cable only; the 2.4 GHz receiver relays packets with its own protocol.',
       'The keyboard picture is a generic 75 % layout; models are named by the USB product string.',

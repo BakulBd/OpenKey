@@ -63,7 +63,9 @@ the protocol documented by [leisiji/AulaSofwareLinux](https://github.com/leisiji
 is that project's published hardware capture. RK model facts (the R75's model code and firmware
 generation) come from RK's driver configuration as published by
 [vinc3m1/kludgeknight](https://github.com/vinc3m1/kludgeknight) (GPL-3.0); only the facts are used, no
-code or files.
+code or files. Its key matrix, colour table, effect numbers and the per-board factory key tables
+(`packages/protocols/src/families/by-tech/rk-web.json`, built by `pnpm rk-web`) are facts read from
+RK's own web driver (drive.rkgaming.com); none of its code is used or redistributed.
 
 The VIA, Vial, ZMK Studio and libhmk adapters are written from public specifications and firmware
 sources, facts only: VIA (the-via/app, the-via/reader, GPL-3.0: command layouts, layout-option bit
@@ -94,6 +96,9 @@ The adapters added on 2026-10-17 follow the same rule (own code, facts from the 
 - **AJAZZ AK35i V3 MAX profile**: dantje/ajazz-ak35i-v3-max (MIT, Copyright (c) 2026 Daniel van Gerpen).
 - **RK M87 screen clock** (BY Tech cable and the `rk-m87-receiver` adapter for its 2.4 GHz receiver): ElXreno/rk-m87-sync (MIT, Copyright (c) 2026 ElXreno); RK M75:
   Lightning-13/rk-m75 (MIT, Copyright (c) 2026 Ravi Sankannavar).
+- **hub-aa55** key maps and **royuan** gen2 key maps: facts read from AJAZZ's web driver
+  (ajazz.driveall.cn), MonsGeek's web driver (web.monsgeek.com) and RK's web driver; none of their
+  code is used or redistributed.
 - **rk-classic** key maps and per-key colours: rnayabed/rangoli and vinc3m1/kludgeknight (both GPL-3.0),
   facts only (report layouts, firmware key codes, custom effect number). The per-model key tables
   (`packages/protocols/src/families/rk-classic/keys.json`, built by `pnpm rk-keys`) are facts taken

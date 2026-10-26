@@ -30,6 +30,7 @@ import {
   Cmd,
   DELAY_MS,
   FLAG_FIXED,
+  GEN2_WRITE_CHUNK,
   FLAG_RAINBOW,
   MAX_MODE,
   MODES,
@@ -176,7 +177,7 @@ export class RoyuanDriver extends BaseKeyboardDriver {
     if (!this.base) return getLayout('ak820-pro');
     const keys: PhysicalKey[] = [];
     for (let slot = 0; slot < SLOTS; slot++) {
-      const a = decodeSlot(this.base.subarray(slot * 4, slot * 4 + 4), false);
+      const a = decodeSlot(this.base.subarray(slot * 4, slot * 4 + 4), false, this.gen2);
       if (a.kind === 'disabled') continue;
       const n: number = keys.length;
       keys.push({
@@ -214,7 +215,7 @@ export class RoyuanDriver extends BaseKeyboardDriver {
     const table = fn ? await this.readTable('fn') : await this.readTable('base');
     const slots: Record<number, KeyAction> = {};
     for (const k of this.getLayout().keys)
-      slots[k.slot] = decodeSlot(table.subarray(k.slot * 4, k.slot * 4 + 4), fn);
+      slots[k.slot] = decodeSlot(table.subarray(k.slot * 4, k.slot * 4 + 4), fn, this.gen2);
     return {
       layer: fn ? 'fn' : 'base',
       slots,
@@ -227,9 +228,12 @@ export class RoyuanDriver extends BaseKeyboardDriver {
    * yc500 single-slot writes, one per changed key, then a read-back of the whole layer. Some yc500
    * firmware drops single-slot writes; the read-back reports that instead of assuming success.
    */
+  private get gen2(): boolean {
+    return this.family === 'gen2';
+  }
+
   override async setKeymap(state: KeymapState): Promise<void> {
-    if (this.family !== 'yc500')
-      throw new ProtocolError('Key maps are written on yc500 boards only.');
+    if (this.gen2) return this.setKeymapGen2(state);
     const fn = state.layer !== 'base';
     const before = await this.readTable(fn ? 'fn' : 'base');
     const changes: [number, number[]][] = [];
@@ -255,6 +259,55 @@ export class RoyuanDriver extends BaseKeyboardDriver {
         `The keyboard did not keep ${missed.length} key(s). This firmware may ignore single-key writes.`,
         { slots: missed.map(([slot]) => slot) },
       );
+  }
+
+  /**
+   * gen2: the whole base layer (126 slots) in nine packets, as RK's own web driver writes it, then a
+   * read-back of the layer. Slots 126 and 127 are not part of the write.
+   */
+  private async setKeymapGen2(state: KeymapState): Promise<void> {
+    if (state.layer !== 'base')
+      throw new ProtocolError('Only the base layer is written on gen2 boards.');
+    const before = await this.readTable('base');
+    const next = before.slice(0, WRITABLE_SLOTS * SLOT_BYTES);
+    const changed: number[] = [];
+    for (const [slotStr, action] of Object.entries(state.slots)) {
+      const slot = Number(slotStr);
+      const value = encodeSlot(action, false, true);
+      const old = Array.from(before.subarray(slot * 4, slot * 4 + 4));
+      if (value.every((b, i) => b === old[i])) continue;
+      if (slot >= WRITABLE_SLOTS) throw new ProtocolError(`Slot ${slot} is not written.`);
+      next.set(value, slot * 4);
+      changed.push(slot);
+    }
+    if (!changed.length) return;
+    const pages = Math.ceil(next.length / GEN2_WRITE_CHUNK);
+    for (let page = 0; page < pages; page++) {
+      const chunk = next.subarray(page * GEN2_WRITE_CHUNK, (page + 1) * GEN2_WRITE_CHUNK);
+      await this.s().write(
+        [
+          Cmd.SET_KEYMAP_GEN2,
+          this.profile,
+          0xff,
+          page,
+          chunk.length,
+          page === pages - 1 ? 1 : 0,
+          0,
+        ],
+        'bit7',
+        Array.from(chunk),
+      );
+    }
+    await (this.opts.sleep ?? realSleep)(this.opts.delayMs === 0 ? 0 : 50);
+    const after = await this.readTable('base');
+    const missed = changed.filter((slot) =>
+      next.subarray(slot * 4, slot * 4 + 4).some((b, i) => after[slot * 4 + i] !== b),
+    );
+    if (missed.length)
+      throw new ReadbackMismatchError(`The keyboard did not keep ${missed.length} key(s).`, {
+        slots: missed,
+      });
+    this.base = after;
   }
 
   getCapabilities(): Capabilities {
@@ -284,10 +337,12 @@ export class RoyuanDriver extends BaseKeyboardDriver {
             source: 'sharkfin: 0x89 read, 0x13 single-slot write (hardware-tested)',
             note: 'Keys are labelled by what they type on the base layer. Every write is read back.',
           })
-        : feature(FeatureStatus.READ_ONLY, {
-            read: 'device',
-            confidence: Evidence.INFERRED,
-            note: 'gen2 key maps are read; their write is only known from firmware analysis.',
+        : configurable('device', true, Evidence.INFERRED, {
+            safety: SafetyLevel.SAFE_PERSISTENT,
+            source:
+              'RK’s own web driver (drive.rkgaming.com, ROYUAN SET_KEYMATRIX 0x0A): the whole layer in nine packets; read with 0x8A',
+            value: 'keys, a key with one modifier, media keys, disabled',
+            note: 'Keys are labelled by what they type on the base layer. The whole layer is written and read back.',
           });
     c.fnLayer =
       usb && this.family === 'yc500'

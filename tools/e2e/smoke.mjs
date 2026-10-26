@@ -716,7 +716,7 @@ try {
     await ctx.close();
   }
 
-  // Demo keyboards of the BY Tech family: AULA F75 (documented layout) and RK R75 (taught layout).
+  // Demo keyboards of the BY Tech family: AULA F75 and RK R75 (layout from RK's own web driver).
   {
     const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
     const page = await ctx.newPage();
@@ -739,12 +739,27 @@ try {
     await page.waitForURL(/#\/overview/);
     await page.locator('.dev-chip').getByText('RK R75 RGB (wired)').waitFor();
     await page.goto(base + '#/rgb');
-    await page.getByRole('heading', { name: 'Teach OpenKey your keyboard' }).waitFor();
-    await page.getByRole('button', { name: 'Start (reads the settings)' }).click();
-    await page.getByRole('button', { name: 'Done, read again' }).waitFor();
-    if (shots) await page.screenshot({ path: `${shots}/rk-r75-teach.png`, fullPage: true });
+    await page.getByText('Retro snake (default)').first().waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/rk-r75-lighting.png`, fullPage: true });
+    // Key layers read from the keyboard: FN1 holds RK's factory media keys on F1–F12.
+    await page.goto(base + '#/keymap');
+    await page.getByRole('tab', { name: /FN1 layer/ }).click();
+    await page.locator('.kb-key', { hasText: 'Esc' }).first().waitFor();
+    await page.locator('.kb-key').nth(1).dispatchEvent('pointerdown');
+    await page.getByPlaceholder(/Search/).fill('volume');
+    await page.locator('.key-result').first().click();
+    await page.getByRole('button', { name: /Review 1 change/ }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Write 1 change/ })
+      .click();
+    await page
+      .locator('.changebar')
+      .getByText(/Saved and verified/)
+      .waitFor();
+    if (shots) await page.screenshot({ path: `${shots}/rk-r75-fn1.png` });
     results.push(
-      'by-tech demos: AULA F75 lighting decoded; RK R75 offers the teach flow (reads only)',
+      'by-tech demos: AULA F75 lighting decoded; RK R75 lighting named and an FN1 key written and read back',
     );
     await ctx.close();
   }

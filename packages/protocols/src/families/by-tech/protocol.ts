@@ -13,6 +13,8 @@ import { ADAPTER_API_VERSION } from '../../registry.js';
 import { BY_TECH_PROTOCOL_ID, REPORT_BYTES, REPORT_IDS, SINOWEALTH_VID } from './constants.js';
 import { ByTechDriver } from './driver.js';
 import { identityHex, modelFor } from './models.js';
+import { rkByTechKeys } from './rkkeys.js';
+import { rkWebBoard, rkWebModel } from './rkweb.js';
 import { ByTechSession } from './session.js';
 
 const commandReport = (c: HidCollection): number | undefined =>
@@ -149,7 +151,7 @@ export const byTechProtocol: ProtocolDefinition = {
     verification:
       'Implemented from a third-party implementation verified on an AULA F75. Not yet verified by OpenKey on hardware; writes are experimental and always read back.',
     safety:
-      'Identification is one read request, always asked first. The settings page is read, patched and written back; models with an unconfirmed layout are read-only until the owner confirms it with the keyboard’s own shortcuts. No reset, firmware or keymap command is sent.',
+      'Identification is one read request, always asked first. The settings page, key layers and colour table are read, patched, written back and read again; models with an unconfirmed layout are read-only until the owner confirms it with the keyboard’s own shortcuts. Fn keys are never changed. No reset (0x11), macro or firmware command is sent.',
     provenance: [
       {
         source: 'public-reverse-engineering',
@@ -164,6 +166,12 @@ export const byTechProtocol: ProtocolDefinition = {
         status: Evidence.INFERRED,
       },
       {
+        source: 'official-driver',
+        reference:
+          'RK web driver drive.rkgaming.com (protocol BeiYing; facts only): profile fields, key matrix 0x83/0x03 with layer and table, colour table 0x86/0x06, key codes, effect numbers; confirmed by the FN-layer codes in RK’s KB.ini',
+        status: Evidence.INFERRED,
+      },
+      {
         source: 'descriptor',
         reference:
           'RK R75 RGB 258A:015E report descriptor: feature reports 5 (5 B) and 6 (519 B) on FF00:0001',
@@ -172,8 +180,8 @@ export const byTechProtocol: ProtocolDefinition = {
     ],
     license: 'MIT',
     limitations: [
-      'Lighting effect, colour, brightness, speed and sleep only; per-key colours, keymap and macros are not implemented.',
-      'RK R75 and unknown models: read-only until the settings-page layout is confirmed with the keyboard’s own lighting shortcuts.',
+      'Key maps (normal, FN1 and FN2 layers) and per-key colours on models whose keys are numbered by the firmware matrix (RK R75, RK M87), from RK’s own web driver and key tables; read from the keyboard and read back after each write. Macros are not implemented.',
+      'Unknown models: read-only until the settings-page layout is confirmed with the keyboard’s own lighting shortcuts.',
       'USB cable only; the 2.4 GHz receiver and Bluetooth carry no settings.',
       'The RK R75 has its own keyboard picture; other models use a generic 75 % layout.',
     ],
@@ -215,19 +223,17 @@ export const byTechProtocol: ProtocolDefinition = {
         .filter(Boolean)
         .map((h) => parseInt(h, 16)),
     );
-    const driver = new ByTechDriver(
-      group,
-      ch.iface,
-      ch.reportId,
-      identity,
-      modelFor(identity, group.identity.productId) ?? null,
-      {
-        store: opts.store,
-        open: async (iface) => new LoggingTransport(await group.openInterface(iface), opts.log),
-        ...(opts.cmdDelayMs !== undefined ? { delayMs: opts.cmdDelayMs } : {}),
-        ...(opts.sleep ? { sleep: opts.sleep } : {}),
-      },
-    );
-    return driver;
+    const { vendorId, productId } = group.identity;
+    // RK boards in RK's web driver are known by their USB ID (their model codes are not published).
+    const web = vendorId === SINOWEALTH_VID ? await rkWebBoard(productId) : null;
+    const model = modelFor(identity, productId) ?? (web ? rkWebModel(productId, web) : null);
+    return new ByTechDriver(group, ch.iface, ch.reportId, identity, model, {
+      rkKeys: model?.rkKeys ? await rkByTechKeys(model.rkKeys) : null,
+      rkWeb: web,
+      store: opts.store,
+      open: async (iface) => new LoggingTransport(await group.openInterface(iface), opts.log),
+      ...(opts.cmdDelayMs !== undefined ? { delayMs: opts.cmdDelayMs } : {}),
+      ...(opts.sleep ? { sleep: opts.sleep } : {}),
+    });
   },
 };

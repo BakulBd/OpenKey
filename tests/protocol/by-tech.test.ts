@@ -204,18 +204,21 @@ describe('BY Tech OEM protocol: AULA lighting', () => {
   });
 });
 
+/** A BY Tech board whose model code is in no table: its page layout is unknown. */
+const UNKNOWN_CODE = Uint8Array.of(0x07, 0, 0, 0, 0, 0x99);
+
 describe('BY Tech OEM protocol: RK R75 and learning the layout', () => {
-  it('is read-only until the layout is confirmed', async () => {
-    const sim = new ByTechSimulator({ identity: R75, modelCode: R75_IDENTITY });
+  it('keeps an unknown model read-only until the layout is confirmed', async () => {
+    const sim = new ByTechSimulator({ identity: R75, modelCode: UNKNOWN_CODE });
     const { driver } = await connect(sim, ['by-tech']);
-    expect(driver.displayName).toBe('RK R75 RGB (wired)');
+    expect(driver.model).toBeNull();
     expect(driver.getCapabilities().rgb.status).toBe(FeatureStatus.NOT_YET_REVERSE_ENGINEERED);
     await expect(driver.getRgbConfig()).rejects.toThrow(/not confirmed/);
     expect(sim.writes).toHaveLength(0);
   });
 
   it('learns the layout from the keyboard’s own shortcuts, writing nothing', async () => {
-    const sim = new ByTechSimulator({ identity: R75, modelCode: R75_IDENTITY });
+    const sim = new ByTechSimulator({ identity: R75, modelCode: UNKNOWN_CODE });
     const { driver, store } = await connect(sim, ['by-tech']);
     const p0 = await driver.readSettingsPage();
     sim.pressNextEffect();
@@ -255,7 +258,9 @@ describe('BY Tech OEM protocol: RK R75 and learning the layout', () => {
     ]);
     expect(effects[0]!.controls).toMatchObject({ speed: false, brightness: true, color: true });
     expect(effects[2]!.controls).toMatchObject({ speed: true, color: false, colorful: false });
-    expect(effects.find((e) => e.id === 10)?.name).toMatch(/default/);
+    expect(effects.find((e) => e.id === 10)?.name).toBe('Retro snake (default)');
+    expect(effects[0]!.name).toBe('Fixed on');
+    expect(driver.getRgbEffects().customEffect).toBe(18);
     expect(effects.at(-1)!.controls).toMatchObject({ brightness: false, speed: false });
     expect(driver.getSettingsSchema()).toEqual({});
     expect(sim.writes).toHaveLength(0);
@@ -271,6 +276,136 @@ describe('BY Tech OEM protocol: RK R75 and learning the layout', () => {
   });
 });
 
+describe('BY Tech OEM protocol: R75 key map and per-key colours (RK web driver)', () => {
+  const r75 = () => new ByTechSimulator({ identity: R75, modelCode: R75_IDENTITY });
+  const word = (m: Uint8Array, i: number) => new DataView(m.buffer, m.byteOffset).getUint32(i * 4);
+
+  it('reads and writes lighting with the documented page layout, no teaching needed', async () => {
+    const sim = r75();
+    const { driver } = await connect(sim);
+    expect(driver.displayName).toBe('RK R75 RGB (wired)');
+    const caps = driver.getCapabilities();
+    expect(caps.rgb).toMatchObject({ read: 'device', write: true, confidence: Evidence.INFERRED });
+    expect(caps.rgb.source).toMatch(/RK’s own web driver/);
+    await driver.setRgbConfig({
+      effect: 11,
+      brightness: 3,
+      speed: 2,
+      color: { r: 0, g: 0, b: 255 },
+      colorful: false,
+      direction: 'right',
+    });
+    expect(sim.page[0x0a]).toBe(11);
+    expect([sim.page[0x38 + 22], sim.page[0x38 + 23]]).toEqual([3, 0x22]);
+  });
+
+  it('reads a layer, changes a key, writes the whole layer and reads it back', async () => {
+    const sim = r75();
+    const base = new Uint8Array(504);
+    const v = new DataView(base.buffer);
+    v.setUint32(0, 0x29); // Esc
+    v.setUint32(3 * 4, 0x39); // Caps
+    v.setUint32(4 * 4, 0x20000); // Left Shift
+    v.setUint32(65 * 4, 0x0d000000); // Fn
+    sim.matrices.set(0, base);
+    const { driver } = await connect(sim);
+    const caps = driver.getCapabilities();
+    expect([caps.keymap.write, caps.fnLayer.write, caps.keymap.read]).toEqual([
+      true,
+      true,
+      'device',
+    ]);
+    expect(driver.getLayerIds()).toEqual(['base', 'fn', 'layer2']);
+    const km = await driver.getKeymap('base');
+    expect(km.provenance).toBe('device');
+    expect(km.slots[0]).toEqual({ kind: 'keyboard', usage: 0x29, modifiers: 0 });
+    expect(km.slots[4]).toEqual({ kind: 'keyboard', usage: 0xe1, modifiers: 0 });
+    expect(km.slots[65]).toEqual({ kind: 'special', code: 0x0d000000, label: 'Fn' });
+    await driver.setKeymap({
+      layer: 'base',
+      slots: {
+        3: { kind: 'keyboard', usage: 0x06, modifiers: 0x01 },
+        0: { kind: 'consumer', usage: 0xe9 },
+        1: { kind: 'mouse', action: 'back' },
+      },
+      provenance: 'device',
+    });
+    const w = sim.matrixWrites.at(-1)!;
+    expect(w.parameter).toBe(0);
+    expect(word(w.data, 3)).toBe(0x00010006);
+    expect(word(w.data, 0)).toBe(0x020000e9);
+    expect(word(w.data, 1)).toBe(0x01040100);
+    expect(word(w.data, 65)).toBe(0x0d000000);
+    // FN2 layer: parameter 2.
+    await driver.setKeymap({
+      layer: 'layer2',
+      slots: { 9: { kind: 'keyboard', usage: 0x04, modifiers: 0 } },
+      provenance: 'device',
+    });
+    expect(sim.matrixWrites.at(-1)!.parameter).toBe(2);
+    // "Default" on the base layer is the key's factory usage from RK's key table.
+    await driver.setKeymap({
+      layer: 'base',
+      slots: { 3: { kind: 'default' } },
+      provenance: 'device',
+    });
+    expect(word(sim.matrixWrites.at(-1)!.data, 3)).toBe(0x39);
+  });
+
+  it('never changes Fn, refuses unknown FN-layer defaults, and catches a keyboard that ignored a write', async () => {
+    const sim = r75();
+    const base = new Uint8Array(504);
+    new DataView(base.buffer).setUint32(65 * 4, 0x0d000000);
+    sim.matrices.set(0, base);
+    const { driver } = await connect(sim);
+    await expect(
+      driver.setKeymap({
+        layer: 'base',
+        slots: { 65: { kind: 'keyboard', usage: 0x04, modifiers: 0 } },
+        provenance: 'device',
+      }),
+    ).rejects.toThrow(/Fn keys are not changed/);
+    await expect(
+      driver.setKeymap({ layer: 'fn', slots: { 5: { kind: 'default' } }, provenance: 'device' }),
+    ).rejects.toThrow(/factory function of this key on this FN layer/);
+    expect(sim.matrixWrites).toEqual([]);
+    sim.keepsWrites = false;
+    await expect(
+      driver.setKeymap({
+        layer: 'base',
+        slots: { 0: { kind: 'keyboard', usage: 0x05, modifiers: 0 } },
+        provenance: 'device',
+      }),
+    ).rejects.toSatisfy((e) => isOpenKeyError(e) && e.code === 'READBACK_MISMATCH');
+  });
+
+  it('runs reads one after another, so two editors loading together each get their own answer', async () => {
+    const sim = r75();
+    const { driver } = await connect(sim);
+    const [rgb, colors, keys] = await Promise.all([
+      driver.getRgbConfig(),
+      driver.getPerKeyRgb(),
+      driver.getKeymap('base'),
+    ]);
+    expect(rgb.effect).toBe(1);
+    expect(Object.keys(colors).length).toBeGreaterThan(70);
+    expect(keys.provenance).toBe('device');
+  });
+
+  it('writes per-key colours as three planes, reads them back, then selects the Custom effect', async () => {
+    const sim = r75();
+    const { driver } = await connect(sim);
+    expect(driver.getCapabilities().perKeyRgb).toMatchObject({ read: 'device', write: true });
+    await driver.setPerKeyRgb({ 0: { r: 255, g: 1, b: 2 }, 95: { r: 3, g: 4, b: 255 } });
+    const c = sim.colorWrites.at(-1)!;
+    expect([c[0], c[126], c[252]]).toEqual([255, 1, 2]);
+    expect([c[95], c[95 + 126], c[95 + 252]]).toEqual([3, 4, 255]);
+    expect(sim.page[0x0a]).toBe(18);
+    const back = await driver.getPerKeyRgb();
+    expect(back[95]).toEqual({ r: 3, g: 4, b: 255 });
+  });
+});
+
 describe('BY Tech OEM protocol: RK screen boards', () => {
   const M87 = { vendorId: 0x258a, productId: 0x01a2, productName: 'SINO WEALTH Gaming Keyboard' };
   const M87_CODE = Uint8Array.of(0x06, 0, 0, 0, 0, 0x23);
@@ -279,6 +414,21 @@ describe('BY Tech OEM protocol: RK screen boards', () => {
     const sim = new ByTechSimulator({ identity: M87, modelCode: M87_CODE, reportId: 9 });
     const { driver } = await connect(sim);
     expect(driver.displayName).toBe('RK M87 (screen)');
+    // RK web driver's M87 effect list, with off (0); no key map (its matrix positions are not known).
+    const effects = driver.getRgbEffects();
+    expect(effects.effects.map((e) => e.id)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 0,
+    ]);
+    expect(effects.offEffect).toBe(0);
+    // Key maps from RK's web driver: its factory tables number the M87's keys by the matrix.
+    expect(driver.getCapabilities().keymap.write).toBe(true);
+    const layout = driver.getLayout();
+    expect(layout.keys.find((k) => k.label === 'Esc')).toMatchObject({ slot: 0, light: 0 });
+    expect(layout.keys.find((k) => k.id === 'F1')).toMatchObject({ slot: 6 });
+    expect(layout.keys.find((k) => k.id === 'Fn')!.slot).toBe(-1);
+    expect(layout.keys.filter((k) => k.id.startsWith('m')).map((k) => k.label)).toEqual(
+      expect.arrayContaining(['Stop', 'Prev', 'Play', 'Next']),
+    );
     expect(driver.getCapabilities().tftClock).toMatchObject({ write: true, read: 'none' });
     await driver.syncClock(new Date(2026, 2, 10, 14, 30, 45));
     // Volume/CPU/memory unknown in a browser, then 2026-03-10 14:30:45, Tuesday.
@@ -287,13 +437,45 @@ describe('BY Tech OEM protocol: RK screen boards', () => {
   });
 
   it('does not trust an RK model code on another USB ID', async () => {
+    // 258A:0163 is the RK M75 in RK's web driver: known by its USB ID, never as an M87.
     const sim = new ByTechSimulator({
       identity: { ...M87, productId: 0x0163 },
       modelCode: M87_CODE,
       reportId: 9,
     });
     const { driver } = await connect(sim);
-    expect(driver.model).toBeNull();
+    expect(driver.model?.model).toBe('M75');
     await expect(driver.syncClock()).rejects.toThrow(/no screen clock/);
+    const other = new ByTechSimulator({
+      identity: { ...M87, productId: 0x0999 },
+      modelCode: M87_CODE,
+      reportId: 9,
+    });
+    expect((await connect(other)).driver.model).toBeNull();
+  });
+
+  it('knows every RK board of RK’s web driver by its USB ID, with factory tables for every layer', async () => {
+    const sim = new ByTechSimulator({
+      identity: { vendorId: 0x258a, productId: 0x020c, productName: 'RK Keyboard' },
+      modelCode: Uint8Array.of(0x0a, 0, 0, 0, 0, 0),
+    });
+    const fn1 = new Uint8Array(504);
+    sim.matrices.set(1, fn1);
+    const { driver } = await connect(sim);
+    expect(driver.displayName).toBe('RK R98PRO');
+    expect(driver.getLayerIds()).toEqual(['base', 'fn', 'layer2']);
+    expect(driver.getCapabilities().perKeyRgb.write).toBe(true);
+    expect(driver.getRgbEffects().brightness.max).toBe(19);
+    // "Default" on FN1 writes the factory function RK's web driver lists for that position.
+    const board = (await byTech.rkWebBoard(0x020c))!;
+    const slot = board.tables[1]!.findIndex((c, i) => c !== 0 && c !== board.tables[0]![i]);
+    await driver.setKeymap({
+      layer: 'fn',
+      slots: { [slot]: { kind: 'default' } },
+      provenance: 'device',
+    });
+    const w = sim.matrixWrites.at(-1)!;
+    expect(w.parameter).toBe(1);
+    expect(new DataView(w.data.buffer).getUint32(slot * 4)).toBe(board.tables[1]![slot]);
   });
 });

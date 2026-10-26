@@ -51,6 +51,23 @@ behind the experimental opt-in. Sources and what was taken from each: docs/SOURC
 
   Lighting now supports rotating and radial directions and a second colour.
 
+- **Key maps from vendor web drivers:**
+  - **AULA F87S 8K and AJAZZ AK680 V2 / MAX:** key maps and the Fn layer (keys, media keys, mouse
+    buttons and wheel), from AJAZZ's own web driver, read from the keyboard and read back; restore
+    defaults returns every key to its factory function. The AK680 gets its own 65 % picture.
+  - **ROYUAN gen2 boards:** key maps are now written (the whole layer, as RK's web driver does) with
+    key combinations, and read back.
+- **RK keyboards on the BY Tech protocol (R75, M87, M75 and 31 more):** reverse-engineered from RK's
+  own web driver. Key maps on the normal, FN1 and FN2 layers (keys, combinations, media keys, mouse
+  buttons, lighting keys, Win lock), with RK's factory functions for "default", and per-key colours,
+  all read from the keyboard and read back after every write. Lighting now works on the R75 and M87
+  without teaching, with named effects. Fn keys are never changed.
+  - **Fixed:** two editors loading at once could take each other's replies on BY Tech boards; reads
+    and writes now run one after another.
+  - **Fixed:** USB ID `258A:01AF` was treated as an M87; RK's web driver lists it as the RK S98.
+  - **Fixed:** the AULA receiver adapter sends its `0x0B` read only when the keyboard's model code is
+    an AULA model; RK boards share the receiver's USB ID.
+  - When a board uses its global brightness and speed (page byte `0x05`), those are written too.
 - **RK keyboards (classic protocol, 78 models):** key maps and per-key colours, each on the model's
   own layout generated from RK's key table (positions, key codes and table indices from RK's own
   software). Every write sends RK's factory table with your changes, Fn stays as it is, and restore
